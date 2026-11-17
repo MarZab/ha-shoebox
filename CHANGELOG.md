@@ -2,6 +2,10 @@
 
 All notable changes to Shoebox are listed here. Versions follow [Semantic Versioning](https://semver.org/); pre-releases use Home Assistant's style (`1.0.0b1`, `1.0.0rc1`).
 
+## 0.2.1
+
+- iPhone photos saved as JPEG with an HDR gain map or depth map (MPO) can be turned and cropped; the extra images in them are kept.
+
 ## 0.2.0
 
 - With only one media folder chosen, the panel opens it directly, as Home Assistant's media browser does.

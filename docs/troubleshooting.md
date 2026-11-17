@@ -24,7 +24,7 @@ Pictures are prepared at the size shown, but a PNG, HEIC or other non-JPEG must 
 
 ## Turning or cropping is refused
 
-Only JPEG pictures can be edited. HEIC (iPhone), PNG and other formats are shown, but their metadata cannot be changed in place.
+Only JPEG pictures can be edited, including iPhone photos saved as JPEG with an HDR gain map (MPO). HEIC (iPhone), PNG and other formats are shown, but their metadata cannot be changed in place.
 
 ## An action is refused: "… is not a media folder Shoebox uses" or "'..' is not allowed"
 

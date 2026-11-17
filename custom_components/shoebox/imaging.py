@@ -30,6 +30,10 @@ pillow_heif.register_heif_opener()
 ORIENTATION_TAG: Final = 0x0112
 EXIF_HEADER: Final = b"Exif\x00\x00"
 XMP_HEADER: Final = b"http://ns.adobe.com/xap/1.0/\x00"
+MPF_HEADER: Final = b"MPF\x00"
+MPF_ENTRIES: Final = 0xB002
+# MPO is JPEG with further images appended (iPhone gain maps, depth maps): edited as JPEG
+JPEG_FORMATS: Final = ("JPEG", "MPO")
 CRS_NS: Final = "http://ns.adobe.com/camera-raw-settings/1.0/"
 CROP_FIELDS: Final = ("CropLeft", "CropTop", "CropRight", "CropBottom")
 JPEG_QUALITY: Final = 85
@@ -143,7 +147,58 @@ def _jpeg_segments(data: bytes) -> tuple[list[tuple[int, bytes]], int]:
     raise ImageError("damaged_jpeg")
 
 
-def _jpeg_join(segs: list[tuple[int, bytes]], rest: bytes) -> bytes:
+def _seg_bytes(seg: tuple[int, bytes]) -> int:
+    return 2 if seg[0] in _NO_LENGTH else 4 + len(seg[1])
+
+
+def _mpf_index(segs: list[tuple[int, bytes]]) -> int | None:
+    return next(
+        (i for i, s in enumerate(segs) if s[0] == 0xE2 and s[1].startswith(MPF_HEADER)), None
+    )
+
+
+def _mpf_moved(payload: bytes, delta: int) -> bytes:
+    """The MPF segment with the offsets of the further images moved by `delta` bytes.
+
+    MPO files (iPhone photos with an HDR gain map or depth map, stereo cameras) append further
+    images after the first, at offsets counted from the MPF header. An edit that changes the
+    length of segments after that header moves the further images: their offsets move with them.
+    """
+    tiff = len(MPF_HEADER)
+    order = payload[tiff : tiff + 2]
+    if order not in (b"II", b"MM"):
+        raise ImageError("damaged_jpeg")
+    bo = "<" if order == b"II" else ">"
+    out = bytearray(payload)
+    try:
+        (ifd,) = struct.unpack_from(bo + "I", payload, tiff + 4)
+        (count,) = struct.unpack_from(bo + "H", payload, tiff + ifd)
+        for k in range(count):
+            at = tiff + ifd + 2 + 12 * k
+            tag, _type, size, value = struct.unpack_from(bo + "HHII", payload, at)
+            if tag != MPF_ENTRIES:
+                continue
+            for e in range(size // 16):
+                where = tiff + value + 16 * e + 8  # attribute, size, then the offset
+                (offset,) = struct.unpack_from(bo + "I", payload, where)
+                if offset:  # 0 is the first image, which starts the file
+                    struct.pack_into(bo + "I", out, where, offset + delta)
+    except struct.error as err:
+        raise ImageError("damaged_jpeg") from err
+    return bytes(out)
+
+
+def _jpeg_join(
+    segs: list[tuple[int, bytes]], rest: bytes, before: list[tuple[int, bytes]] | None = None
+) -> bytes:
+    """The file from its segments and the rest; `before` are the segments as they were, so
+    MPF offsets follow a change in length after the MPF segment."""
+    if before is not None and (i := _mpf_index(segs)) is not None:
+        j = _mpf_index(before)
+        assert j is not None  # edits never add or remove the MPF segment
+        delta = sum(map(_seg_bytes, segs[i + 1 :])) - sum(map(_seg_bytes, before[j + 1 :]))
+        if delta:
+            segs = [*segs[:i], (0xE2, _mpf_moved(segs[i][1], delta)), *segs[i + 1 :]]
     out = bytearray(b"\xff\xd8")
     for marker, payload in segs:
         out += bytes((0xFF, marker))
@@ -231,6 +286,7 @@ def set_orientation(path: Path, value: int) -> None:
         raise ImageError("orientation_range")
     data = _require_jpeg(path)
     segs, start = _jpeg_segments(data)
+    before = list(segs)
     for k, seg in enumerate(segs):
         if _is_exif(seg):
             try:
@@ -245,7 +301,7 @@ def set_orientation(path: Path, value: int) -> None:
         )
         tiff += b"\x00\x00" + b"\x00\x00\x00\x00"
         segs.insert(_insert_at(segs), (0xE1, EXIF_HEADER + tiff))
-    _write_atomic(path, _jpeg_join(segs, data[start:]))
+    _write_atomic(path, _jpeg_join(segs, data[start:], before))
 
 
 def rotate(path: Path, degrees: int) -> int:
@@ -353,6 +409,7 @@ def set_crop(path: Path, box: Box | None) -> None:
         _check_box(box)
     data = _require_jpeg(path)
     segs, start = _jpeg_segments(data)
+    before = list(segs)
     k = next((k for k, seg in enumerate(segs) if _is_xmp(seg)), None)
     xmp = segs[k][1][len(XMP_HEADER) :].decode("utf-8", "replace") if k is not None else None
     attrs = ""
@@ -382,7 +439,7 @@ def set_crop(path: Path, box: Box | None) -> None:
         segs.insert(_insert_at(segs), segment)
     else:
         segs[k] = segment
-    _write_atomic(path, _jpeg_join(segs, data[start:]))
+    _write_atomic(path, _jpeg_join(segs, data[start:], before))
 
 
 def _bounds(a: tuple[float, float], b: tuple[float, float]) -> Box:
@@ -424,7 +481,7 @@ def info(path: Path) -> ImageInfo:
             w, h = im.size
             fmt = im.format
             # Reading a PNG's EXIF decodes the whole picture: not for huge ones
-            huge = fmt != "JPEG" and w * h > MAX_PIXELS
+            huge = fmt not in JPEG_FORMATS and w * h > MAX_PIXELS
             o = 1 if huge else _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
     except Exception as err:  # Pillow raises several kinds for unreadable files
         raise _unreadable(path, err) from err
@@ -437,7 +494,7 @@ def info(path: Path) -> ImageInfo:
         "format": fmt,
         "orientation": o,
         "crop": list(crop) if crop else None,
-        "editable": fmt == "JPEG",
+        "editable": fmt in JPEG_FORMATS,
     }
 
 
@@ -511,7 +568,9 @@ def _render(
     im: Image.Image, path: Path, crop: Box | None, width: int, height: int, fit: Fit
 ) -> bytes:
     with im:
-        if im.format != "JPEG":  # JPEG is checked after reduced decoding; PNG's EXIF decodes it all
+        if (
+            im.format not in JPEG_FORMATS
+        ):  # JPEG is checked after reduced decoding; PNG's EXIF decodes it all
             _check_pixels(im, path)
         orientation = _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
         sw, sh = im.size
@@ -519,7 +578,7 @@ def _render(
         cw, ch = (right - left) * sw, (bottom - top) * sh
         dw, dh = (ch, cw) if orientation >= 5 else (cw, ch)
         scale = (max if fit == "cover" else min)(width / dw, height / dh)
-        if im.format == "JPEG" and scale < 1:  # decode at a reduced size where that is enough
+        if im.format in JPEG_FORMATS and scale < 1:  # decode at a reduced size where that is enough
             im.draft("RGB", (math.ceil(sw * scale), math.ceil(sh * scale)))
         _check_pixels(im, path)
         out_im = im if im.mode in ("RGB", "L") else im.convert("RGB")

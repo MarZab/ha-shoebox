@@ -25,6 +25,7 @@ Removing the crop (**Reset** in the panel, or `clear: true`) brings back the who
 | Format | Shown | Turned and cropped |
 |--------|-------|--------------------|
 | JPEG | yes | yes |
+| JPEG with further images (MPO: iPhone photos with an HDR gain map or depth map) | yes | yes; the further images are kept and stay readable |
 | PNG, WebP, GIF, BMP, TIFF, AVIF | yes | no |
 | HEIC and HEIF (iPhone photos) | yes | no |
 

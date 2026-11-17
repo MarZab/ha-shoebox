@@ -158,6 +158,29 @@ def test_a_failed_edit_leaves_the_file_as_it_was(tmp_path: Path) -> None:
     assert path.read_bytes() == before
 
 
+@pytest.mark.parametrize("xmp", [True, False])  # with XMP, Pillow writes it after the MPF segment
+def test_mpo_pictures_are_edited_and_keep_their_further_images(tmp_path: Path, xmp: bool) -> None:
+    """iPhone photos are often MPO: a JPEG with a gain map or depth map appended."""
+    path = tmp_path / "a.jpeg"
+    packet = (
+        '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF>'
+        f'<rdf:Description xmlns:crs="{imaging.CRS_NS}"/></rdf:RDF></x:xmpmeta>'
+    )
+    extra = {"xmp": packet.encode()} if xmp else {}
+    first = write_image(tmp_path / "first.jpg", (80, 40))
+    with Image.open(first) as im:
+        im.save(
+            path, "MPO", save_all=True, append_images=[Image.new("RGB", (30, 30), "blue")], **extra
+        )
+    assert imaging.info(path)["editable"] is True
+    imaging.edit(path, 90, (0.0, 0.0, 0.5, 0.5))
+    assert colours(imaging.render(path, 20, 20, "cover")) == ["blue"] * 4  # turned, then cropped
+    with Image.open(path) as im:
+        assert (im.format, im.n_frames) == ("MPO", 2)
+        im.seek(1)
+        assert (im.size, colour_at(im.convert("RGB"), 0.5, 0.5)) == ((30, 30), "blue")
+
+
 # ---------------------------------------------------------------- refusals
 
 
