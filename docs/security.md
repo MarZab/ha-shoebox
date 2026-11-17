@@ -48,6 +48,10 @@ Only files the browser declares as pictures, video or audio are accepted, up to 
 
 A picture in a media folder may come from anywhere: an upload, a network share, a phone backup. Preparing one is bounded: pictures above 50 megapixels (after JPEG's reduced decoding) are refused before they are decoded, metadata is read only from the start of a JPEG, XMP above 256 KB is ignored, and the crop is parsed without patterns that backtrack. The media view checks the one picture asked for against the rotation instead of walking the folders.
 
+The device URL accepts any size from 1 to 4096, because displays need their exact size. Each size is prepared once and cached, so a logged-in user who asks for many different sizes keeps the preparing busy and pushes other pictures out of the cache. Give devices their own user and token, as for any Home Assistant API.
+
+Rotation patterns are entered by admins. A `re:` expression that backtracks badly can still stall Home Assistant when the folders grow after it was saved; saving refuses patterns that already take more than a second.
+
 ## The cache
 
 The cache folder holds only files Shoebox made. Eviction and clearing remove only names that match its own pattern (64 hex digits and `.jpg`, or its temporary files).

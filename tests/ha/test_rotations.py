@@ -9,6 +9,7 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.shoebox import config_flow
 from custom_components.shoebox.const import DOMAIN, SUBENTRY_ROTATION
 
 from ..conftest import Tree
@@ -61,6 +62,18 @@ async def test_add_rotation_refuses_bad_patterns(
         flow["flow_id"], {"name": "x", "patterns": patterns}
     )
     assert flow["errors"] == {"patterns": error}
+
+
+async def test_add_rotation_refuses_slow_patterns(
+    hass: HomeAssistant, loaded: MockConfigEntry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Really slow patterns take seconds; with no time allowed, any pattern is too slow
+    monkeypatch.setattr(config_flow, "SLOW_MATCH_S", -1.0)
+    flow = await subentry_flow(hass, loaded)
+    flow = await hass.config_entries.subentries.async_configure(
+        flow["flow_id"], {"name": "x", "patterns": ["local/**"]}
+    )
+    assert flow["errors"] == {"patterns": "slow_patterns"}
 
 
 async def test_a_rotation_without_matches_can_still_be_saved(

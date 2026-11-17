@@ -5,6 +5,7 @@ Options: cache size, clearing the cache, the sidebar panel.
 
 from __future__ import annotations
 
+import time
 from typing import Any, override
 
 from homeassistant.config_entries import (
@@ -151,6 +152,19 @@ class ShoeboxOptionsFlow(OptionsFlow):
         )
 
 
+# Python's re cannot be stopped mid-match, and every walk matches every path: patterns that take
+# this long on the folders as they are now are refused before they are saved.
+SLOW_MATCH_S = 1.0
+
+
+def _select_timed(library: Library, patterns: list[str]) -> tuple[list[str], float]:
+    """The pictures the patterns select, and how long the matching took (not the walk)."""
+    entries = library.walk()
+    start = time.monotonic()
+    files = media.select_pictures(entries, patterns)
+    return files, time.monotonic() - start
+
+
 class RotationSubentryFlow(ConfigSubentryFlow):
     """Add or change a rotation: a name and the patterns that select its pictures."""
 
@@ -158,6 +172,7 @@ class RotationSubentryFlow(ConfigSubentryFlow):
         self._name = ""
         self._patterns: list[str] = []
         self._order: str = ORDER_PATH
+        self._files: list[str] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         errors: dict[str, str] = {}
@@ -173,6 +188,13 @@ class RotationSubentryFlow(ConfigSubentryFlow):
                         media.check_pattern(pattern)
                 except MediaError:
                     errors[CONF_PATTERNS] = "invalid_pattern"
+            if not errors:
+                library = Library(media_folders(self.hass, self._get_entry().options))
+                self._files, took = await self.hass.async_add_executor_job(
+                    _select_timed, library, self._patterns
+                )
+                if took > SLOW_MATCH_S:
+                    errors[CONF_PATTERNS] = "slow_patterns"
             if not errors:
                 return await self.async_step_preview()
         schema = vol.Schema(
@@ -211,8 +233,7 @@ class RotationSubentryFlow(ConfigSubentryFlow):
                     self._get_entry(), self._get_reconfigure_subentry(), title=self._name, data=data
                 )
             return self.async_create_entry(title=self._name, data=data)
-        library = Library(media_folders(self.hass, self._get_entry().options))
-        files = await self.hass.async_add_executor_job(library.pictures, self._patterns)
+        files = self._files
         return self.async_show_form(
             step_id="preview",
             data_schema=vol.Schema({}),

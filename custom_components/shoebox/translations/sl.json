@@ -47,7 +47,8 @@
       },
       "error": {
         "no_pattern": "Vnesite vsaj en vzorec.",
-        "invalid_pattern": "Vzorec ni veljaven."
+        "invalid_pattern": "Vzorec ni veljaven.",
+        "slow_patterns": "Ujemanje teh vzorcev s slikami traja več kot sekundo; poenostavite jih (manj \"**\", enostavnejši re: izrazi)."
       }
     }
   },

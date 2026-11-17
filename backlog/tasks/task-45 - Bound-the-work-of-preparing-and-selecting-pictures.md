@@ -1,11 +1,11 @@
 ---
 id: TASK-45
 title: Bound the work of preparing and selecting pictures
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T12:40:00Z'
-updated_date: '2026-11-17T12:46:00Z'
+updated_date: '2026-11-17T12:48:00Z'
 labels:
   - integration
   - security
@@ -34,9 +34,9 @@ From the review: one crafted picture or request must not stall Home Assistant.
 - [x] #1 A picture with 64 KB of whitespace in its XMP crop is handled in well under a second
 - [x] #2 Pictures above the pixel limit are refused with a translated error and no large allocation
 - [x] #3 The media source view does not walk the media folders per request
-- [ ] #4 The device URL only renders documented sizes; other sizes are refused
-- [x] #5 No selection, shuffle or pattern matching runs in the event loop; shuffle over 20 000 pictures takes milliseconds
-- [ ] #6 Patterns with excessive ** are refused; re: patterns cannot stall Home Assistant
+- [x] #4 No selection, shuffle or pattern matching runs in the event loop; shuffle over 20 000 pictures takes milliseconds
+- [x] #5 Device URL sizes stay 1..4096 (user's decision); the risk is documented
+- [x] #6 re: patterns stay; patterns that take over 1 s are refused when saved; documented
 <!-- AC:END -->
 
 ## Definition of Done
@@ -50,4 +50,6 @@ From the review: one crafted picture or request must not stall Home Assistant.
 
 <!-- SECTION:NOTES:BEGIN -->
 Done: XMP crop parsing without backtracking (and a missing crop field no longer reads as a full crop), JPEG metadata read from the first 1 MB only, XMP over 256 KB ignored, 50-megapixel limit before decoding (also before PNG EXIF, which decodes everything), media view checks one path (Library.selects), selection and shuffle in one executor job, shuffle linear (20k: 13.8 s -> 2 ms), at most 3 ** per glob. Open, needs the user's decision: device URL sizes (snapping changes a URL devices use) and re: patterns (a real timeout needs the third-party regex module, a new requirement).
+
+Decided with the user: device sizes stay any 1..4096 (displays need exact sizes), risk documented in security.md. re: patterns stay; the rotation flow refuses patterns whose matching takes over 1 s on the folders as they are; documented.
 <!-- SECTION:NOTES:END -->

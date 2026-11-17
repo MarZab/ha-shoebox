@@ -47,7 +47,8 @@
       },
       "error": {
         "no_pattern": "Give at least one pattern.",
-        "invalid_pattern": "A pattern is not valid."
+        "invalid_pattern": "A pattern is not valid.",
+        "slow_patterns": "These patterns take more than a second to match the pictures; simplify them (fewer \"**\", simpler re: expressions)."
       }
     }
   },
