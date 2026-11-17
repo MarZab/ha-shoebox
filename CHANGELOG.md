@@ -2,7 +2,7 @@
 
 All notable changes to Shoebox are listed here. Versions follow [Semantic Versioning](https://semver.org/); pre-releases use Home Assistant's style (`1.0.0b1`, `1.0.0rc1`).
 
-## Unreleased
+## 0.2.0
 
 - With only one media folder chosen, the panel opens it directly, as Home Assistant's media browser does.
 - Reloading Shoebox (after changing options or rotations) no longer breaks an open panel.
