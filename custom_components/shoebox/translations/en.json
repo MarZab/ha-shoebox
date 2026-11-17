@@ -31,11 +31,13 @@
           "description": "A rotation shows the pictures its patterns select, one at a time, in path order.",
           "data": {
             "name": "Name",
-            "patterns": "Patterns"
+            "patterns": "Patterns",
+            "order": "Order"
           },
           "data_description": {
             "name": "Shown as the rotation's device and entity name.",
-            "patterns": "Globs over paths below the media folder (\"*\" within a folder, \"**\" at any depth), or \"re:\" followed by a regular expression. When the first selects no pictures, the next is used."
+            "patterns": "Globs over paths below the media folder (\"*\" within a folder, \"**\" at any depth), or \"re:\" followed by a regular expression. When the first selects no pictures, the next is used.",
+            "order": "Path order shows the pictures sorted by path. Shuffle shows each picture once per round, in random order."
           }
         },
         "preview": {
@@ -204,6 +206,12 @@
         "90": "90° clockwise",
         "180": "180°",
         "270": "90° counterclockwise"
+      }
+    },
+    "order": {
+      "options": {
+        "path": "Path order",
+        "shuffle": "Shuffle"
       }
     }
   },

@@ -35,6 +35,9 @@ CONCURRENT_RENDERS: Final = 2
 
 SUBENTRY_ROTATION: Final = "rotation"
 CONF_PATTERNS: Final = "patterns"
+CONF_ORDER: Final = "order"
+ORDER_PATH: Final = "path"
+ORDER_SHUFFLE: Final = "shuffle"
 STORAGE_KEY: Final = DOMAIN + ".rotations"
 STORAGE_VERSION: Final = 1
 # Dispatcher signal sent when a rotation changes; format with the subentry id

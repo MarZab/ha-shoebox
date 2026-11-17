@@ -25,6 +25,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
 )
@@ -35,12 +36,15 @@ from .const import (
     CONF_CACHE_SIZE,
     CONF_CLEAR_CACHE,
     CONF_FOLDERS,
+    CONF_ORDER,
     CONF_PATTERNS,
     CONF_SHOW_IN_SIDEBAR,
     DEFAULT_CACHE_SIZE_MB,
     DEFAULT_FOLDERS,
     DOMAIN,
     MIN_CACHE_SIZE_MB,
+    ORDER_PATH,
+    ORDER_SHUFFLE,
     SUBENTRY_ROTATION,
     TITLE,
 )
@@ -153,12 +157,14 @@ class RotationSubentryFlow(ConfigSubentryFlow):
     def __init__(self) -> None:
         self._name = ""
         self._patterns: list[str] = []
+        self._order: str = ORDER_PATH
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             self._name = str(user_input["name"]).strip()
             self._patterns = [p.strip() for p in user_input[CONF_PATTERNS] if p.strip()]
+            self._order = user_input[CONF_ORDER]
             if not self._patterns:
                 errors[CONF_PATTERNS] = "no_pattern"
             else:
@@ -175,6 +181,13 @@ class RotationSubentryFlow(ConfigSubentryFlow):
                 vol.Required(CONF_PATTERNS, default=self._patterns): TextSelector(
                     TextSelectorConfig(multiple=True)
                 ),
+                vol.Required(CONF_ORDER, default=self._order): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[ORDER_PATH, ORDER_SHUFFLE],
+                        translation_key=CONF_ORDER,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -185,12 +198,13 @@ class RotationSubentryFlow(ConfigSubentryFlow):
         subentry = self._get_reconfigure_subentry()
         self._name = subentry.title
         self._patterns = list(subentry.data.get(CONF_PATTERNS, []))
+        self._order = subentry.data.get(CONF_ORDER, ORDER_PATH)
         return await self.async_step_user()
 
     async def async_step_preview(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        data = {CONF_PATTERNS: self._patterns}
+        data = {CONF_PATTERNS: self._patterns, CONF_ORDER: self._order}
         if user_input is not None:
             if self.source == SOURCE_RECONFIGURE:
                 return self.async_update_and_abort(

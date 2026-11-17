@@ -18,9 +18,10 @@ Attributes:
 | Attribute | Example | Meaning |
 |-----------|---------|---------|
 | `patterns` | `["local/Family/**"]` | The rotation's patterns |
+| `order` | `shuffle` | `path` or `shuffle` (see [order](rotations.md#order)) |
 | `pattern` | `local/Family/**` | The pattern in use (see [fallbacks](rotations.md#fallbacks)); empty when nothing matches |
 | `file` | `local/Family/2024 Summer/beach.jpg` | The current picture |
-| `position` | `2` | Its place in the order, from 1; 0 before the first Next |
+| `position` | `2` | Its place in path order, or how many pictures this shuffle round has shown; 0 before the first Next |
 | `count` | `48` | How many pictures the rotation selects |
 
 The state is `unknown` until Next is pressed the first time.

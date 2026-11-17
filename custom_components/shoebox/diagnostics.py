@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from . import ShoeboxConfigEntry
-from .const import CONF_PATTERNS, SUBENTRY_ROTATION
+from .const import CONF_ORDER, CONF_PATTERNS, ORDER_PATH, SUBENTRY_ROTATION
 
 
 async def async_get_config_entry_diagnostics(
@@ -22,6 +22,7 @@ async def async_get_config_entry_diagnostics(
             rotations.append(
                 {
                     "patterns": list(sub.data.get(CONF_PATTERNS, [])),
+                    "order": sub.data.get(CONF_ORDER, ORDER_PATH),
                     "pattern": state.pattern,
                     "position": state.position,
                     "count": state.count,

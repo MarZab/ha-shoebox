@@ -12,6 +12,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import random
 import re
 import shutil
 from typing import Final, Literal
@@ -206,6 +207,28 @@ def advance(files: Sequence[str], current: str | None) -> int:
     if current in files:
         return (files.index(current) + 1) % len(files)
     return bisect.bisect_right(list(files), current) % len(files)
+
+
+def shuffle_next(
+    files: Sequence[str],
+    shown: Sequence[str],
+    current: str | None,
+    choose: Callable[[Sequence[str]], str] = random.choice,
+) -> tuple[str | None, list[str]]:
+    """The next picture of a shuffled rotation, and the pictures shown in this round with it.
+
+    Every picture once per round, in random order; a new round never starts with `current`.
+    Pictures that are gone drop out of the round, new ones join it.
+    """
+    if not files:
+        return None, []
+    seen = [f for f in shown if f in set(files)]
+    left = [f for f in files if f not in set(seen)]
+    if not left:
+        seen = []
+        left = [f for f in files if f != current] or list(files)
+    pick = choose(left)
+    return pick, [*seen, pick]
 
 
 # ---------------------------------------------------------------- file operations

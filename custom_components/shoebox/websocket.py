@@ -21,7 +21,7 @@ import probatio as vol
 from yarl import URL
 
 from . import imaging, media
-from .const import DOMAIN, PANEL_URL_LIFETIME_S, RENDER_URL
+from .const import CONF_ORDER, DOMAIN, ORDER_PATH, PANEL_URL_LIFETIME_S, RENDER_URL
 from .runtime import Shoebox
 from .views import loaded_shoebox
 
@@ -136,10 +136,15 @@ async def ws_edit(
     connection.send_result(msg["id"], await _info(hass, box, msg["path"]))
 
 
-def _rotation_patterns(entry: ConfigEntry) -> list[tuple[str, str, list[str]]]:
-    """(subentry id, title, patterns) of each rotation."""
+def _rotation_patterns(entry: ConfigEntry) -> list[tuple[str, str, list[str], str]]:
+    """(subentry id, title, patterns, order) of each rotation."""
     return [
-        (sub.subentry_id, sub.title, list(sub.data.get("patterns", [])))
+        (
+            sub.subentry_id,
+            sub.title,
+            list(sub.data.get("patterns", [])),
+            sub.data.get(CONF_ORDER, ORDER_PATH),
+        )
         for sub in entry.subentries.values()
         if sub.subentry_type == ROTATION
     ]
@@ -155,7 +160,7 @@ async def ws_rotations(
     registry = er.async_get(hass)
     entries = await box.run(box.library.walk)
     out = []
-    for subentry_id, title, patterns in _rotation_patterns(entry):
+    for subentry_id, title, patterns, order in _rotation_patterns(entry):
         used, files = await box.run(media.first_match, entries, patterns)
         state = box.rotations.state(subentry_id)
         out.append(
@@ -163,6 +168,7 @@ async def ws_rotations(
                 "id": subentry_id,
                 "title": title,
                 "patterns": patterns,
+                "order": order,
                 "pattern": used,
                 "count": len(files),
                 "position": state.position,

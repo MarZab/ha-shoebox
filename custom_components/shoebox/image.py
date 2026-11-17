@@ -53,6 +53,7 @@ class RotationImage(RotationEntity, ImageEntity):
         state = self.rotation
         return {
             "patterns": self.patterns,
+            "order": self.order,
             "pattern": state.pattern,
             "file": state.file,
             "position": state.position,

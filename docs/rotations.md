@@ -6,8 +6,8 @@ A rotation is a set of pictures shown one at a time. Each rotation has a name an
 
 All in **Settings → Devices & services → Shoebox Media Manager**:
 
-- **Add rotation** asks for a name and patterns. The next step shows how many pictures the patterns select and the first few, before anything is saved.
-- The gear next to a rotation changes its name or patterns. Renaming keeps its entities, areas and customizations.
+- **Add rotation** asks for a name, patterns and the [order](#order). The next step shows how many pictures the patterns select and the first few, before anything is saved.
+- The gear next to a rotation changes its name, patterns or order. Renaming keeps its entities, areas and customizations.
 - The rotation's menu (⋮) deletes it, with its device and entities. Pictures stay.
 
 Each rotation becomes a device with two entities: an [image](entities.md#image) and a [Next button](entities.md#next-button). Their entity IDs come from the name: a rotation named *Living room* has `image.living_room` and `button.living_room_next`.
@@ -47,10 +47,26 @@ shows winter pictures while there are any, and wallpapers otherwise. The rotatio
 
 ## Order
 
-Pictures are shown in path order: sorted by their full path, so `local/Family/2023/…` comes before `local/Family/2024/…`. After the last picture the rotation starts again at the first.
+Each rotation has an order, set when adding or changing it:
 
-The rotation remembers its current picture, also across restarts. When files change:
+| Order | Next shows |
+|-------|------------|
+| **Path order** (default) | the picture after the current one, sorted by full path |
+| **Shuffle** | a random picture not yet shown in this round |
 
-- New pictures join in their place in the order.
-- If the current picture is deleted, moved or renamed, the rotation continues with the picture that sorts after it, so it does not start over.
+### Path order
+
+Pictures are shown sorted by their full path, so `local/Family/2023/…` comes before `local/Family/2024/…`. After the last picture the rotation starts again at the first.
+
+### Shuffle
+
+Shuffle works in rounds, as music players do: every picture is shown once per round, in random order, and the next round never starts with the picture that was just shown. The position counts the pictures shown in this round ("12 of 48").
+
+### When files change
+
+The rotation remembers its current picture, also across restarts.
+
+- New pictures join in their place in path order; in shuffle they join the current round.
+- If the current picture is deleted, moved or renamed, path order continues with the picture that sorts after it, so it does not start over; shuffle simply leaves it out.
+- Changing the order keeps the current picture: switching to path order continues from it.
 - If the patterns select nothing, the rotation shows no picture until they do.

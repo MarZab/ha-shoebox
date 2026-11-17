@@ -47,7 +47,7 @@ async def test_add_rotation_with_preview(
     sub = next(iter(loaded.subentries.values()))
     assert (sub.title, dict(sub.data)) == (
         "Living room",
-        {"patterns": ["local/morning/*", "local/evening/*"]},
+        {"patterns": ["local/morning/*", "local/evening/*"], "order": "path"},
     )
 
 
@@ -167,6 +167,7 @@ async def test_rotations_command_lists_subentries(
         "id": rid,
         "title": "Evening",
         "patterns": ["local/evening/*"],
+        "order": "path",
         "pattern": "local/evening/*",
         "count": 2,
         "position": 1,
@@ -195,3 +196,38 @@ async def test_a_rotation_spans_media_folders(
         (await rotations.async_advance(rotation_id(entry), ["*/Family/*"])).file for _ in range(2)
     ]
     assert files == ["local/Family/a.jpg", "nas/Family/b.jpg"]
+
+
+async def test_shuffle_shows_every_picture_once_per_round(
+    hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree
+) -> None:
+    files = [f"local/evening/{n}.jpg" for n in "abcd"]
+    tree(*(f.removeprefix("local/") for f in files))
+    rotations = with_rotation.runtime_data.rotations
+    rid = rotation_id(with_rotation)
+    last = None
+    for _ in range(20):
+        round_ = [await rotations.async_advance(rid, ["local/evening/*"], "shuffle") for _ in files]
+        assert sorted(s.file for s in round_) == files  # type: ignore[type-var]
+        assert [s.position for s in round_] == [1, 2, 3, 4]
+        assert round_[0].file != last
+        last = round_[-1].file
+
+
+async def test_shuffle_takes_in_new_pictures_and_path_order_continues(
+    hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree
+) -> None:
+    root = tree("evening/a.jpg", "evening/b.jpg", "evening/c.jpg")
+    rotations = with_rotation.runtime_data.rotations
+    rid = rotation_id(with_rotation)
+    seen = [
+        (await rotations.async_advance(rid, ["local/evening/*"], "shuffle")).file for _ in range(2)
+    ]
+    tree("evening/new.jpg")
+    seen += [
+        (await rotations.async_advance(rid, ["local/evening/*"], "shuffle")).file for _ in range(2)
+    ]
+    assert sorted(seen) == [f"local/evening/{n}.jpg" for n in ("a", "b", "c", "new")]  # type: ignore[type-var]
+    files = sorted(f"local/{p.relative_to(root).as_posix()}" for p in (root / "evening").iterdir())
+    after = files[(files.index(seen[-1]) + 1) % len(files)]  # type: ignore[arg-type]
+    assert (await rotations.async_advance(rid, ["local/evening/*"])).file == after

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, override
 
 from homeassistant.core import HomeAssistant
@@ -17,7 +17,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import media
-from .const import SIGNAL_ROTATION, STORAGE_KEY, STORAGE_VERSION
+from .const import ORDER_PATH, ORDER_SHUFFLE, SIGNAL_ROTATION, STORAGE_KEY, STORAGE_VERSION
 from .library import Library
 
 type Runner = Callable[..., Awaitable[Any]]
@@ -30,6 +30,7 @@ class RotationState:
     count: int = 0
     pattern: str | None = None  # the pattern that selected the pictures
     updated: str | None = None  # ISO time of the last step
+    shown: list[str] = field(default_factory=list)  # shuffle: pictures shown in this round
 
 
 class RotationStore(Store[dict[str, Any]]):
@@ -68,18 +69,28 @@ class Rotations:
     def state(self, rotation_id: str) -> RotationState:
         return self._states.get(rotation_id) or RotationState()
 
-    async def async_advance(self, rotation_id: str, patterns: Sequence[str]) -> RotationState:
-        """Move a rotation to its next picture, in path order, wrapping around."""
+    async def async_advance(
+        self, rotation_id: str, patterns: Sequence[str], order: str = ORDER_PATH
+    ) -> RotationState:
+        """Move a rotation to its next picture: in path order, wrapping around, or shuffled."""
         async with self._lock:
             entries = await self._run(self.library.walk)
             used, files = await self._run(media.first_match, entries, list(patterns))
-            index = media.advance(files, self.state(rotation_id).file)
+            current = self.state(rotation_id)
+            shown: list[str] = []
+            if order == ORDER_SHUFFLE:
+                file, shown = media.shuffle_next(files, current.shown, current.file)
+                position = len(shown)
+            else:
+                index = media.advance(files, current.file)
+                file, position = (files[index] if files else None), index + 1
             state = RotationState(
-                file=files[index] if files else None,
-                position=index + 1,
+                file=file,
+                position=position,
                 count=len(files),
                 pattern=used,
                 updated=dt_util.utcnow().isoformat(),
+                shown=shown,
             )
             self._states[rotation_id] = state
             self._store.async_delay_save(self._data, 1)

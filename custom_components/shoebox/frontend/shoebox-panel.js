@@ -828,7 +828,7 @@ class ShoeboxPanel extends HTMLElement {
     const rows = this._rotations.map((r) => `<div class="rot">
         ${r.thumb ? `<img class="pic" alt="" src="${esc(r.thumb)}">` : `<div class="pic">${icon("mdi:image-off-outline")}</div>`}
         <div class="txt"><div class="nm">${esc(r.title)}</div>
-          <div class="sub">${r.patterns.map((p) => `<code>${esc(p)}</code>`).join(" → ")}</div>
+          <div class="sub">${r.patterns.map((p) => `<code>${esc(p)}</code>`).join(" → ")}${r.order === "shuffle" ? ` · ${esc(t("shuffled"))}` : ""}</div>
           <div class="sub">${esc(r.position ? t("position", { position: r.position, count: r.count }) : t("not_started", { count: r.count }))}${
             r.entity_id ? ` · <a class="entity" data-act="more-info" data-entity="${esc(r.entity_id)}">${esc(r.entity_id)}</a>` : ""}</div>
           ${r.file ? `<div class="sub">${esc(t("current", { file: r.file }))}</div>` : ""}</div>

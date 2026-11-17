@@ -31,11 +31,13 @@
           "description": "Rotacija prikazuje slike, ki jih izberejo njeni vzorci, eno za drugo, po vrstnem redu poti.",
           "data": {
             "name": "Ime",
-            "patterns": "Vzorci"
+            "patterns": "Vzorci",
+            "order": "Vrstni red"
           },
           "data_description": {
             "name": "Ime naprave in entitete rotacije.",
-            "patterns": "Globi nad potmi v mapi z mediji (\"*\" znotraj mape, \"**\" v poljubni globini) ali \"re:\" in regularni izraz. Če prvi ne izbere nobene slike, se uporabi naslednji."
+            "patterns": "Globi nad potmi v mapi z mediji (\"*\" znotraj mape, \"**\" v poljubni globini) ali \"re:\" in regularni izraz. Če prvi ne izbere nobene slike, se uporabi naslednji.",
+            "order": "Po poti prikazuje slike, razvrščene po poti. Premešano prikaže vsako sliko enkrat na krog, v naključnem vrstnem redu."
           }
         },
         "preview": {
@@ -204,6 +206,12 @@
         "90": "90° v smeri urinega kazalca",
         "180": "180°",
         "270": "90° v nasprotni smeri urinega kazalca"
+      }
+    },
+    "order": {
+      "options": {
+        "path": "Po poti",
+        "shuffle": "Premešano"
       }
     }
   },

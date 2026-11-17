@@ -34,4 +34,4 @@ class NextButton(RotationEntity, ButtonEntity):
 
     @override
     async def async_press(self) -> None:
-        await self.shoebox.rotations.async_advance(self.rotation_id, self.patterns)
+        await self.shoebox.rotations.async_advance(self.rotation_id, self.patterns, self.order)

@@ -10,7 +10,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from .const import CONF_PATTERNS, DOMAIN, SIGNAL_ROTATION
+from .const import CONF_ORDER, CONF_PATTERNS, DOMAIN, ORDER_PATH, SIGNAL_ROTATION
 from .rotations import RotationState
 from .runtime import Shoebox
 
@@ -25,6 +25,7 @@ class RotationEntity(Entity):
         self.rotation_id = subentry.subentry_id
         self._attr_unique_id = "_".join(filter(None, (subentry.subentry_id, self._unique_suffix)))
         self.patterns: list[str] = list(subentry.data.get(CONF_PATTERNS, []))
+        self.order: str = subentry.data.get(CONF_ORDER, ORDER_PATH)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
             name=subentry.title,
