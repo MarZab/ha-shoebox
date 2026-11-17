@@ -20,6 +20,8 @@ Home Assistant's media browser can upload and delete files. Shoebox adds what it
 ## Install
 
 1. In HACS, search for **Shoebox** (or "media manager", "photo") and download it. Restart Home Assistant.
+
+   Until Shoebox is in HACS's default list, add it first: **HACS → ⋮ → Custom repositories**, repository `https://github.com/MarZab/ha-shoebox`, type **Integration**.
 2. Go to **Settings → Devices & services → Add integration** and add **Shoebox Media Manager**. Choose the media folders it works on; **My media** (`local`) is chosen already.
 3. Open **Shoebox** in the sidebar.
 
@@ -66,7 +68,7 @@ online_image:
     request_headers:
       Authorization: !secret shoebox_authorization  # "Bearer <long-lived token>"
     on_download_finished:
-      - component.update: my_display
+      - component.update: frame  # the display's id
 
 api:
   actions:

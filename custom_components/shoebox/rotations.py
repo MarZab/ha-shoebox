@@ -25,7 +25,7 @@ type Runner = Callable[..., Awaitable[Any]]
 
 @dataclass
 class RotationState:
-    file: str | None = None  # below the media folder
+    file: str | None = None  # "local/Family/a.jpg"
     position: int = 0  # 1-based; 0 before the first step
     count: int = 0
     updated: str | None = None  # ISO time of the last step

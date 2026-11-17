@@ -32,7 +32,7 @@ const icon = (name, slot = "") => `<ha-icon ${slot ? `slot="${slot}"` : ""} icon
 const STALE_MS = 25 * 60_000;
 const iconButton = (name, label, attrs = "") =>
   `<ha-icon-button label="${esc(label)}" ${attrs}>${icon(name)}</ha-icon-button>`;
-// other files open as text; the server refuses binary ones with a message
+// other files open as text; one that is not text says so (checked here, on its first bytes)
 const previewable = (it) => it.type === "file" && !VIDEO.test(it.name) && !AUDIO.test(it.name);
 const sizeText = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} kB` : `${(n / 1048576).toFixed(1)} MB`);
 

@@ -16,7 +16,7 @@ mise run check                # with lint, types and coverage
 | `tests/test_release.py` | Release version arithmetic and checks |
 | `tests/ha/` | The integration in Home Assistant, with `pytest-homeassistant-custom-component` |
 
-`tests/ha/` covers setup and removal, the config, options and rotation flows, several media folders (`test_folders.py`), every action, the entities, the views, the WebSocket commands, the media source and diagnostics.
+`tests/ha/` covers setup and removal, the config, options and rotation flows, several media folders (in `test_library.py` and `test_rotations.py`), every action, the entities, the views, the WebSocket commands, the media source and diagnostics.
 
 ## Fixtures
 

@@ -1,4 +1,4 @@
-"""The running integration: the media folder and the cache of prepared pictures."""
+"""The running integration: the chosen media folders, the cache of prepared pictures, rotations."""
 
 from __future__ import annotations
 

@@ -34,7 +34,7 @@ Delete is final; the panel asks first.
 | Device view (`/api/shoebox/image/<entity_id>`) | any logged-in user or long-lived token |
 | Media source view (`/api/shoebox/media/...`) | any logged-in user, also through URLs Home Assistant signs for media players |
 
-The device and media source views serve only pictures of rotations, prepared: never other files, and never the original file. Every user can see rotations through their image entities anyway.
+The device and media source views serve only pictures of rotations, prepared: never other files, and never the original file. The device view serves a rotation's current picture, which every user also sees through its image entity. The media source view serves **every picture a rotation's patterns select**, because the media browser lists them all: a rotation makes its pictures visible to every user. Folders no rotation selects stay admin-only.
 
 ## URLs and tokens
 

@@ -1,10 +1,11 @@
-# Paths are below the media folder, e.g. "Family/beach.jpg". Patterns are globs over those paths
-# ("*" within a folder, "**" at any depth, "?", "[...]") or "re:<regular expression>".
+# Paths start with the media folder's name, e.g. "local/Family/beach.jpg" ("local" is My media).
+# Patterns are globs over those paths ("*" within a folder, "**" at any depth, "?", "[...]") or
+# "re:<regular expression>".
 list:
   fields:
     pattern:
       default: "**"
-      example: "Family/**"
+      example: "local/Family/**"
       selector:
         text:
     type:
@@ -17,26 +18,26 @@ create_folder:
   fields:
     path:
       required: true
-      example: Family/2025 Summer
+      example: local/Family/2025 Summer
       selector:
         text:
 move:
   fields:
     path:
       required: true
-      example: Phone/IMG_0001.heic
+      example: local/Phone/IMG_0001.heic
       selector:
         text:
     to:
       required: true
-      example: Family
+      example: local/Family
       selector:
         text:
 rename:
   fields:
     path:
       required: true
-      example: Phone/IMG_0001.heic
+      example: local/Phone/IMG_0001.heic
       selector:
         text:
     name:
@@ -48,14 +49,14 @@ delete:
   fields:
     path:
       required: true
-      example: Phone/IMG_0001.heic
+      example: local/Phone/IMG_0001.heic
       selector:
         text:
 rotate:
   fields:
     path:
       required: true
-      example: Family/beach.jpg
+      example: local/Family/beach.jpg
       selector:
         text:
     by:
@@ -74,7 +75,7 @@ crop:
   fields:
     path:
       required: true
-      example: Family/beach.jpg
+      example: local/Family/beach.jpg
       selector:
         text:
     left: &fraction

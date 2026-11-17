@@ -28,7 +28,7 @@
       "step": {
         "user": {
           "title": "Rotation",
-          "description": "A rotation shows the pictures its patterns select, one at a time, in path order.",
+          "description": "A rotation shows the pictures its patterns select, one at a time: in path order, or shuffled with every picture once per round.",
           "data": {
             "name": "Name",
             "patterns": "Patterns",
@@ -87,11 +87,11 @@
   "services": {
     "list": {
       "name": "List media",
-      "description": "Lists the files and folders below the media folder that match a pattern.",
+      "description": "Lists the files and folders in the chosen media folders that match a pattern.",
       "fields": {
         "pattern": {
           "name": "Pattern",
-          "description": "A glob over paths below the media folder (\"*\" within a folder, \"**\" at any depth, \"?\", \"[...]\"), or \"re:\" followed by a regular expression."
+          "description": "A glob over paths that start with the media folder's name (\"*\" within a folder, \"**\" at any depth, \"?\", \"[...]\"), for example \"local/Family/**\"; or \"re:\" followed by a regular expression."
         },
         "type": {
           "name": "Type",
@@ -101,11 +101,11 @@
     },
     "create_folder": {
       "name": "Create folder",
-      "description": "Creates a folder below the media folder, with any missing parent folders.",
+      "description": "Creates a folder in a media folder, with any missing parent folders.",
       "fields": {
         "path": {
           "name": "Path",
-          "description": "The new folder, for example \"Family/2025 Summer\"."
+          "description": "The new folder, starting with the media folder's name, for example \"local/Family/2025 Summer\"."
         }
       }
     },
@@ -115,11 +115,11 @@
       "fields": {
         "path": {
           "name": "Path",
-          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+          "description": "File or folder, starting with the media folder's name, for example \"local/Family/beach.jpg\"."
         },
         "to": {
           "name": "To",
-          "description": "The folder to move into; empty for the media folder itself."
+          "description": "The folder to move into, for example \"local/Family\", or a media folder itself such as \"local\". It may be in another media folder."
         }
       }
     },
@@ -129,7 +129,7 @@
       "fields": {
         "path": {
           "name": "Path",
-          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+          "description": "File or folder, starting with the media folder's name, for example \"local/Family/beach.jpg\"."
         },
         "name": {
           "name": "New name",
@@ -143,7 +143,7 @@
       "fields": {
         "path": {
           "name": "Path",
-          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+          "description": "File or folder, starting with the media folder's name, for example \"local/Family/beach.jpg\"."
         }
       }
     },
@@ -153,7 +153,7 @@
       "fields": {
         "path": {
           "name": "Path",
-          "description": "Picture below the media folder, for example \"Family/beach.jpg\"."
+          "description": "Picture, starting with the media folder's name, for example \"local/Family/beach.jpg\"."
         },
         "by": {
           "name": "By",
@@ -171,7 +171,7 @@
       "fields": {
         "path": {
           "name": "Path",
-          "description": "Picture below the media folder, for example \"Family/beach.jpg\"."
+          "description": "Picture, starting with the media folder's name, for example \"local/Family/beach.jpg\"."
         },
         "left": {
           "name": "Left",

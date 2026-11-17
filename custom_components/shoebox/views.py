@@ -1,4 +1,5 @@
-"""HTTP views of the panel: pictures prepared at a size, and uploads into the media folder."""
+"""HTTP views: for the panel (pictures at a size, uploads, downloads), for devices (a rotation's
+current picture) and for the media browser (a rotation's pictures)."""
 
 from __future__ import annotations
 
@@ -67,7 +68,7 @@ def jpeg(data: bytes, etag: str, max_age: int) -> web.Response:
 
 
 class RenderView(HomeAssistantView):
-    """A picture below the media folder, prepared at a size, for the panel's images.
+    """A picture in the chosen media folders, prepared at a size, for the panel's images.
 
     The panel reaches it with signed URLs (an <img> cannot send the Authorization header).
     Query: path, size=WxH, fit=cover|contain, crop=0 to ignore the crop.
@@ -195,7 +196,7 @@ class _TooLarge(Exception):
 
 
 class UploadView(HomeAssistantView):
-    """POST multipart/form-data with a part named "file" to ?folder=<folder below the media folder>.
+    """POST multipart/form-data with a part named "file" to ?folder=<folder>, such as local/Family.
 
     The declared type must be a picture, video or audio. The body streams into a hidden temporary
     file in the folder, which then moves to a free name: an existing file is never replaced.

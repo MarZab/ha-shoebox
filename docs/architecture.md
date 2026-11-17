@@ -16,7 +16,7 @@
 | `config_flow.py` | Config flow, options, the rotation subentry flow | yes |
 | `services.py` | The file actions | yes |
 | `entity.py`, `image.py`, `button.py` | Rotation devices, image entities, Next buttons | yes |
-| `views.py` | HTTP: panel pictures, uploads, device pictures, media source pictures | yes |
+| `views.py` | HTTP: panel pictures, uploads, downloads, device pictures, media source pictures | yes |
 | `websocket.py` | The panel's commands | yes |
 | `panel.py` | Serving and registering the sidebar panel | yes |
 | `media_source.py` | Rotations in the media browser | yes |
@@ -55,8 +55,8 @@ The panel talks over the WebSocket (`websocket.py`: browse, folders, info, edit)
 | What | Where |
 |------|-------|
 | Options: media folders, cache size, sidebar | the config entry |
-| Rotations: title and patterns | config subentries |
-| Rotation state: file, position, count, pattern, last step | `.storage/shoebox.rotations`, keyed by subentry id, versioned |
+| Rotations: title, patterns and order | config subentries |
+| Rotation state: file, position, count, last step, the pictures shown this round (shuffle) | `.storage/shoebox.rotations`, keyed by subentry id, versioned |
 | Prepared pictures | `.cache/shoebox/`, one JPEG per key |
 
 The cache key is a SHA-256 of a version number, the file's real path, size and modification time, the width, height and fit, and an extra marker (`nocrop` for the editor's uncropped base). Any change to the file gives a new key; old pictures age out. Bump `cache.VERSION` when `render` output changes.
@@ -75,7 +75,7 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 **Edits are metadata.** EXIF orientation and the Adobe XMP crop keep the picture data untouched and the edits reversible, and other apps understand them. The cost: only JPEG can be edited, and most viewers ignore the crop.
 
-**Devices get a stable URL with a token.** Devices such as ESPHome need a URL that does not change, their own size and baseline JPEG; they authenticate with a long-lived token in a header, the standard for Home Assistant's API. The device and media source views accept any user, so a device can use a user without admin rights; they serve only pictures of rotations, which every user can see through the image entity anyway.
+**Devices get a stable URL with a token.** Devices such as ESPHome need a URL that does not change, their own size and baseline JPEG; they authenticate with a long-lived token in a header, the standard for Home Assistant's API. The device and media source views accept any user, so a device can use a user without admin rights; they serve only pictures of rotations: the current one, and through the media browser every picture a rotation's patterns select. Choose patterns with that in mind; folders no rotation selects stay admin-only.
 
 **Sized for hundreds of pictures.** Listing walks the chosen media folders on demand, with no index or watcher. That keeps the code small; revisit if real use passes a few thousand files.
 

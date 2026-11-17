@@ -14,7 +14,7 @@ mise run check      # lint, types and tests: what CI runs
 
 Without mise: `uv sync`, then `uv run pytest`, `uv run ruff check .`, `uv run mypy`.
 
-Home Assistant is pinned once, through `pytest-homeassistant-custom-component` in `pyproject.toml`: the tests and the Docker Home Assistant both use the version it brings. Raise both together by bumping that plugin.
+Home Assistant is pinned through `pytest-homeassistant-custom-component` in `pyproject.toml`: the tests and the Docker Home Assistant both use the version it brings. Raise both together by bumping that plugin, and bump `home-assistant-frontend` next to it to the version that Home Assistant release uses (the tests serve the panel with it).
 
 ## Tasks
 

@@ -125,5 +125,6 @@ Match `width` and `height` to the display. For e-paper, use `fit: cover` and the
 
 ## URL lifetime
 
-- The image entity's picture and the device URL do not expire.
-- Thumbnails and pictures in the [panel](panel.md) use signed links that work for one hour; the panel asks for new ones whenever it shows a folder again.
+- The device URL does not expire; it works as long as its token does.
+- The image entity's picture URL (`entity_picture`) carries an access token that Home Assistant changes every 5 minutes, so it is no good for devices. Home Assistant's `/api/image_proxy/<entity_id>` with an `Authorization` header does not change, but it is always the entity's size; the device URL takes yours.
+- Thumbnails and pictures in the [panel](panel.md) use signed links that work for one hour; the panel asks for new ones before that.

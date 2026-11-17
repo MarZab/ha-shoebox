@@ -28,7 +28,7 @@
       "step": {
         "user": {
           "title": "Rotacija",
-          "description": "Rotacija prikazuje slike, ki jih izberejo njeni vzorci, eno za drugo, po vrstnem redu poti.",
+          "description": "Rotacija prikazuje slike, ki jih izberejo njeni vzorci, eno za drugo: po vrstnem redu poti ali premešano, vsako enkrat v krogu.",
           "data": {
             "name": "Ime",
             "patterns": "Vzorci",
@@ -87,11 +87,11 @@
   "services": {
     "list": {
       "name": "Seznam medijev",
-      "description": "Našteje datoteke in mape v mapi z mediji, ki ustrezajo vzorcu.",
+      "description": "Našteje datoteke in mape v izbranih mapah z mediji, ki ustrezajo vzorcu.",
       "fields": {
         "pattern": {
           "name": "Vzorec",
-          "description": "Glob nad potmi v mapi z mediji (\"*\" znotraj mape, \"**\" v poljubni globini, \"?\", \"[...]\") ali \"re:\" in regularni izraz."
+          "description": "Glob nad potmi, ki se začnejo z imenom mape z mediji (\"*\" znotraj mape, \"**\" v poljubni globini, \"?\", \"[...]\"), npr. \"local/Družina/**\"; ali \"re:\" in regularni izraz."
         },
         "type": {
           "name": "Vrsta",
@@ -105,7 +105,7 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Nova mapa, npr. \"Družina/Poletje 2025\"."
+          "description": "Nova mapa, z imenom mape z mediji na začetku, npr. \"local/Družina/Poletje 2025\"."
         }
       }
     },
@@ -115,11 +115,11 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+          "description": "Datoteka ali mapa, z imenom mape z mediji na začetku, npr. \"local/Družina/plaža.jpg\"."
         },
         "to": {
           "name": "V",
-          "description": "Mapa, v katero se premakne; prazno za mapo z mediji."
+          "description": "Mapa, v katero se premakne, npr. \"local/Družina\", ali sama mapa z mediji, npr. \"local\". Lahko je v drugi mapi z mediji."
         }
       }
     },
@@ -129,7 +129,7 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+          "description": "Datoteka ali mapa, z imenom mape z mediji na začetku, npr. \"local/Družina/plaža.jpg\"."
         },
         "name": {
           "name": "Novo ime",
@@ -143,7 +143,7 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+          "description": "Datoteka ali mapa, z imenom mape z mediji na začetku, npr. \"local/Družina/plaža.jpg\"."
         }
       }
     },
@@ -153,7 +153,7 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Slika v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+          "description": "Slika, z imenom mape z mediji na začetku, npr. \"local/Družina/plaža.jpg\"."
         },
         "by": {
           "name": "Za",
@@ -171,7 +171,7 @@
       "fields": {
         "path": {
           "name": "Pot",
-          "description": "Slika v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+          "description": "Slika, z imenom mape z mediji na začetku, npr. \"local/Družina/plaža.jpg\"."
         },
         "left": {
           "name": "Levo",

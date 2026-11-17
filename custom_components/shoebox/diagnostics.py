@@ -1,4 +1,5 @@
-"""Diagnostics: options, cache usage and rotations. No file names or contents."""
+"""Diagnostics: options, cache usage and rotations. Rotation patterns may name folders; no file
+contents and no listings."""
 
 from __future__ import annotations
 

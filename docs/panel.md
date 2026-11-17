@@ -19,7 +19,7 @@ The panel opens at the media folders Shoebox uses, named as in Home Assistant's 
 
 - **New folder** in the top bar creates a folder in the current one, inside a media folder.
 - Moving can go into another media folder, such as from My media to a network share.
-- The menu (⋮) of a file or folder opens it, renames it, moves it into another folder, or deletes it. Deleting asks first; a folder is deleted with everything in it, and **this cannot be undone**. Include the media folder in your Home Assistant backups to be able to restore files.
+- The menu (⋮) of a file or folder opens it (pictures, text files and folders), downloads it (files), renames it, moves it into another folder, or deletes it. Deleting asks first; a folder is deleted with everything in it, and **this cannot be undone**. Include the media folder in your Home Assistant backups to be able to restore files.
 
 ## Viewing and editing pictures
 

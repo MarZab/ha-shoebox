@@ -41,10 +41,10 @@ On a computer, drag the files onto the panel instead.
 
 ## Fix sideways photos and crop
 
-1. In the Shoebox panel, tap the picture.
-2. Turn it with the rotate buttons in the top bar. The change is saved at once.
-3. Tap **Crop**, choose an aspect ratio (for a 800 × 480 display: *Free*, or the display's shape), and draw the box.
-4. Tap **Save**. **Reset** removes the crop again.
+1. In the Shoebox panel, tap the picture, then **Edit** (the pencil in its top bar).
+2. Turn it with **Rotate left** or **Rotate right**.
+3. Choose an **Aspect ratio**, such as *16:9* or *Free*, and draw the box. The preview shows the result. A display with an uncommon shape, such as 800 × 480 (5:3), crops with *Free*, or use `fit: cover` on the device URL and let it cut the overhang.
+4. Tap **Save**: the turn and the crop are saved together. **Cancel** drops both; **Reset** removes the crop, saved with Save.
 
 Only JPEG pictures can be edited; see [editing](editing.md) for how the turn and crop are stored.
 
@@ -132,7 +132,7 @@ For seasons, keep a folder per season and change the rotation's patterns in **Se
 
 ## Kids' artwork wall
 
-1. In the Shoebox panel, create a folder `Kids art`.
+1. In the Shoebox panel, open **My media** and create a folder `Kids art` with **New folder**.
 2. Photograph new drawings with your phone and [upload](#upload-from-your-phone) them into that folder, cropping in the panel if needed.
 3. Add a rotation *Artwork* with the pattern `local/Kids art/**` and put it on a wall tablet as in the [slideshow](#slideshow-on-a-dashboard), or on a [photo frame](#esphome-photo-frame).
 
