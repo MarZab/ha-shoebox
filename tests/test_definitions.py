@@ -54,3 +54,28 @@ def test_slovenian_matches_english() -> None:
     en, sl = load("translations/en.json"), load("translations/sl.json")
     assert keys(sl) == keys(en)
     assert placeholders(sl) == placeholders(en)
+
+
+def panel_texts() -> dict[str, dict[str, str]]:
+    source = (PACKAGE / "frontend/i18n.js").read_text()
+    languages = re.findall(r"^  (\w+): \{\n(.*?)^  \},", source, re.M | re.S)
+    return {
+        lang: dict(re.findall(r'^\s{4}(\w+): "((?:[^"\\]|\\.)*)",', body, re.M))
+        for lang, body in languages
+    }
+
+
+def test_panel_languages_have_the_same_texts() -> None:
+    texts = panel_texts()
+    assert set(texts) == {"en", "sl"}
+    assert texts["en"].keys() == texts["sl"].keys()
+    for key, english in texts["en"].items():
+        assert set(re.findall(r"\{(\w+)\}", english)) == set(
+            re.findall(r"\{(\w+)\}", texts["sl"][key])
+        ), key
+
+
+def test_panel_uses_only_known_texts() -> None:
+    code = "".join((PACKAGE / f"frontend/{n}").read_text() for n in ("shoebox-panel.js", "crop.js"))
+    used = set(re.findall(r"""\bt\(\s*["'](\w+)["']""", code))
+    assert used <= panel_texts()["en"].keys()
