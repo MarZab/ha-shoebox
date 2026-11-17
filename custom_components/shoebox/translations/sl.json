@@ -2,11 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "description": "Shoebox ureja slike v mapi z mediji: mape, nalaganje, vrtenje in obrezovanje ter rotacije slik za nadzorne plošče in zaslone."
+        "description": "Shoebox ureja slike v vaših mapah z mediji: mape, nalaganje, vrtenje in obrezovanje ter rotacije slik za nadzorne plošče in zaslone.",
+        "data": {
+          "folders": "Mape z mediji"
+        },
+        "data_description": {
+          "folders": "Mape z mediji, s katerimi dela Shoebox. \"local\" so Moji mediji; druge pridejo iz media_dirs v configuration.yaml. Poti v Shoeboxu se začnejo z imenom mape, npr. local/Družina/plaža.jpg."
+        }
       }
     },
     "abort": {
       "single_instance_allowed": "Shoebox je že nastavljen."
+    },
+    "error": {
+      "no_folder": "Izberite vsaj eno mapo z mediji."
     }
   },
   "config_subentries": {
@@ -45,16 +54,21 @@
       "init": {
         "description": "Shoebox hrani slike, pripravljene v velikostih, ki jih zahtevajo nadzorne plošče in naprave. Predpomnilnik zdaj hrani {files} slik ({size} MB).",
         "data": {
+          "folders": "Mape z mediji",
           "cache_size": "Velikost predpomnilnika",
           "clear_cache": "Počisti predpomnilnik",
           "show_in_sidebar": "Prikaži v stranski vrstici"
         },
         "data_description": {
+          "folders": "Mape z mediji, s katerimi dela Shoebox. \"local\" so Moji mediji; druge pridejo iz media_dirs v configuration.yaml. Poti v Shoeboxu se začnejo z imenom mape, npr. local/Družina/plaža.jpg.",
           "cache_size": "Ko predpomnilnik preseže to velikost, se odstranijo najdlje neuporabljene slike. 0 izklopi predpomnilnik: slike se pripravijo ob vsaki zahtevi.",
           "clear_cache": "Odstrani vse pripravljene slike. Ko so spet potrebne, se pripravijo znova.",
           "show_in_sidebar": "Plošča Shoebox za skrbnike. Dejanja, entitete in slike za naprave delujejo v obeh primerih."
         }
       }
+    },
+    "error": {
+      "no_folder": "Izberite vsaj eno mapo z mediji."
     }
   },
   "entity": {
@@ -197,6 +211,12 @@
     "invalid_path": {
       "message": "Neveljavna pot."
     },
+    "top_level": {
+      "message": "Najprej izberite mapo z mediji."
+    },
+    "unknown_folder": {
+      "message": "\"{path}\": \"{folder}\" ni mapa z mediji, ki jo uporablja Shoebox."
+    },
     "parent_not_allowed": {
       "message": "\"{path}\": \"..\" ni dovoljen."
     },
@@ -291,7 +311,7 @@
       "message": "Navedite levo, zgoraj, desno in spodaj ali odstranite obrez."
     },
     "media_folder_missing": {
-      "message": "Mapa z mediji {path} ne obstaja."
+      "message": "Mapa z mediji \"{folder}\" manjka ali ni več nastavljena."
     }
   }
 }

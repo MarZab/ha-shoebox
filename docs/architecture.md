@@ -4,12 +4,13 @@
 
 | Module | Holds | Imports Home Assistant |
 |--------|-------|------------------------|
-| `media.py` | Paths kept below the media folder, listing, patterns, rotation order, file operations | no |
+| `library.py` | The chosen media folders: prefixed paths onto folders, listing them, moving between them | no |
+| `media.py` | Within one media folder: paths kept below it, listing, patterns, rotation order, file operations | no |
 | `imaging.py` | EXIF orientation, XMP crop, preparing a picture at a size | no |
 | `cache.py` | Prepared pictures on disk | no |
 | `upload.py` | Upload names and placement | no |
 | `errors.py` | Errors of the modules above, each with a translation key | no |
-| `runtime.py` | `Shoebox`, the entry's runtime: media folder, cache, rotations, the executor bridge | yes |
+| `runtime.py` | `Shoebox`, the entry's runtime: the library of media folders, cache, rotations, the executor bridge | yes |
 | `rotations.py` | Rotation state, kept in Home Assistant storage | yes |
 | `__init__.py` | Setup, unload, removal | yes |
 | `config_flow.py` | Config flow, options, the rotation subentry flow | yes |
@@ -29,7 +30,7 @@ The modules that do not import Home Assistant hold the file and picture logic. T
 ### A rotation moves on
 
 1. Pressing **Next** (`button.py`) calls `Rotations.async_advance` with the rotation's patterns.
-2. It lists the media folder (`media.walk`, in the executor), takes the pictures of the first matching pattern (`media.first_match`) and the one after the current picture (`media.advance`).
+2. It lists the chosen media folders (`Library.walk`, in the executor), takes the pictures of the first matching pattern (`media.first_match`) and the one after the current picture (`media.advance`).
 3. The new state is saved to storage (with a short delay) and sent on the rotation's dispatcher signal.
 4. The image entity writes its state; its `image_last_updated` is the time of the step, so dashboards fetch the new picture.
 
@@ -39,7 +40,7 @@ Turning or cropping a file calls `Rotations.async_file_changed`: rotations showi
 
 Every picture goes through `Shoebox.picture(path, width, height, fit)`:
 
-1. The path is resolved below the media folder (`media.resolve_file`).
+1. The prefixed path is resolved below its media folder (`Library.resolve_file`).
 2. A semaphore lets two pictures be prepared at a time; more requests wait.
 3. `VariantCache.get` returns the stored picture or makes it with `imaging.render` (crop, orientation, scale, baseline JPEG) and stores it.
 
@@ -53,7 +54,7 @@ The panel talks over the WebSocket (`websocket.py`: browse, folders, info, edit,
 
 | What | Where |
 |------|-------|
-| Options | the config entry |
+| Options: media folders, cache size, sidebar | the config entry |
 | Rotations: title and patterns | config subentries |
 | Rotation state: file, position, count, pattern, last step | `.storage/shoebox.rotations`, keyed by subentry id, versioned |
 | Prepared pictures | `.cache/shoebox/`, one JPEG per key |
@@ -63,6 +64,8 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 ## Design choices
 
 **A media organizer first, with extras by use.** Home Assistant's media browser uploads and deletes; Shoebox adds what it lacks (folders, move, rename, safe uploads, thumbnails, rotate and crop). Rotations, device pictures and the media source build on that. They have no switches: nothing runs until a rotation is added. The only setting besides the cache is *Show in sidebar*, because per-user hiding cannot remove the panel for everyone.
+
+**Chosen media folders, paths prefixed with the folder's name.** Shoebox works on the media folders chosen in setup, out of Home Assistant's `media_dirs`, so photos on a network share can be managed too, and folders not chosen (recordings, text-to-speech) stay out of reach. Every path starts with the folder's name, as Home Assistant's own media IDs do (`local/…`), also when only one folder is chosen: adding a folder later never changes existing paths, patterns or automations. `media.py` keeps working on one folder; `library.py` adds and removes the prefix.
 
 **Configured in the UI only.** Integrations with a config flow do not take YAML; `cv.config_entry_only_config_schema` turns a leftover `shoebox:` into a repair.
 
@@ -74,7 +77,7 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 **Devices get a stable URL with a token.** Devices such as ESPHome need a URL that does not change, their own size and baseline JPEG; they authenticate with a long-lived token in a header, the standard for Home Assistant's API. The device and media source views accept any user, so a device can use a user without admin rights; they serve only pictures of rotations, which every user can see through the image entity anyway.
 
-**Sized for hundreds of pictures.** Listing walks the media folder on demand, with no index or watcher. That keeps the code small; revisit if real use passes a few thousand files.
+**Sized for hundreds of pictures.** Listing walks the chosen media folders on demand, with no index or watcher. That keeps the code small; revisit if real use passes a few thousand files.
 
 **Media players get their own view.** Home Assistant signs media source URLs for its content user, who is not an admin, so the admin-only render view cannot serve them.
 
@@ -82,5 +85,4 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 ## Open questions
 
-- **Other media folders.** Home Assistant allows several `media_dirs`; Shoebox uses the local one only.
 - **Recoverable delete.** Deletes are final, with a confirmation in the panel; a hidden trash could make them recoverable.

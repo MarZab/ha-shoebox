@@ -37,7 +37,7 @@ async def loaded(hass: HomeAssistant, entry: MockConfigEntry) -> MockConfigEntry
 
 def rotation(title: str = "Evening", *patterns: str) -> ConfigSubentryData:
     return ConfigSubentryData(
-        data={"patterns": list(patterns or ("evening/*",))},
+        data={"patterns": list(patterns or ("local/evening/*",))},
         subentry_type=SUBENTRY_ROTATION,
         title=title,
         unique_id=None,

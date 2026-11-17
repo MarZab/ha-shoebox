@@ -79,7 +79,7 @@ async def ws_browse(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: _Message
 ) -> None:
     box = loaded_shoebox(hass)
-    rel, entries = await box.run(media.list_folder, box.root, msg["path"])
+    rel, entries = await box.run(box.library.list_folder, msg["path"])
     connection.send_result(msg["id"], {"path": rel, "items": [_item(hass, e) for e in entries]})
 
 
@@ -88,13 +88,14 @@ async def ws_folders(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: _Message
 ) -> None:
     box = loaded_shoebox(hass)
-    entries = await box.run(media.walk, box.root)
-    connection.send_result(msg["id"], {"folders": [e.path for e in entries if e.type == "folder"]})
+    entries = await box.run(box.library.walk)
+    folders = sorted(box.library.folders) + [e.path for e in entries if e.type == "folder"]
+    connection.send_result(msg["id"], {"folders": folders})
 
 
 async def _info(hass: HomeAssistant, box: Shoebox, path: str) -> dict[str, Any]:
-    real = await box.run(media.resolve_file, box.root, path)
-    rel = media.relative(box.root, real)
+    real = await box.run(box.library.resolve_file, path)
+    rel = box.library.relative(real)
     info = await box.run(imaging.info, real)
     return dict(info) | {
         "path": rel,
@@ -126,12 +127,12 @@ async def ws_edit(
 ) -> None:
     """Save the editor: turn (or set the orientation), then crop as shown, or remove the crop."""
     box = loaded_shoebox(hass)
-    real = await box.run(media.resolve_file, box.root, msg["path"])
+    real = await box.run(box.library.resolve_file, msg["path"])
     crop = tuple(msg["crop"]) if msg["crop"] is not None else None
     await box.run(
         partial(imaging.edit, real, msg["rotate"], crop, orientation=msg.get("orientation"))
     )
-    box.rotations.async_file_changed(media.relative(box.root, real))
+    box.rotations.async_file_changed(box.library.relative(real))
     connection.send_result(msg["id"], await _info(hass, box, msg["path"]))
 
 
@@ -152,7 +153,7 @@ async def ws_rotations(
     box = loaded_shoebox(hass)
     entry = hass.config_entries.async_loaded_entries(DOMAIN)[0]
     registry = er.async_get(hass)
-    entries = await box.run(media.walk, box.root)
+    entries = await box.run(box.library.walk)
     out = []
     for subentry_id, title, patterns in _rotation_patterns(entry):
         used, files = await box.run(media.first_match, entries, patterns)

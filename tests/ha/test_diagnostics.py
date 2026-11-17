@@ -27,5 +27,9 @@ async def test_diagnostics(
     assert result["cache"]["files"] == 0
     assert result["cache"]["limit_bytes"] == 512 * 1024 * 1024
     rotation = result["rotations"][0]
-    assert (rotation["patterns"], rotation["position"], rotation["count"]) == (["evening/*"], 1, 1)
+    assert (rotation["patterns"], rotation["position"], rotation["count"]) == (
+        ["local/evening/*"],
+        1,
+        1,
+    )
     assert "secret-name" not in str(result)

@@ -8,7 +8,7 @@ import Home Assistant.
 from __future__ import annotations
 
 import bisect
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -231,6 +231,13 @@ def move(root: Path, path: str, to: str) -> str:
     """Move a file or folder into the folder `to` ("" or "/" is the media folder itself)."""
     src = resolve(root, path)
     dest_dir = resolve(root, to or ".", allow_root=True)
+    return relative(root, move_resolved(src, dest_dir, path, to, lambda p: relative(root, p)))
+
+
+def move_resolved(
+    src: Path, dest_dir: Path, path: str, to: str, show: Callable[[Path], str]
+) -> Path:
+    """Move `src` into `dest_dir`, both already resolved; `show` names a path in errors."""
     if not src.exists():
         raise MediaError("not_found", path=path)
     if not dest_dir.is_dir():
@@ -239,9 +246,9 @@ def move(root: Path, path: str, to: str) -> str:
         raise MediaError("move_into_itself", path=path)
     target = dest_dir / src.name
     if target.exists() or target.is_symlink():
-        raise MediaError("already_exists", path=relative(root, target))
+        raise MediaError("already_exists", path=show(target))
     shutil.move(src, target)
-    return relative(root, target)
+    return target
 
 
 def rename(root: Path, path: str, name: str) -> str:

@@ -17,9 +17,9 @@ Attributes:
 
 | Attribute | Example | Meaning |
 |-----------|---------|---------|
-| `patterns` | `["Family/**"]` | The rotation's patterns |
-| `pattern` | `Family/**` | The pattern in use (see [fallbacks](rotations.md#fallbacks)); empty when nothing matches |
-| `file` | `Family/2024 Summer/beach.jpg` | The current picture |
+| `patterns` | `["local/Family/**"]` | The rotation's patterns |
+| `pattern` | `local/Family/**` | The pattern in use (see [fallbacks](rotations.md#fallbacks)); empty when nothing matches |
+| `file` | `local/Family/2024 Summer/beach.jpg` | The current picture |
 | `position` | `2` | Its place in the order, from 1; 0 before the first Next |
 | `count` | `48` | How many pictures the rotation selects |
 

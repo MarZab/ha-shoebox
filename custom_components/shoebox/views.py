@@ -152,7 +152,7 @@ class MediaView(HomeAssistantView):
             rotation = entry.subentries.get(rotation_id)
             if rotation is None:
                 return self.json_message("no such rotation", 404)
-            entries = await shoebox.run(media.walk, shoebox.root)
+            entries = await shoebox.run(shoebox.library.walk)
             _, files = media.first_match(entries, rotation.data.get("patterns", []))
             if path not in files:
                 return self.json_message("not a picture of this rotation", 404)
@@ -191,7 +191,7 @@ class UploadView(HomeAssistantView):
             if not request.content_type.startswith("multipart/"):
                 return self.json_message("send multipart/form-data with a part named file", 400)
             folder = await shoebox.run(
-                upload.target_folder, shoebox.root, request.query.get("folder", "")
+                shoebox.library.upload_folder, request.query.get("folder", "")
             )
             reader = await request.multipart()
             part = await reader.next()
@@ -224,7 +224,7 @@ class UploadView(HomeAssistantView):
                     raise _TooLarge
                 await hass.async_add_executor_job(f.write, chunk)
             await hass.async_add_executor_job(f.close)
-            return await shoebox.run(upload.finish, shoebox.root, folder, tmp, name)
+            return await shoebox.run(shoebox.library.finish_upload, folder, tmp, name)
         finally:
             await hass.async_add_executor_job(_discard, f, tmp)
 

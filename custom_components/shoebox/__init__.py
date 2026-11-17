@@ -13,7 +13,7 @@ from homeassistant.util.hass_dict import HassKey
 
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION, SUBENTRY_ROTATION
 from .panel import async_register_panel, async_remove_panel, async_serve_frontend
-from .runtime import Shoebox, variant_cache
+from .runtime import Shoebox, chosen_folders, variant_cache
 from .services import async_setup_services
 from .views import DeviceImageView, MediaView, RenderView, UploadView
 from .websocket import async_setup_websocket
@@ -39,12 +39,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
     shoebox = Shoebox(hass, entry.options)
-    if not await hass.async_add_executor_job(shoebox.root.is_dir):
-        raise ConfigEntryNotReady(
-            translation_domain=DOMAIN,
-            translation_key="media_folder_missing",
-            translation_placeholders={"path": str(shoebox.root)},
-        )
+    for name in chosen_folders(entry.options):
+        folder = shoebox.library.folders.get(name)
+        if folder is None or not await hass.async_add_executor_job(folder.is_dir):
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN,
+                translation_key="media_folder_missing",
+                translation_placeholders={"folder": name},
+            )
     await hass.async_add_executor_job(shoebox.cache.evict)
     await shoebox.rotations.async_load(
         sub.subentry_id

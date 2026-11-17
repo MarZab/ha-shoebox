@@ -8,6 +8,8 @@ DOMAIN: Final = "shoebox"
 TITLE: Final = "Shoebox"
 PANEL_ICON: Final = "mdi:image-album"
 
+CONF_FOLDERS: Final = "folders"
+DEFAULT_FOLDERS: Final = ("local",)
 CONF_CACHE_SIZE: Final = "cache_size"
 CONF_CLEAR_CACHE: Final = "clear_cache"
 CONF_SHOW_IN_SIDEBAR: Final = "show_in_sidebar"

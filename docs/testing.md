@@ -10,13 +10,13 @@ mise run check                # with lint, types and coverage
 
 | Path | Tests |
 |------|-------|
-| `tests/test_media.py`, `test_imaging.py`, `test_cache.py`, `test_upload.py` | The modules that do not import Home Assistant, directly, on `tmp_path` |
+| `tests/test_media.py`, `test_library.py`, `test_imaging.py`, `test_cache.py`, `test_upload.py` | The modules that do not import Home Assistant, directly, on `tmp_path` |
 | `tests/test_definitions.py` | `services.yaml`, `icons.json`, translations, error messages and panel texts agree; English and Slovenian match |
 | `tests/test_docs.py` | Every relative link and heading anchor in the docs resolves |
 | `tests/test_release.py` | Release version arithmetic and checks |
 | `tests/ha/` | The integration in Home Assistant, with `pytest-homeassistant-custom-component` |
 
-`tests/ha/` covers setup and removal, the config, options and rotation flows, every action, the entities, the views, the WebSocket commands, the media source and diagnostics.
+`tests/ha/` covers setup and removal, the config, options and rotation flows, several media folders (`test_folders.py`), every action, the entities, the views, the WebSocket commands, the media source and diagnostics.
 
 ## Fixtures
 

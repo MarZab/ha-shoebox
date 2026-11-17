@@ -27,10 +27,10 @@ async def test_browse_rotations_and_their_pictures(
     ]
     folder = await media_source.async_browse_media(hass, f"{ROOT}/{rid}")
     assert [(c.title, c.can_play, c.media_content_id) for c in folder.children] == [
-        ("a.jpg", True, f"{ROOT}/{rid}/evening/a.jpg"),
-        ("b.jpg", True, f"{ROOT}/{rid}/evening/b.jpg"),
+        ("a.jpg", True, f"{ROOT}/{rid}/local/evening/a.jpg"),
+        ("b.jpg", True, f"{ROOT}/{rid}/local/evening/b.jpg"),
     ]
-    assert folder.children[0].thumbnail == f"/api/shoebox/media/{rid}/evening/a.jpg?thumb=1"
+    assert folder.children[0].thumbnail == f"/api/shoebox/media/{rid}/local/evening/a.jpg?thumb=1"
 
 
 async def test_rotation_shows_its_current_picture(
@@ -53,7 +53,7 @@ async def test_play_a_picture(
 ) -> None:
     tree("evening/a b.jpg")
     rid = rotation_id(with_rotation)
-    play = await media_source.async_resolve_media(hass, f"{ROOT}/{rid}/evening/a b.jpg", None)
+    play = await media_source.async_resolve_media(hass, f"{ROOT}/{rid}/local/evening/a b.jpg", None)
     assert play.mime_type == "image/jpeg"
     client = await hass_client(hass_read_only_access_token)
     response = await client.get(play.url)
@@ -65,7 +65,9 @@ async def test_play_a_picture(
         assert im.size == (320, 320)
 
 
-@pytest.mark.parametrize("path", ["other/c.jpg", "evening/missing.jpg", "../etc/passwd"])
+@pytest.mark.parametrize(
+    "path", ["local/other/c.jpg", "local/evening/missing.jpg", "../etc/passwd"]
+)
 async def test_only_pictures_of_the_rotation_are_served(
     hass: HomeAssistant,
     with_rotation: MockConfigEntry,

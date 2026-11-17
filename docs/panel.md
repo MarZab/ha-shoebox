@@ -1,23 +1,24 @@
 # Panel
 
-The **Shoebox** panel in the sidebar manages the media folder. It is for administrators; others do not see it.
+The **Shoebox** panel in the sidebar manages the media folders. It is for administrators; others do not see it.
 
 ![The Shoebox panel](images/panel.png)
 
 ## Browsing
 
-The panel opens at the media folder. Folders come first, then files, each sorted by name; pictures show a thumbnail with their [edits](editing.md) applied. Click a folder to open it, and the path at the top to go back. Hidden files and symbolic links are not shown.
+The panel opens at the media folders Shoebox uses, such as `local` (My media). Inside them, folders come first, then files, each sorted by name; pictures show a thumbnail with their [edits](editing.md) applied. Click a folder to open it, and the path at the top to go back. Hidden files and symbolic links are not shown.
 
 ## Uploading
 
 - **Upload** in the top bar picks files; or drag files from your computer anywhere onto the panel.
-- Files go into the folder you are looking at. Several files upload at once; a list shows each one's progress.
+- Files go into the folder you are looking at; open a media folder first. Several files upload at once; a list shows each one's progress.
 - Pictures, videos and audio can be uploaded, up to 200 MB each.
 - An existing file is never overwritten: a second `photo.jpg` is stored as `photo-1.jpg`.
 
 ## Folders and files
 
-- **New folder** in the top bar creates a folder in the current one.
+- **New folder** in the top bar creates a folder in the current one, inside a media folder.
+- Moving can go into another media folder, such as from My media to a network share.
 - The menu (⋮) of a file or folder opens it, renames it, moves it into another folder, or deletes it. Deleting asks first; a folder is deleted with everything in it, and **this cannot be undone**.
 
 ## Viewing and editing pictures

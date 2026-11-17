@@ -1,10 +1,10 @@
 # Actions
 
-Shoebox's actions work on files and folders below the media folder. They are for administrators: a call from a user without admin rights is refused.
+Shoebox's actions work on files and folders in the media folders Shoebox uses. They are for administrators: a call from a user without admin rights is refused.
 
-Paths are relative to the media folder, such as `Family/beach.jpg`. Absolute paths below the media folder (`/media/Family/beach.jpg`) work too. Anything outside the media folder, `..`, and symbolic links are refused.
+Paths start with the name of a media folder: `local` is My media, so a picture there is `local/Family/beach.jpg`. Absolute paths below a chosen media folder (`/media/Family/beach.jpg`) work too. Media folders Shoebox does not use, the media folders themselves, `..` and symbolic links are refused.
 
-Every action can return a response; use `response_variable` in a script or automation. Refusals stop the script with a message in your language, for example *"Family/beach.jpg" does not exist.*
+Every action can return a response; use `response_variable` in a script or automation. Refusals stop the script with a message in your language, for example *"local/Family/beach.jpg" does not exist.*
 
 ## list
 
@@ -12,13 +12,13 @@ Lists the files and folders that match a pattern. It only returns a response.
 
 | Field | Default | |
 |-------|---------|---|
-| `pattern` | `**` | A [pattern](rotations.md#patterns) over paths below the media folder |
+| `pattern` | `**` | A [pattern](rotations.md#patterns) over paths, such as `local/Family/**` |
 | `type` | `all` | `all`, `image` (pictures), `file` (other files) or `folder` |
 
 ```yaml
 action: shoebox.list
 data:
-  pattern: "Family/**"
+  pattern: "local/Family/**"
   type: image
 response_variable: found
 ```
@@ -26,11 +26,11 @@ response_variable: found
 ```yaml
 count: 2
 items:
-  - path: Family/2024 Summer/beach.jpg
+  - path: local/Family/2024 Summer/beach.jpg
     type: image
     size: 482113
     modified: 1763371200.5
-  - path: Family/Kids art/drawing.png
+  - path: local/Family/Kids art/drawing.png
     type: image
     size: 91240
     modified: 1763371260.0
@@ -40,36 +40,36 @@ items:
 
 ## create_folder
 
-Creates a folder, with any missing parent folders. Creating a folder that exists does nothing.
+Creates a folder in a media folder, with any missing parent folders. Creating a folder that exists does nothing.
 
 ```yaml
 action: shoebox.create_folder
 data:
-  path: Family/2025 Summer
+  path: local/Family/2025 Summer
 ```
 
 ```yaml
-path: Family/2025 Summer
+path: local/Family/2025 Summer
 ```
 
 ## move
 
-Moves a file or folder into another folder. Nothing is overwritten: if the target exists, the move is refused.
+Moves a file or folder into another folder, also into another media folder. Nothing is overwritten: if the target exists, the move is refused.
 
 | Field | |
 |-------|---|
 | `path` | The file or folder to move |
-| `to` | The folder to move into; empty for the media folder itself |
+| `to` | The folder to move into, such as `local/Family`, or a media folder itself, such as `nas` |
 
 ```yaml
 action: shoebox.move
 data:
-  path: Phone/IMG_0001.jpg
-  to: Family/2025 Summer
+  path: local/Phone/IMG_0001.jpg
+  to: local/Family/2025 Summer
 ```
 
 ```yaml
-path: Family/2025 Summer/IMG_0001.jpg
+path: local/Family/2025 Summer/IMG_0001.jpg
 ```
 
 ## rename
@@ -79,12 +79,12 @@ Renames a file or folder where it is. Nothing is overwritten.
 ```yaml
 action: shoebox.rename
 data:
-  path: Family/2025 Summer/IMG_0001.jpg
+  path: local/Family/2025 Summer/IMG_0001.jpg
   name: beach.jpg
 ```
 
 ```yaml
-path: Family/2025 Summer/beach.jpg
+path: local/Family/2025 Summer/beach.jpg
 ```
 
 ## delete
@@ -94,11 +94,11 @@ Deletes a file, or a folder with everything in it. **This cannot be undone.**
 ```yaml
 action: shoebox.delete
 data:
-  path: Phone/IMG_0002.jpg
+  path: local/Phone/IMG_0002.jpg
 ```
 
 ```yaml
-deleted: Phone/IMG_0002.jpg
+deleted: local/Phone/IMG_0002.jpg
 ```
 
 ## rotate
@@ -114,12 +114,12 @@ Turns a JPEG picture by changing its EXIF orientation. The picture data is not r
 ```yaml
 action: shoebox.rotate
 data:
-  path: Family/2025 Summer/beach.jpg
+  path: local/Family/2025 Summer/beach.jpg
   by: 90
 ```
 
 ```yaml
-path: Family/2025 Summer/beach.jpg
+path: local/Family/2025 Summer/beach.jpg
 orientation: 6
 ```
 
@@ -136,7 +136,7 @@ Crops a JPEG picture by storing the crop in its XMP data, as photo editors do. T
 ```yaml
 action: shoebox.crop
 data:
-  path: Family/2025 Summer/beach.jpg
+  path: local/Family/2025 Summer/beach.jpg
   left: 0.1
   top: 0
   right: 0.9
@@ -144,7 +144,7 @@ data:
 ```
 
 ```yaml
-path: Family/2025 Summer/beach.jpg
+path: local/Family/2025 Summer/beach.jpg
 crop: [0.1, 0, 0.9, 1]
 ```
 

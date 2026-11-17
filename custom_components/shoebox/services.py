@@ -1,4 +1,4 @@
-"""The file actions. All are admin-only and work on paths below the media folder."""
+"""The file actions. All are admin-only and work on paths in the chosen media folders."""
 
 from __future__ import annotations
 
@@ -69,54 +69,54 @@ def _shoebox(call: ServiceCall) -> Shoebox:
 
 async def _list(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    entries = await box.run(media.walk, box.root)
+    entries = await box.run(box.library.walk)
     items = await box.run(media.select, entries, call.data["pattern"], call.data["type"])
     return {"count": len(items), "items": [dict(e.as_dict()) for e in items]}
 
 
 async def _create_folder(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"path": await box.run(media.create_folder, box.root, call.data["path"])}
+    return {"path": await box.run(box.library.create_folder, call.data["path"])}
 
 
 async def _move(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"path": await box.run(media.move, box.root, call.data["path"], call.data["to"])}
+    return {"path": await box.run(box.library.move, call.data["path"], call.data["to"])}
 
 
 async def _rename(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"path": await box.run(media.rename, box.root, call.data["path"], call.data["name"])}
+    return {"path": await box.run(box.library.rename, call.data["path"], call.data["name"])}
 
 
 async def _delete(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"deleted": await box.run(media.delete, box.root, call.data["path"])}
+    return {"deleted": await box.run(box.library.delete, call.data["path"])}
 
 
 async def _rotate(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    real = await box.run(media.resolve_file, box.root, call.data["path"])
+    real = await box.run(box.library.resolve_file, call.data["path"])
     if "orientation" in call.data:
         orientation: int = call.data["orientation"]
         await box.run(imaging.set_orientation, real, orientation)
     else:
         orientation = await box.run(imaging.rotate, real, call.data["by"])
-    rel = media.relative(box.root, real)
+    rel = box.library.relative(real)
     box.rotations.async_file_changed(rel)
     return {"path": rel, "orientation": orientation}
 
 
 async def _crop(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    real = await box.run(media.resolve_file, box.root, call.data["path"])
+    real = await box.run(box.library.resolve_file, call.data["path"])
     crop: imaging.Box | None = None
     if not call.data["clear"]:
         if not all(side in call.data for side in _SIDES):
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="crop_sides")
         crop = (call.data["left"], call.data["top"], call.data["right"], call.data["bottom"])
     stored = await box.run(imaging.crop_shown, real, crop)
-    rel = media.relative(box.root, real)
+    rel = box.library.relative(real)
     box.rotations.async_file_changed(rel)
     return {"path": rel, "crop": list(stored) if stored else None}
 

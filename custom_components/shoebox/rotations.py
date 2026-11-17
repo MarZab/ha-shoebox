@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Any, override
 
 from homeassistant.core import HomeAssistant
@@ -19,6 +18,7 @@ from homeassistant.util import dt as dt_util
 
 from . import media
 from .const import SIGNAL_ROTATION, STORAGE_KEY, STORAGE_VERSION
+from .library import Library
 
 type Runner = Callable[..., Awaitable[Any]]
 
@@ -43,9 +43,9 @@ class RotationStore(Store[dict[str, Any]]):
 
 
 class Rotations:
-    def __init__(self, hass: HomeAssistant, root: Path, run: Runner) -> None:
+    def __init__(self, hass: HomeAssistant, library: Library, run: Runner) -> None:
         self.hass = hass
-        self.root = root
+        self.library = library
         self._run = run
         self._store = RotationStore(hass, STORAGE_VERSION, STORAGE_KEY)
         self._states: dict[str, RotationState] = {}
@@ -71,7 +71,7 @@ class Rotations:
     async def async_advance(self, rotation_id: str, patterns: Sequence[str]) -> RotationState:
         """Move a rotation to its next picture, in path order, wrapping around."""
         async with self._lock:
-            entries = await self._run(media.walk, self.root)
+            entries = await self._run(self.library.walk)
             used, files = await self._run(media.first_match, entries, list(patterns))
             index = media.advance(files, self.state(rotation_id).file)
             state = RotationState(

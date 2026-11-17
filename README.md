@@ -20,14 +20,14 @@ Home Assistant's media browser can upload and delete files. Shoebox adds what it
 ## Install
 
 1. In HACS, search for **Shoebox** (or "media manager", "photo") and download it. Restart Home Assistant.
-2. Go to **Settings → Devices & services → Add integration** and add **Shoebox Media Manager**. It asks no questions.
+2. Go to **Settings → Devices & services → Add integration** and add **Shoebox Media Manager**. Choose the media folders it works on; **My media** (`local`) is chosen already.
 3. Open **Shoebox** in the sidebar.
 
-Shoebox works on Home Assistant's local media folder (**My media**, `/media`). Removing the integration leaves your files as they are. More in [configuration](docs/configuration.md).
+Shoebox works on the media folders you choose: My media, and any added with `media_dirs` in `configuration.yaml`. Removing the integration leaves your files as they are. More in [configuration](docs/configuration.md).
 
 ## Quick start: a slideshow on a dashboard
 
-1. Go to **Settings → Devices & services → Shoebox Media Manager → Add rotation**. Name it *Living room* and give it a pattern such as `Family/**` (every picture below the `Family` folder). The next step shows how many pictures it selects.
+1. Go to **Settings → Devices & services → Shoebox Media Manager → Add rotation**. Name it *Living room* and give it a pattern such as `local/Family/**` (every picture below the `Family` folder). The next step shows how many pictures it selects.
 2. Add a picture entity card to a dashboard:
 
    ```yaml
@@ -102,12 +102,12 @@ The whole setup is in [displays](docs/displays.md#esphome).
 | `image.<rotation>` | The rotation's current picture | [entities](docs/entities.md#image) |
 | `button.<rotation>_next` | Moves the rotation to its next picture | [entities](docs/entities.md#next-button) |
 
-The actions are for administrators. Paths are relative to the media folder, such as `Family/beach.jpg`.
+The actions are for administrators. Paths start with the name of a media folder: `local` is My media, so a picture there is `local/Family/beach.jpg`.
 
 ## Limits
 
 - Rotate and crop work on JPEG files. Other formats (PNG, HEIC, ...) are shown and served, but not edited.
-- Shoebox works on the local media folder, not on network shares added as other media folders.
+- Shoebox works on the media folders chosen at setup. A large network share makes rotations slower, since each step lists its pictures.
 - The panel is for administrators.
 - It is made for a household media folder: hundreds of pictures, not a photo library.
 

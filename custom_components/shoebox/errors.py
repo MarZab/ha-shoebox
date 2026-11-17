@@ -10,6 +10,8 @@ from typing import Final
 
 MESSAGES: Final = {
     "invalid_path": "Invalid path.",
+    "top_level": "Choose a media folder first.",
+    "unknown_folder": '"{path}": "{folder}" is not a media folder Shoebox uses.',
     "parent_not_allowed": '"{path}": ".." is not allowed.',
     "outside_media": '"{path}" is outside the media folder.',
     "symbolic_link": '"{path}" is a symbolic link.',

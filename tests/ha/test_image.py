@@ -65,7 +65,7 @@ async def test_image_shows_the_current_picture(
     client = await hass_client()
     assert (await client.get(f"/api/image_proxy/{ENTITY}")).status == 500  # nothing shown yet
     await with_rotation.runtime_data.rotations.async_advance(
-        rotation_id(with_rotation), ["evening/*"]
+        rotation_id(with_rotation), ["local/evening/*"]
     )
     await hass.async_block_till_done()
     response = await client.get(f"/api/image_proxy/{ENTITY}")
@@ -74,11 +74,11 @@ async def test_image_shows_the_current_picture(
     assert colour_at(data, 0.25, 0.25) == "red"
     state = hass.states.get(ENTITY)
     assert state is not None
-    assert state.attributes["file"] == "evening/a.jpg"
+    assert state.attributes["file"] == "local/evening/a.jpg"
     assert (state.attributes["position"], state.attributes["count"]) == (1, 2)
     assert (state.attributes["patterns"], state.attributes["pattern"]) == (
-        ["evening/*"],
-        "evening/*",
+        ["local/evening/*"],
+        "local/evening/*",
     )
 
 
@@ -87,12 +87,12 @@ async def test_last_updated_follows_steps_and_edits(
 ) -> None:
     tree("evening/a.jpg")
     rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["evening/*"])
+    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
     await hass.async_block_till_done()
     first = hass.states.get(ENTITY).state  # type: ignore[union-attr]
     assert first not in ("unknown", "unavailable")
     await hass.services.async_call(
-        DOMAIN, "rotate", {"path": "evening/a.jpg", "by": 90}, blocking=True
+        DOMAIN, "rotate", {"path": "local/evening/a.jpg", "by": 90}, blocking=True
     )
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY).state > first  # type: ignore[union-attr]

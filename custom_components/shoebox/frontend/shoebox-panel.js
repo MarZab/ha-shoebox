@@ -215,7 +215,8 @@ class ShoeboxPanel extends HTMLElement {
     const to = view === "files" ? ["mdi:image-multiple-outline", "rotations"] : ["mdi:folder-multiple-image", "files"];
     toggle.setAttribute("label", this.t(to[1]));
     toggle.innerHTML = icon(to[0]);
-    this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = view !== "files"; });
+    // the top level lists the media folders: uploads and new folders go into one of them
+    this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = view !== "files" || !folder; });
     if (view === "rotations") this._loadRotations();
     else this._loadFolder();
   }
@@ -305,6 +306,7 @@ class ShoeboxPanel extends HTMLElement {
       crumbs.push(icon("mdi:chevron-right"));
       crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(p)}</span>` : `<a data-act="crumb" data-path="${esc(path)}">${esc(p)}</a>`);
     });
+    const top = !this._folder; // the media folders themselves cannot be renamed, moved or deleted
     const tiles = this._items.map((it, i) => {
       let thumb;
       if (it.type === "folder") thumb = `<ha-icon class="folder" icon="mdi:folder"></ha-icon>`;
@@ -313,13 +315,13 @@ class ShoeboxPanel extends HTMLElement {
       return `<div class="tile" data-i="${i}" ${it.type === "folder" ? `data-folder="${esc(it.path)}"` : ""} title="${esc(it.name)}${it.type !== "folder" ? ` · ${sizeText(it.size)}` : ""}">
         <ha-card outlined><div class="thumb">${thumb}</div>
           <div class="label"><span class="name">${esc(it.name)}</span>
-            <ha-dropdown data-i="${i}" placement="bottom-end">
+            ${top ? "" : `<ha-dropdown data-i="${i}" placement="bottom-end">
               ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
               ${it.type !== "file" ? `<ha-dropdown-item value="open">${icon(it.type === "folder" ? "mdi:folder-open-outline" : "mdi:image-outline", "icon")}${esc(t("open"))}</ha-dropdown-item>` : ""}
               <ha-dropdown-item value="rename">${icon("mdi:rename-outline", "icon")}${esc(t("rename"))}</ha-dropdown-item>
               <ha-dropdown-item value="move">${icon("mdi:folder-move-outline", "icon")}${esc(t("move"))}</ha-dropdown-item>
               <ha-dropdown-item value="delete" variant="danger">${icon("mdi:delete-outline", "icon")}${esc(t("delete"))}</ha-dropdown-item>
-            </ha-dropdown></div></ha-card></div>`;
+            </ha-dropdown>`}</div></ha-card></div>`;
     });
     const content = this.shadowRoot.getElementById("content");
     content.innerHTML = `<div class="crumbs">${crumbs.join("")}<span class="count">${esc(t("pictures", { count: this._items.length }))}</span></div>

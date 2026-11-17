@@ -2,11 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "description": "Shoebox manages the pictures in your media folder: folders, upload, rotate and crop, and rotating pictures for dashboards and displays."
+        "description": "Shoebox manages the pictures in your media folders: folders, upload, rotate and crop, and rotating pictures for dashboards and displays.",
+        "data": {
+          "folders": "Media folders"
+        },
+        "data_description": {
+          "folders": "The media folders Shoebox works on. \"local\" is My media; more come from media_dirs in configuration.yaml. Paths in Shoebox start with the folder's name, such as local/Family/beach.jpg."
+        }
       }
     },
     "abort": {
       "single_instance_allowed": "Shoebox is already set up."
+    },
+    "error": {
+      "no_folder": "Choose at least one media folder."
     }
   },
   "config_subentries": {
@@ -45,16 +54,21 @@
       "init": {
         "description": "Shoebox keeps pictures prepared at the sizes dashboards and devices ask for. The cache now holds {files} pictures ({size} MB).",
         "data": {
+          "folders": "Media folders",
           "cache_size": "Cache size",
           "clear_cache": "Clear the cache",
           "show_in_sidebar": "Show in sidebar"
         },
         "data_description": {
+          "folders": "The media folders Shoebox works on. \"local\" is My media; more come from media_dirs in configuration.yaml. Paths in Shoebox start with the folder's name, such as local/Family/beach.jpg.",
           "cache_size": "When the cache grows past this, the pictures used least recently are removed. 0 turns the cache off: pictures are prepared on every request.",
           "clear_cache": "Removes every prepared picture. They are made again when needed.",
           "show_in_sidebar": "The Shoebox panel for administrators. Actions, entities and device pictures work either way."
         }
       }
+    },
+    "error": {
+      "no_folder": "Choose at least one media folder."
     }
   },
   "entity": {
@@ -197,6 +211,12 @@
     "invalid_path": {
       "message": "Invalid path."
     },
+    "top_level": {
+      "message": "Choose a media folder first."
+    },
+    "unknown_folder": {
+      "message": "\"{path}\": \"{folder}\" is not a media folder Shoebox uses."
+    },
     "parent_not_allowed": {
       "message": "\"{path}\": \"..\" is not allowed."
     },
@@ -291,7 +311,7 @@
       "message": "Give left, top, right and bottom, or clear the crop."
     },
     "media_folder_missing": {
-      "message": "The media folder {path} does not exist."
+      "message": "The media folder \"{folder}\" is missing or no longer configured."
     }
   }
 }

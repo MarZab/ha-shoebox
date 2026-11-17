@@ -42,7 +42,7 @@ mise run dev:up       # http://localhost:8123
 
 - Docker runs the official Home Assistant image at the pinned version, with the configuration in `docker/ha-config/`.
 - The integration is mounted read-only; `mise run dev:restart` loads your changes.
-- `docker/media/` is mounted as the media folder. `tools/scripts/sample_media.py` fills it on the first start: JPEGs with EXIF orientations (one sideways, one upside down), a PNG, a HEIC, a text file and nested folders. Every picture shows its name and an arrow to its top. Delete the folder to get fresh samples.
+- `docker/media/` is mounted as the media folder `local` (My media). `tools/scripts/sample_media.py` fills it on the first start: JPEGs with EXIF orientations (one sideways, one upside down), a PNG, a HEIC, a text file and nested folders. Every picture shows its name and an arrow to its top. Delete the folder to get fresh samples.
 - `mise run dev:token` onboards a fresh Home Assistant with the owner **dev** / **dev** and prints an access token, for `curl` and scripts.
 
 ## Checking the panel

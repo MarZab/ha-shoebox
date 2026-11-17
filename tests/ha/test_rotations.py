@@ -30,19 +30,23 @@ async def test_add_rotation_with_preview(
     flow = await subentry_flow(hass, loaded)
     assert flow["step_id"] == "user"
     flow = await hass.config_entries.subentries.async_configure(
-        flow["flow_id"], {"name": " Living room ", "patterns": ["morning/*", " evening/* ", ""]}
+        flow["flow_id"],
+        {"name": " Living room ", "patterns": ["local/morning/*", " local/evening/* ", ""]},
     )
     assert flow["step_id"] == "preview"
     assert flow["description_placeholders"] == {
         "count": "2",
-        "pattern": "evening/*",
-        "examples": "- evening/a.jpg\n- evening/b.jpg",
+        "pattern": "local/evening/*",
+        "examples": "- local/evening/a.jpg\n- local/evening/b.jpg",
     }
     flow = await hass.config_entries.subentries.async_configure(flow["flow_id"], {})
     await hass.async_block_till_done()
     assert flow["type"] is FlowResultType.CREATE_ENTRY
     sub = next(iter(loaded.subentries.values()))
-    assert (sub.title, dict(sub.data)) == ("Living room", {"patterns": ["morning/*", "evening/*"]})
+    assert (sub.title, dict(sub.data)) == (
+        "Living room",
+        {"patterns": ["local/morning/*", "local/evening/*"]},
+    )
 
 
 @pytest.mark.parametrize(
@@ -71,17 +75,17 @@ async def test_reconfigure_keeps_the_state(
 ) -> None:
     tree("evening/a.jpg", "night/b.jpg")
     rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["evening/*"])
+    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
     flow = await subentry_flow(hass, with_rotation, source=SOURCE_RECONFIGURE, subentry_id=rid)
-    assert flow["data_schema"]({})["patterns"] == ["evening/*"]
+    assert flow["data_schema"]({})["patterns"] == ["local/evening/*"]
     flow = await hass.config_entries.subentries.async_configure(
-        flow["flow_id"], {"name": "Night", "patterns": ["night/*"]}
+        flow["flow_id"], {"name": "Night", "patterns": ["local/night/*"]}
     )
     flow = await hass.config_entries.subentries.async_configure(flow["flow_id"], {})
     await hass.async_block_till_done()
     assert flow["reason"] == "reconfigure_successful"
     assert with_rotation.subentries[rid].title == "Night"
-    assert with_rotation.runtime_data.rotations.state(rid).file == "evening/a.jpg"
+    assert with_rotation.runtime_data.rotations.state(rid).file == "local/evening/a.jpg"
 
 
 async def test_rotation_steps_wraps_and_survives_removed_files(
@@ -90,16 +94,21 @@ async def test_rotation_steps_wraps_and_survives_removed_files(
     root = tree("evening/a.jpg", "evening/b.jpg", "evening/c.jpg", "evening/notes.txt")
     rotations = with_rotation.runtime_data.rotations
     rid = rotation_id(with_rotation)
-    steps = [(await rotations.async_advance(rid, ["evening/*"])).file for _ in range(4)]
-    assert steps == ["evening/a.jpg", "evening/b.jpg", "evening/c.jpg", "evening/a.jpg"]
+    steps = [(await rotations.async_advance(rid, ["local/evening/*"])).file for _ in range(4)]
+    assert steps == [
+        "local/evening/a.jpg",
+        "local/evening/b.jpg",
+        "local/evening/c.jpg",
+        "local/evening/a.jpg",
+    ]
     (root / "evening/b.jpg").unlink()
     (root / "evening/a.jpg").unlink()
-    state = await rotations.async_advance(rid, ["evening/*"])
+    state = await rotations.async_advance(rid, ["local/evening/*"])
     assert (state.file, state.position, state.count, state.pattern) == (
-        "evening/c.jpg",
+        "local/evening/c.jpg",
         1,
         1,
-        "evening/*",
+        "local/evening/*",
     )
 
 
@@ -109,8 +118,10 @@ async def test_rotation_falls_back_and_empties(
     tree("night/a.jpg")
     rotations = with_rotation.runtime_data.rotations
     rid = rotation_id(with_rotation)
-    assert (await rotations.async_advance(rid, ["evening/*", "night/*"])).file == "night/a.jpg"
-    state = await rotations.async_advance(rid, ["morning/*"])
+    assert (
+        await rotations.async_advance(rid, ["local/evening/*", "local/night/*"])
+    ).file == "local/night/a.jpg"
+    state = await rotations.async_advance(rid, ["local/morning/*"])
     assert (state.file, state.position, state.count, state.pattern) == (None, 0, 0, None)
 
 
@@ -119,9 +130,9 @@ async def test_state_survives_a_reload(
 ) -> None:
     tree("evening/a.jpg", "evening/b.jpg")
     rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["evening/*"])
+    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
     assert await hass.config_entries.async_reload(with_rotation.entry_id)
-    assert with_rotation.runtime_data.rotations.state(rid).file == "evening/a.jpg"
+    assert with_rotation.runtime_data.rotations.state(rid).file == "local/evening/a.jpg"
 
 
 async def test_deleting_the_rotation_drops_its_state(
@@ -129,7 +140,7 @@ async def test_deleting_the_rotation_drops_its_state(
 ) -> None:
     tree("evening/a.jpg")
     rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["evening/*"])
+    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
     assert hass.config_entries.async_remove_subentry(with_rotation, rid)
     await hass.async_block_till_done()
     assert with_rotation.runtime_data.rotations.state(rid).file is None
@@ -141,7 +152,7 @@ async def test_rotations_command_lists_subentries(
 ) -> None:
     tree("evening/a.jpg", "evening/b.jpg")
     rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["evening/*"])
+    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
     client = await hass_ws_client()
     await client.send_json_auto_id({"type": "shoebox/rotations"})
     (result,) = (await client.receive_json())["result"]["rotations"]
@@ -149,11 +160,11 @@ async def test_rotations_command_lists_subentries(
     assert result == {
         "id": rid,
         "title": "Evening",
-        "patterns": ["evening/*"],
-        "pattern": "evening/*",
+        "patterns": ["local/evening/*"],
+        "pattern": "local/evening/*",
         "count": 2,
         "position": 1,
-        "file": "evening/a.jpg",
+        "file": "local/evening/a.jpg",
         "entity_id": "image.evening",
         "next_entity_id": "button.evening_next",
     }

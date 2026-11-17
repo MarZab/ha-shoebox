@@ -2,16 +2,16 @@
 
 Shoebox reads and changes files on the Home Assistant host. These are the rules that keep that safe, and where they are enforced.
 
-## Everything stays in the media folder
+## Everything stays in the chosen media folders
 
-Every path from outside (actions, WebSocket commands, views, uploads) goes through `media.resolve`:
+Every path from outside (actions, WebSocket commands, views, uploads) starts with the name of a media folder. `Library.locate` refuses names of folders Shoebox was not given and the top level itself, then `media.resolve` keeps the rest below that folder:
 
 - `..` is refused outright, and so is a NUL byte.
-- An absolute path must lie below the media folder.
+- An absolute path must lie below one of the chosen media folders.
 - A path that is itself a symbolic link is refused, since deleting or moving it would act on its target.
-- Symbolic links in the folders on the way are followed, and the real result must still be below the media folder.
+- Symbolic links in the folders on the way are followed, and the real result must still be below that media folder.
 
-Listings skip hidden names and symbolic links. Home Assistant's own security filter answers some suspicious URLs (such as `../` in a query) with 400 before Shoebox sees them.
+A media folder itself cannot be created, renamed, moved or deleted. Listings skip hidden names and symbolic links. Home Assistant's own security filter answers some suspicious URLs (such as `../` in a query) with 400 before Shoebox sees them.
 
 ## Nothing is overwritten by accident
 

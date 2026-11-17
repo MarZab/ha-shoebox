@@ -72,7 +72,7 @@ def test_finish_never_replaces_an_existing_file(tree: Tree) -> None:
     assert tmp.name.startswith(".upload-")
     os.write(fd, b"new")
     os.close(fd)
-    assert upload.finish(root, folder, tmp, "a.jpg") == "x/a-1.jpg"
+    assert upload.finish(folder, tmp, "a.jpg") == folder / "a-1.jpg"
     assert (folder / "a.jpg").read_bytes() == before
     assert (folder / "a-1.jpg").read_bytes() == b"new"
     assert not tmp.exists()
@@ -82,5 +82,5 @@ def test_finish_failure_releases_the_name(tree: Tree) -> None:
     root = tree("x/")
     folder = upload.target_folder(root, "x")
     with pytest.raises(FileNotFoundError):
-        upload.finish(root, folder, folder / ".gone.tmp", "a.jpg")
+        upload.finish(folder, folder / ".gone.tmp", "a.jpg")
     assert not (folder / "a.jpg").exists()

@@ -16,7 +16,7 @@ from typing import Final
 import unicodedata
 
 from .errors import MediaError
-from .media import relative, resolve
+from .media import resolve
 
 MAX_NAME: Final = 200
 MEDIA_TYPES: Final = ("image/", "video/", "audio/")
@@ -73,8 +73,8 @@ def free_name(folder: Path, name: str) -> Path:
     raise MediaError("no_free_name", name=name)
 
 
-def finish(root: Path, folder: Path, tmp: Path, name: str) -> str:
-    """Move the complete upload to a free name in the folder; returns its path below the root."""
+def finish(folder: Path, tmp: Path, name: str) -> Path:
+    """Move the complete upload to a free name in the folder; returns where it went."""
     target = free_name(folder, name)
     try:
         os.chmod(tmp, 0o644)
@@ -82,4 +82,4 @@ def finish(root: Path, folder: Path, tmp: Path, name: str) -> str:
     except BaseException:
         target.unlink(missing_ok=True)
         raise
-    return relative(root, target)
+    return target

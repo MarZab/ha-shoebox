@@ -6,9 +6,18 @@ Shoebox is set up in the UI. There is nothing to put in `configuration.yaml`; a 
 
 1. Install Shoebox through HACS and restart Home Assistant.
 2. Go to **Settings → Devices & services → Add integration** and choose **Shoebox Media Manager**.
-3. Confirm. Shoebox asks no questions: it works on Home Assistant's local media folder (**My media**, `/media`).
+3. Choose the media folders Shoebox works on. **My media** (`local`, which is `/media` on Home Assistant OS) is chosen already; more folders come from `media_dirs` in `configuration.yaml`:
 
-Shoebox can be added once. If the media folder does not exist, setup waits and retries; create the folder and Shoebox starts.
+   ```yaml
+   homeassistant:
+     media_dirs:
+       local: /media
+       nas: /mnt/photos
+   ```
+
+   Paths in Shoebox start with the folder's name: `local/Family/beach.jpg`, `nas/2024/beach.jpg`. Folders not chosen stay out of Shoebox's reach.
+
+Shoebox can be added once. If a chosen folder does not exist or is no longer configured, setup waits and retries.
 
 Rotations are added afterwards, from the same page: see [rotations](rotations.md).
 
@@ -18,6 +27,7 @@ Rotations are added afterwards, from the same page: see [rotations](rotations.md
 
 | Option | Default | What it does |
 |--------|---------|--------------|
+| Media folders | My media | The media folders Shoebox works on; at least one. Removing a folder here only takes it out of Shoebox's reach: its files stay. Rotations whose patterns name it find no pictures there any more. |
 | Cache size | 512 MB | How much space prepared pictures may take. When the cache grows past this, the pictures used least recently are removed. **0** turns the cache off: nothing is stored and pictures are prepared on every request. See [cache](cache.md). |
 | Clear the cache | off | Removes every prepared picture when you save. They are made again when needed. The dialog shows how many pictures the cache holds now. |
 | Show in sidebar | on | The Shoebox panel for administrators. Off removes it for everyone; actions, entities and device pictures keep working. To hide the panel only for yourself, edit your own sidebar instead. |
@@ -33,7 +43,7 @@ What stays and what goes:
 
 | Stays | Goes |
 |-------|------|
-| Every file in the media folder, including turns and crops stored in your pictures | The rotations, their devices and entities |
+| Every file in the media folders, including turns and crops stored in your pictures | The rotations, their devices and entities |
 | | Where each rotation was (its position) |
 | | The cache of prepared pictures |
 

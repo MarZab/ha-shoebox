@@ -20,11 +20,11 @@ async def test_next_advances_the_rotation(
 ) -> None:
     tree("evening/a.jpg", "evening/b.jpg")
     await press(hass)
-    assert hass.states.get("image.evening").attributes["file"] == "evening/a.jpg"  # type: ignore[union-attr]
+    assert hass.states.get("image.evening").attributes["file"] == "local/evening/a.jpg"  # type: ignore[union-attr]
     await press(hass)
     image = hass.states.get("image.evening")
     assert image is not None
-    assert (image.attributes["file"], image.attributes["position"]) == ("evening/b.jpg", 2)
+    assert (image.attributes["file"], image.attributes["position"]) == ("local/evening/b.jpg", 2)
 
 
 async def test_button_lives_and_goes_with_its_rotation(

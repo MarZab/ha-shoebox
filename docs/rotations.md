@@ -1,6 +1,6 @@
 # Rotations
 
-A rotation is a set of pictures shown one at a time. Each rotation has a name and one or more patterns; the patterns choose pictures by their path below the media folder. Pressing the rotation's **Next** button moves it to the next picture.
+A rotation is a set of pictures shown one at a time. Each rotation has a name and one or more patterns; the patterns choose pictures by their path, such as `local/Family/beach.jpg`. Pressing the rotation's **Next** button moves it to the next picture.
 
 ## Adding, changing and deleting
 
@@ -14,18 +14,19 @@ Each rotation becomes a device with two entities: an [image](entities.md#image) 
 
 ## Patterns
 
-Patterns match the path below the media folder, such as `Family/2024 Summer/beach.jpg`.
+Patterns match paths, which start with the name of the media folder: `local/Family/2024 Summer/beach.jpg` is in My media.
 
 | Pattern | Selects |
 |---------|---------|
-| `Family/*` | pictures directly in `Family` |
-| `Family/**` | pictures in `Family` and every folder below it |
+| `local/Family/*` | pictures directly in `Family` |
+| `local/Family/**` | pictures in `Family` and every folder below it |
+| `*/Family/**` | pictures below a `Family` folder in every media folder |
 | `**/beach*.jpg` | `beach…jpg` files anywhere |
-| `Family/202?/*` | pictures in `Family/2020` … `Family/2029` |
-| `Wallpapers/[a-m]*` | pictures in `Wallpapers` starting with a to m |
-| `Wallpapers/[!a-m]*` | the other pictures in `Wallpapers` |
+| `local/Family/202?/*` | pictures in `local/Family/2020` … `local/Family/2029` |
+| `local/Wallpapers/[a-m]*` | pictures in `Wallpapers` starting with a to m |
+| `local/Wallpapers/[!a-m]*` | the other pictures in `Wallpapers` |
 | `re:summer` | paths that contain `summer` (a regular expression) |
-| `re:^Phone/IMG_\d+\.jpe?g$` | a regular expression matched against the whole path |
+| `re:^local/Phone/IMG_\d+\.jpe?g$` | a regular expression matched against the whole path |
 
 - A glob (`*`, `**`, `?`, `[...]`) must match the whole path. `*` and `?` stay within one folder; `**` crosses folders; `**/` also matches no folder at all. A leading `/` is ignored.
 - `re:` followed by a [regular expression](https://docs.python.org/3/library/re.html) matches anywhere in the path; use `^` and `$` to match the whole path.
@@ -38,15 +39,15 @@ Only pictures count: `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`, `.avif`
 A rotation can have several patterns. The first pattern that selects any picture is used, and the others are ignored. That makes fallbacks:
 
 ```text
-Seasons/Winter/**
-Wallpapers/**
+local/Seasons/Winter/**
+local/Wallpapers/**
 ```
 
 shows winter pictures while there are any, and wallpapers otherwise. The rotation's `pattern` attribute tells which one is in use.
 
 ## Order
 
-Pictures are shown in path order: sorted by their full path, so `Family/2023/…` comes before `Family/2024/…`. After the last picture the rotation starts again at the first.
+Pictures are shown in path order: sorted by their full path, so `local/Family/2023/…` comes before `local/Family/2024/…`. After the last picture the rotation starts again at the first.
 
 The rotation remembers its current picture, also across restarts. When files change:
 

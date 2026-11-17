@@ -78,14 +78,16 @@ async def test_panel_files_are_served(hass: HomeAssistant, client: TestClient) -
 async def test_render(client: TestClient, media_root: Path) -> None:
     write_image(media_root / "a.jpg", (80, 40), crop=(0.5, 0.5, 1.0, 1.0))
     response = await client.get(
-        RENDER_URL, params={"path": "a.jpg", "size": "30x30", "fit": "cover"}
+        RENDER_URL, params={"path": "local/a.jpg", "size": "30x30", "fit": "cover"}
     )
     assert response.status == 200
     assert response.headers["Content-Type"] == "image/jpeg"
     assert response.headers["ETag"]
     data = await response.read()
     assert colour_at(data, 0.5, 0.5) == "white"
-    whole = await client.get(RENDER_URL, params={"path": "a.jpg", "size": "30x30", "crop": "0"})
+    whole = await client.get(
+        RENDER_URL, params={"path": "local/a.jpg", "size": "30x30", "crop": "0"}
+    )
     assert colour_at(await whole.read(), 0.2, 0.2) == "red"
 
 
@@ -139,7 +141,7 @@ async def test_renders_are_capped(
     monkeypatch.setattr(imaging, "render", render)
     box = loaded.runtime_data
     tasks = [
-        hass.async_create_task(box.picture(f"{i}.jpg", 10, 10, "cover"))
+        hass.async_create_task(box.picture(f"local/{i}.jpg", 10, 10, "cover"))
         for i in range(CONCURRENT_RENDERS + 3)
     ]
     for _ in range(200):
@@ -163,8 +165,8 @@ def form(name: str = "a.jpg", content_type: str = "image/jpeg", data: bytes = b"
 
 async def test_upload_never_overwrites(client: TestClient, tree: Tree) -> None:
     root = tree("x/a.jpg")
-    response = await client.post(UPLOAD_URL, params={"folder": "x"}, data=form())
-    assert (response.status, await response.json()) == (200, {"path": "x/a-1.jpg"})
+    response = await client.post(UPLOAD_URL, params={"folder": "local/x"}, data=form())
+    assert (response.status, await response.json()) == (200, {"path": "local/x/a-1.jpg"})
     assert (root / "x/a-1.jpg").read_bytes() == b"jpeg"
     assert [p.name for p in (root / "x").iterdir() if p.name.startswith(".")] == []
 
@@ -217,9 +219,9 @@ async def test_browse_and_signed_thumbnails(
     ws: Ws, tree: Tree, hass_client_no_auth: ClientSessionGenerator
 ) -> None:
     tree("x/b.jpg", "x/a.txt", "x/sub/")
-    msg = await ws("browse", path="x")
+    msg = await ws("browse", path="local/x")
     assert msg["success"]
-    assert msg["result"]["path"] == "x"
+    assert msg["result"]["path"] == "local/x"
     items = msg["result"]["items"]
     assert [(i["name"], i["type"]) for i in items] == [
         ("sub", "folder"),
@@ -234,23 +236,33 @@ async def test_browse_and_signed_thumbnails(
 
 async def test_folders(ws: Ws, tree: Tree) -> None:
     tree("a/b/", "c/")
-    assert (await ws("folders"))["result"] == {"folders": ["a", "a/b", "c"]}
+    assert (await ws("folders"))["result"] == {
+        "folders": ["local", "local/a", "local/a/b", "local/c"]
+    }
 
 
 async def test_info_and_edit(ws: Ws, media_root: Path) -> None:
     write_image(media_root / "a.jpg", (80, 40))
-    info = (await ws("info", path="a.jpg"))["result"]
+    info = (await ws("info", path="local/a.jpg"))["result"]
     assert (info["width"], info["height"], info["editable"], info["path"]) == (
         80,
         40,
         True,
-        "a.jpg",
+        "local/a.jpg",
     )
     assert info["view"].startswith(RENDER_URL)
     assert "crop=0" in info["base"]
-    edited = (await ws("edit", path="a.jpg", rotate=90, crop=[0, 0, 0.5, 1]))["result"]
+    edited = (await ws("edit", path="local/a.jpg", rotate=90, crop=[0, 0, 0.5, 1]))["result"]
     assert (edited["width"], edited["height"], edited["orientation"]) == (40, 80, 6)
     assert edited["crop"] == pytest.approx([0, 0, 0.5, 1])
+
+
+async def test_browse_starts_at_the_media_folders(ws: Ws) -> None:
+    result = (await ws("browse"))["result"]
+    assert (result["path"], [(i["name"], i["type"]) for i in result["items"]]) == (
+        "",
+        [("local", "folder")],
+    )
 
 
 async def test_rotations_without_any(ws: Ws) -> None:
@@ -262,7 +274,7 @@ async def test_rotations_without_any(ws: Ws) -> None:
     [
         ("browse", {"path": "../x"}),
         ("info", {"path": "missing.jpg"}),
-        ("edit", {"path": "a.png", "crop": None}),
+        ("edit", {"path": "local/a.png", "crop": None}),
     ],
 )
 async def test_refusals_come_back_as_errors(

@@ -1,8 +1,8 @@
 # Troubleshooting
 
-## Shoebox does not start: "The media folder … does not exist"
+## Shoebox does not start: "The media folder … is missing or no longer configured"
 
-Shoebox works on Home Assistant's local media folder (`/media` on Home Assistant OS and in the container). Create it, for example by uploading a file in **Media → My media**; Shoebox retries on its own.
+A media folder chosen for Shoebox does not exist, or was removed from `media_dirs` in `configuration.yaml`. Create the folder or add it back, and Shoebox retries on its own; or choose other folders in the [options](configuration.md#options). My media (`local`) is `/media` on Home Assistant OS and in the container.
 
 ## A rotation shows nothing
 
@@ -18,9 +18,9 @@ Shoebox stores turns and crops in the picture's metadata. Most apps honor the tu
 
 Only JPEG pictures can be edited. HEIC (iPhone), PNG and other formats are shown, but their metadata cannot be changed in place.
 
-## An action is refused: "… is outside the media folder" or "'..' is not allowed"
+## An action is refused: "… is not a media folder Shoebox uses" or "'..' is not allowed"
 
-Paths are relative to the media folder, such as `Family/beach.jpg`. Shoebox never touches anything outside it.
+Paths start with the name of a media folder: `local` is My media, so a picture there is `local/Family/beach.jpg`. Shoebox never touches anything outside the media folders chosen in its [options](configuration.md#options).
 
 ## A device gets 401 or 404
 

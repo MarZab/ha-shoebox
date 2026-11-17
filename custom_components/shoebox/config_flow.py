@@ -16,12 +16,15 @@ from homeassistant.config_entries import (
     OptionsFlow,
     SubentryFlowResult,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
     TextSelector,
     TextSelectorConfig,
 )
@@ -31,18 +34,38 @@ from . import media
 from .const import (
     CONF_CACHE_SIZE,
     CONF_CLEAR_CACHE,
+    CONF_FOLDERS,
     CONF_PATTERNS,
     CONF_SHOW_IN_SIDEBAR,
     DEFAULT_CACHE_SIZE_MB,
+    DEFAULT_FOLDERS,
     DOMAIN,
     MIN_CACHE_SIZE_MB,
     SUBENTRY_ROTATION,
     TITLE,
 )
 from .errors import MediaError
-from .runtime import MB, media_root, variant_cache
+from .library import Library
+from .runtime import MB, chosen_folders, media_folders, variant_cache
 
 PREVIEW_COUNT = 5
+
+
+def folder_selector(hass: HomeAssistant) -> SelectSelector:
+    """The media folders Home Assistant knows, by name and location."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=name, label=f"{name} ({path})")
+                for name, path in hass.config.media_dirs.items()
+            ],
+            multiple=True,
+        )
+    )
+
+
+def folders_error(folders: list[str]) -> dict[str, str]:
+    return {} if folders else {CONF_FOLDERS: "no_folder"}
 
 
 class ShoeboxConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -50,9 +73,16 @@ class ShoeboxConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @override
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title=TITLE, data={})
-        return self.async_show_form(step_id="user")
+            folders = list(user_input[CONF_FOLDERS])
+            if not (errors := folders_error(folders)):
+                return self.async_create_entry(
+                    title=TITLE, data={}, options={CONF_FOLDERS: folders}
+                )
+        known = [f for f in DEFAULT_FOLDERS if f in self.hass.config.media_dirs]
+        schema = vol.Schema({vol.Required(CONF_FOLDERS, default=known): folder_selector(self.hass)})
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
     @staticmethod
     @callback
@@ -72,19 +102,26 @@ class ShoeboxConfigFlow(ConfigFlow, domain=DOMAIN):
 class ShoeboxOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         cache = variant_cache(self.hass, self.config_entry.options)
+        errors: dict[str, str] = {}
         if user_input is not None:
-            if user_input.get(CONF_CLEAR_CACHE):
-                await self.hass.async_add_executor_job(cache.clear)
-            return self.async_create_entry(
-                data={
-                    CONF_CACHE_SIZE: int(user_input[CONF_CACHE_SIZE]),
-                    CONF_SHOW_IN_SIDEBAR: bool(user_input[CONF_SHOW_IN_SIDEBAR]),
-                }
-            )
+            folders = list(user_input[CONF_FOLDERS])
+            if not (errors := folders_error(folders)):
+                if user_input.get(CONF_CLEAR_CACHE):
+                    await self.hass.async_add_executor_job(cache.clear)
+                return self.async_create_entry(
+                    data={
+                        CONF_FOLDERS: folders,
+                        CONF_CACHE_SIZE: int(user_input[CONF_CACHE_SIZE]),
+                        CONF_SHOW_IN_SIDEBAR: bool(user_input[CONF_SHOW_IN_SIDEBAR]),
+                    }
+                )
         files, size = await self.hass.async_add_executor_job(cache.usage)
         options = self.config_entry.options
         schema = vol.Schema(
             {
+                vol.Required(CONF_FOLDERS, default=chosen_folders(options)): folder_selector(
+                    self.hass
+                ),
                 vol.Required(
                     CONF_CACHE_SIZE, default=options.get(CONF_CACHE_SIZE, DEFAULT_CACHE_SIZE_MB)
                 ): NumberSelector(
@@ -105,6 +142,7 @@ class ShoeboxOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
+            errors=errors,
             description_placeholders={"files": str(files), "size": f"{size / MB:.1f}"},
         )
 
@@ -159,7 +197,8 @@ class RotationSubentryFlow(ConfigSubentryFlow):
                     self._get_entry(), self._get_reconfigure_subentry(), title=self._name, data=data
                 )
             return self.async_create_entry(title=self._name, data=data)
-        entries = await self.hass.async_add_executor_job(media.walk, media_root(self.hass))
+        library = Library(media_folders(self.hass, self._get_entry().options))
+        entries = await self.hass.async_add_executor_job(library.walk)
         used, files = media.first_match(entries, self._patterns)
         return self.async_show_form(
             step_id="preview",

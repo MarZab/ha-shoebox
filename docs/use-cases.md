@@ -16,19 +16,19 @@ alias: Sort phone pictures
 sequence:
   - action: shoebox.list
     data:
-      pattern: "Phone/*"
+      pattern: "local/Phone/*"
       type: image
     response_variable: found
   - action: shoebox.create_folder
     data:
-      path: "Family/{{ now().strftime('%Y-%m') }}"
+      path: "local/Family/{{ now().strftime('%Y-%m') }}"
   - repeat:
       for_each: "{{ found['items'] | map(attribute='path') | list }}"
       sequence:
         - action: shoebox.move
           data:
             path: "{{ repeat.item }}"
-            to: "Family/{{ now().strftime('%Y-%m') }}"
+            to: "local/Family/{{ now().strftime('%Y-%m') }}"
 ```
 
 ## Upload from your phone
@@ -50,7 +50,7 @@ Only JPEG pictures can be edited; see [editing](editing.md) for how the turn and
 
 ## Slideshow on a dashboard
 
-1. **Settings → Devices & services → Shoebox Media Manager → Add rotation**: name *Living room*, pattern `Family/**`.
+1. **Settings → Devices & services → Shoebox Media Manager → Add rotation**: name *Living room*, pattern `local/Family/**`.
 2. Add a card to the dashboard on the tablet, TV or browser:
 
    ```yaml
@@ -89,7 +89,7 @@ Only JPEG pictures can be edited; see [editing](editing.md) for how the turn and
 
 Make a rotation per mood and choose between them.
 
-1. Put the pictures in folders, such as `Moods/Day` and `Moods/Night`, and add rotations *Day* (`Moods/Day/**`) and *Night* (`Moods/Night/**`).
+1. Put the pictures in folders, such as `local/Moods/Day` and `local/Moods/Night`, and add rotations *Day* (`local/Moods/Day/**`) and *Night* (`local/Moods/Night/**`).
 2. Show the one that fits:
 
    ```yaml
@@ -107,7 +107,7 @@ Make a rotation per mood and choose between them.
 
    and a second conditional card with `state_not: above_horizon` showing `image.night`.
 
-For seasons, one rotation with [fallback patterns](rotations.md#fallbacks) is enough. Change its patterns in **Settings** when the season turns, or keep the seasons in folders and let an automation move pictures into `Seasons/Now` with the [move action](actions.md#move).
+For seasons, one rotation with [fallback patterns](rotations.md#fallbacks) is enough. Change its patterns in **Settings** when the season turns, or keep the seasons in folders and let an automation move pictures into `local/Seasons/Now` with the [move action](actions.md#move).
 
 ## Photo of the day
 
@@ -134,6 +134,6 @@ For seasons, one rotation with [fallback patterns](rotations.md#fallbacks) is en
 
 1. In the Shoebox panel, create a folder `Kids art`.
 2. Photograph new drawings with your phone and [upload](#upload-from-your-phone) them into that folder, cropping in the panel if needed.
-3. Add a rotation *Artwork* with the pattern `Kids art/**` and put it on a wall tablet as in the [slideshow](#slideshow-on-a-dashboard), or on a [photo frame](#esphome-photo-frame).
+3. Add a rotation *Artwork* with the pattern `local/Kids art/**` and put it on a wall tablet as in the [slideshow](#slideshow-on-a-dashboard), or on a [photo frame](#esphome-photo-frame).
 
 New drawings join the rotation as soon as they are uploaded.

@@ -2,7 +2,7 @@
 
 ## What this project is
 
-**Shoebox**, a Home Assistant custom integration distributed through HACS. It is a media organizer first: it fills the gaps of Home Assistant's media browser for the local media folder (`/media`) with folders, move, rename, safe uploads, thumbnails, and rotate and crop. Extras build on it: rotations (pictures that change, each a device with an image and a Next button), a sized picture URL for devices such as ESPHome, and a media source.
+**Shoebox**, a Home Assistant custom integration distributed through HACS. It is a media organizer first: it fills the gaps of Home Assistant's media browser for the chosen media folders (My media and any `media_dirs`) with folders, move, rename, safe uploads, thumbnails, and rotate and crop. Extras build on it: rotations (pictures that change, each a device with an image and a Next button), a sized picture URL for devices such as ESPHome, and a media source.
 
 The shipped product is `custom_components/shoebox/`. Everything else is developer tooling.
 
@@ -82,7 +82,7 @@ backlog task create "Title" -d "…" --ac "…" -l <label> -m <milestone>
 
 ## Hard rules
 
-1. **Everything stays below the media folder.** Every outside path goes through `media.resolve`.
+1. **Everything stays in the chosen media folders.** Outside paths start with a folder's name (`local/…`) and go through `Library`, which uses `media.resolve` per folder.
 2. **Never overwrite a user file by accident.** Uploads claim a free name; edits replace atomically.
 3. **The cache deletes only its own files.**
 4. **Admin-only stays admin-only**: actions, panel, WebSocket commands, render and upload views. The device and media source views serve only rotation pictures.

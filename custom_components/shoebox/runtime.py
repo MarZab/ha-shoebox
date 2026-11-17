@@ -11,25 +11,33 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
-from . import imaging, media
+from . import imaging
 from .cache import Variant, VariantCache
 from .const import (
     CACHE_FOLDER,
     CONCURRENT_RENDERS,
     CONF_CACHE_SIZE,
+    CONF_FOLDERS,
     CONF_SHOW_IN_SIDEBAR,
     DEFAULT_CACHE_SIZE_MB,
+    DEFAULT_FOLDERS,
     DOMAIN,
 )
 from .errors import ShoeboxError
+from .library import Library
 from .rotations import Rotations
 
 MB = 1024 * 1024
 
 
-def media_root(hass: HomeAssistant) -> Path:
-    """Home Assistant's local media folder ("My media")."""
-    return Path(hass.config.media_dirs.get("local") or hass.config.path("media"))
+def chosen_folders(options: Mapping[str, Any]) -> list[str]:
+    return list(options.get(CONF_FOLDERS, DEFAULT_FOLDERS))
+
+
+def media_folders(hass: HomeAssistant, options: Mapping[str, Any]) -> dict[str, Path]:
+    """The chosen media folders that Home Assistant knows, by name ("local" is My media)."""
+    known = hass.config.media_dirs
+    return {name: Path(known[name]) for name in chosen_folders(options) if name in known}
 
 
 def variant_cache(hass: HomeAssistant, options: Mapping[str, Any]) -> VariantCache:
@@ -40,17 +48,17 @@ def variant_cache(hass: HomeAssistant, options: Mapping[str, Any]) -> VariantCac
 class Shoebox:
     def __init__(self, hass: HomeAssistant, options: Mapping[str, Any]) -> None:
         self.hass = hass
-        self.root = media_root(hass)
+        self.library = Library(media_folders(hass, options))
         self.cache = variant_cache(hass, options)
         self.show_in_sidebar = bool(options.get(CONF_SHOW_IN_SIDEBAR, True))
         self._renders = asyncio.Semaphore(CONCURRENT_RENDERS)
-        self.rotations = Rotations(hass, self.root, self.run)
+        self.rotations = Rotations(hass, self.library, self.run)
 
     async def picture(
         self, path: str, width: int, height: int, fit: imaging.Fit, *, use_crop: bool = True
     ) -> Variant:
-        """A picture below the media folder prepared at a size, through the cache."""
-        source = await self.run(media.resolve_file, self.root, path)
+        """A picture in a media folder prepared at a size, through the cache."""
+        source = await self.run(self.library.resolve_file, path)
         make = partial(imaging.render, source, width, height, fit, use_crop)
         async with self._renders:
             return await self.run(
