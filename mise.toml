@@ -1,0 +1,10 @@
+# mise install       Python and uv at the pinned versions
+# mise run setup     install the dev dependencies
+# mise tasks         list every task (scripts in tools/tasks/)
+
+[tools]
+python = "3.14"
+uv = "latest"
+
+[task_config]
+includes = ["tools/tasks", "tools/sandbox"]

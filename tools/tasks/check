@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Lint, types and tests with coverage (what CI runs)"
+#MISE depends=["lint", "type"]
+set -euo pipefail
+uv run pytest --cov --cov-report=term-missing "$@"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Install the dev dependencies (uv sync)"
+set -euo pipefail
+uv sync "$@"

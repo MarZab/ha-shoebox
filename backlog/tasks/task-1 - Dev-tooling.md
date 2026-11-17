@@ -1,9 +1,11 @@
 ---
 id: TASK-1
 title: Dev tooling
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T09:46:00Z'
 labels:
   - tooling
 milestone: m-0
@@ -25,15 +27,21 @@ Tooling for developing the integration; nothing here ships to users.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `mise run setup` installs everything into .venv
-- [ ] #2 `mise run check` runs ruff, ruff format --check, mypy and pytest, and passes
-- [ ] #3 The HA version is pinned in one place
-- [ ] #4 Coverage is reported for custom_components/shoebox
+- [x] #1 `mise run setup` installs everything into .venv
+- [x] #2 `mise run check` runs ruff, ruff format --check, mypy and pytest, and passes
+- [x] #3 The HA version is pinned in one place
+- [x] #4 Coverage is reported for custom_components/shoebox
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 `mise run check` passes
-- [ ] #2 New or changed behaviour is covered by tests
-- [ ] #3 README and AGENTS.md match the change
+- [x] #1 `mise run check` passes
+- [x] #2 New or changed behaviour is covered by tests
+- [x] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Home Assistant 2026.10.4 comes from pytest-homeassistant-custom-component 0.13.375, pinned in pyproject.toml; uv.lock records the rest. mypy covers custom_components/shoebox.
+<!-- SECTION:NOTES:END -->
