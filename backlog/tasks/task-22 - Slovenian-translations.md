@@ -1,9 +1,11 @@
 ---
 id: TASK-22
 title: Slovenian translations
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T10:28:00Z'
 labels:
   - integration
 milestone: m-3
@@ -24,13 +26,19 @@ translations/sl.json for config flow, options, subentry flow, actions, errors an
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 sl.json has every key of en.json
-- [ ] #2 A test fails when the keys of en.json and sl.json differ
+- [x] #1 sl.json has every key of en.json
+- [x] #2 A test fails when the keys of en.json and sl.json differ
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 `mise run check` passes
-- [ ] #2 New or changed behaviour is covered by tests
-- [ ] #3 README and AGENTS.md match the change
+- [x] #1 `mise run check` passes
+- [x] #2 New or changed behaviour is covered by tests
+- [x] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+translations/sl.json covers config flow, rotation subentries, options, the Next button, actions, selectors and errors, in the panel's vocabulary (rotacija, mapa z mediji, obreži). tests/test_definitions.py fails when the keys or placeholders of en.json and sl.json differ.
+<!-- SECTION:NOTES:END -->

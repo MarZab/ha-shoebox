@@ -1,0 +1,294 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Shoebox ureja slike v mapi z mediji: mape, nalaganje, vrtenje in obrezovanje ter rotacije slik za nadzorne plošče in zaslone."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Shoebox je že nastavljen."
+    }
+  },
+  "config_subentries": {
+    "rotation": {
+      "entry_type": "Rotacija",
+      "initiate_flow": {
+        "user": "Dodaj rotacijo",
+        "reconfigure": "Spremeni rotacijo"
+      },
+      "step": {
+        "user": {
+          "title": "Rotacija",
+          "description": "Rotacija prikazuje slike, ki jih izberejo njeni vzorci, eno za drugo, po vrstnem redu poti.",
+          "data": {
+            "name": "Ime",
+            "patterns": "Vzorci"
+          },
+          "data_description": {
+            "name": "Ime naprave in entitete rotacije.",
+            "patterns": "Globi nad potmi v mapi z mediji (\"*\" znotraj mape, \"**\" v poljubni globini) ali \"re:\" in regularni izraz. Če prvi ne izbere nobene slike, se uporabi naslednji."
+          }
+        },
+        "preview": {
+          "title": "Predogled",
+          "description": "Ujemajočih se slik: {count}, z vzorcem {pattern}. Prve so:\n\n{examples}"
+        }
+      },
+      "error": {
+        "no_pattern": "Vnesite vsaj en vzorec.",
+        "invalid_pattern": "Vzorec ni veljaven."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "description": "Shoebox hrani slike, pripravljene v velikostih, ki jih zahtevajo nadzorne plošče in naprave. Predpomnilnik zdaj hrani {files} slik ({size} MB).",
+        "data": {
+          "cache_size": "Velikost predpomnilnika",
+          "clear_cache": "Počisti predpomnilnik",
+          "show_in_sidebar": "Prikaži v stranski vrstici"
+        },
+        "data_description": {
+          "cache_size": "Ko predpomnilnik preseže to velikost, se odstranijo najdlje neuporabljene slike. 0 izklopi predpomnilnik: slike se pripravijo ob vsaki zahtevi.",
+          "clear_cache": "Odstrani vse pripravljene slike. Ko so spet potrebne, se pripravijo znova.",
+          "show_in_sidebar": "Plošča Shoebox za skrbnike. Dejanja, entitete in slike za naprave delujejo v obeh primerih."
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "next": {
+        "name": "Naslednja"
+      }
+    }
+  },
+  "services": {
+    "list": {
+      "name": "Seznam medijev",
+      "description": "Našteje datoteke in mape v mapi z mediji, ki ustrezajo vzorcu.",
+      "fields": {
+        "pattern": {
+          "name": "Vzorec",
+          "description": "Glob nad potmi v mapi z mediji (\"*\" znotraj mape, \"**\" v poljubni globini, \"?\", \"[...]\") ali \"re:\" in regularni izraz."
+        },
+        "type": {
+          "name": "Vrsta",
+          "description": "Le slike, druge datoteke ali mape."
+        }
+      }
+    },
+    "create_folder": {
+      "name": "Ustvari mapo",
+      "description": "Ustvari mapo v mapi z mediji, skupaj z manjkajočimi nadrejenimi mapami.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Nova mapa, npr. \"Družina/Poletje 2025\"."
+        }
+      }
+    },
+    "move": {
+      "name": "Premakni",
+      "description": "Premakne datoteko ali mapo v drugo mapo. Nič se ne prepiše.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+        },
+        "to": {
+          "name": "V",
+          "description": "Mapa, v katero se premakne; prazno za mapo z mediji."
+        }
+      }
+    },
+    "rename": {
+      "name": "Preimenuj",
+      "description": "Preimenuje datoteko ali mapo na mestu. Nič se ne prepiše.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+        },
+        "name": {
+          "name": "Novo ime",
+          "description": "Novo ime, brez mape."
+        }
+      }
+    },
+    "delete": {
+      "name": "Izbriši",
+      "description": "Izbriše datoteko ali mapo z vso vsebino. Tega ni mogoče razveljaviti.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Datoteka ali mapa v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+        }
+      }
+    },
+    "rotate": {
+      "name": "Zavrti sliko",
+      "description": "Zavrti sliko JPEG s spremembo orientacije EXIF; podatki slike se ne kodirajo znova.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Slika v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+        },
+        "by": {
+          "name": "Za",
+          "description": "Za koliko zavrteti prikazano sliko v smeri urinega kazalca."
+        },
+        "orientation": {
+          "name": "Orientacija",
+          "description": "Namesto vrtenja nastavi orientacijo EXIF (1 do 8)."
+        }
+      }
+    },
+    "crop": {
+      "name": "Obreži sliko",
+      "description": "Obreže sliko JPEG tako, da obrez shrani v njene podatke XMP, kot to počnejo urejevalniki fotografij; podatki slike ostanejo nespremenjeni.",
+      "fields": {
+        "path": {
+          "name": "Pot",
+          "description": "Slika v mapi z mediji, npr. \"Družina/plaža.jpg\"."
+        },
+        "left": {
+          "name": "Levo",
+          "description": "Levi rob obreza kot delež prikazane slike (0 do 1)."
+        },
+        "top": {
+          "name": "Zgoraj",
+          "description": "Zgornji rob obreza kot delež prikazane slike (0 do 1)."
+        },
+        "right": {
+          "name": "Desno",
+          "description": "Desni rob obreza kot delež prikazane slike (0 do 1)."
+        },
+        "bottom": {
+          "name": "Spodaj",
+          "description": "Spodnji rob obreza kot delež prikazane slike (0 do 1)."
+        },
+        "clear": {
+          "name": "Odstrani",
+          "description": "Namesto tega odstrani obrez."
+        }
+      }
+    }
+  },
+  "selector": {
+    "type": {
+      "options": {
+        "all": "Vse",
+        "image": "Slike",
+        "file": "Druge datoteke",
+        "folder": "Mape"
+      }
+    },
+    "by": {
+      "options": {
+        "90": "90° v smeri urinega kazalca",
+        "180": "180°",
+        "270": "90° v nasprotni smeri urinega kazalca"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_path": {
+      "message": "Neveljavna pot."
+    },
+    "parent_not_allowed": {
+      "message": "\"{path}\": \"..\" ni dovoljen."
+    },
+    "outside_media": {
+      "message": "\"{path}\" je zunaj mape z mediji."
+    },
+    "symbolic_link": {
+      "message": "\"{path}\" je simbolna povezava."
+    },
+    "media_folder_itself": {
+      "message": "\"{path}\" je mapa z mediji sama."
+    },
+    "invalid_name": {
+      "message": "\"{name}\" ni veljavno ime."
+    },
+    "empty_pattern": {
+      "message": "Vzorec je prazen."
+    },
+    "invalid_pattern": {
+      "message": "Neveljaven vzorec \"{pattern}\": {error}."
+    },
+    "invalid_type": {
+      "message": "Vrsta mora biti ena od {types}."
+    },
+    "exists_not_folder": {
+      "message": "\"{path}\" obstaja in ni mapa."
+    },
+    "not_found": {
+      "message": "\"{path}\" ne obstaja."
+    },
+    "not_a_folder": {
+      "message": "\"{path}\" ni mapa."
+    },
+    "not_a_file": {
+      "message": "\"{path}\" ni datoteka."
+    },
+    "move_into_itself": {
+      "message": "\"{path}\" ni mogoče premakniti vase."
+    },
+    "already_exists": {
+      "message": "\"{path}\" že obstaja."
+    },
+    "invalid_file_name": {
+      "message": "\"{name}\" ni veljavno ime datoteke."
+    },
+    "upload_type": {
+      "message": "\"{name}\": naložiti je mogoče le slike, videe in zvok."
+    },
+    "no_free_name": {
+      "message": "Za \"{name}\" ni prostega imena."
+    },
+    "rotate_by_90": {
+      "message": "Vrtite za večkratnik 90 stopinj."
+    },
+    "not_jpeg": {
+      "message": "To ni datoteka JPEG."
+    },
+    "jpeg_only": {
+      "message": "{name}: urejati je mogoče le datoteke JPEG."
+    },
+    "damaged_jpeg": {
+      "message": "Poškodovana datoteka JPEG."
+    },
+    "metadata_too_large": {
+      "message": "Odsek z metapodatki je prevelik."
+    },
+    "damaged_exif": {
+      "message": "{name}: poškodovani podatki EXIF, nespremenjeno."
+    },
+    "orientation_range": {
+      "message": "Orientacija mora biti od 1 do 8."
+    },
+    "crop_range": {
+      "message": "Obrez zahteva 0 <= levo < desno <= 1 in 0 <= zgoraj < spodaj <= 1."
+    },
+    "xmp_unsupported": {
+      "message": "{name}: podatki XMP nimajo rdf:Description, nespremenjeno."
+    },
+    "unreadable": {
+      "message": "{name}: slike ni mogoče prebrati ({error})."
+    },
+    "invalid_fit": {
+      "message": "Prileganje mora biti cover ali contain."
+    },
+    "not_loaded": {
+      "message": "Shoebox ni nastavljen."
+    },
+    "file_error": {
+      "message": "{error}: {path}"
+    },
+    "crop_sides": {
+      "message": "Navedite levo, zgoraj, desno in spodaj ali odstranite obrez."
+    }
+  }
+}
