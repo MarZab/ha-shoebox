@@ -17,3 +17,12 @@ Shoebox manages the pictures in Home Assistant's media folder and shows them as 
 | [Cache](cache.md) | Prepared pictures: where they live and how big the cache gets |
 | [Troubleshooting](troubleshooting.md) | Common problems and where to look |
 
+## Working on Shoebox
+
+| Page | What you learn |
+|------|----------------|
+| [Development](development.md) | Tools, tasks, the local Home Assistant, checking the panel |
+| [Architecture](architecture.md) | Modules, data flow, storage and the reasons behind the design |
+| [Security](security.md) | What is kept inside the media folder, and who may do what |
+| [Testing](testing.md) | How the tests are laid out, and the fixtures |
+| [Release](release.md) | Versions and releases through HACS |

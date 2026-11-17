@@ -8,7 +8,7 @@ import re
 import pytest
 
 ROOT = Path(__file__).parents[1]
-PAGES = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
+PAGES = [ROOT / "README.md", ROOT / "AGENTS.md", *sorted((ROOT / "docs").glob("*.md"))]
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 
 
