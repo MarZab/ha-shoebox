@@ -44,7 +44,11 @@ const TEXTS = {
     next: "Next",
     rotations_and_settings: "Rotations and settings",
     error: "Error: {message}",
-    pictures: "{count} items",
+    items_one: "{count} item",
+    items_other: "{count} items",
+    text_empty: "This file is empty.",
+    network_error: "Network error",
+    http_error: "The server answered {status}.",
   },
   sl: {
     title: "Shoebox",
@@ -90,13 +94,24 @@ const TEXTS = {
     next: "Naslednja",
     rotations_and_settings: "Rotacije in nastavitve",
     error: "Napaka: {message}",
-    pictures: "Elementov: {count}",
+    items_one: "{count} element",
+    items_two: "{count} elementa",
+    items_few: "{count} elementi",
+    items_other: "{count} elementov",
+    text_empty: "Datoteka je prazna.",
+    network_error: "Napaka omrežja",
+    http_error: "Strežnik je odgovoril {status}.",
   },
 };
 
 export function translator(hass) {
   const lang = String(hass?.locale?.language || hass?.language || "en").toLowerCase().split(/[-_]/)[0];
   const texts = TEXTS[lang] || TEXTS.en;
-  return (key, vars = {}) =>
-    String(texts[key] ?? TEXTS.en[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : `{${k}}`));
+  const plural = new Intl.PluralRules(TEXTS[lang] ? lang : "en");
+  const text = (key) => texts[key] ?? TEXTS.en[key];
+  return (key, vars = {}) => {
+    // "{count} …" texts have a form per plural category: items_one, items_few, items_other
+    const form = "count" in vars ? text(`${key}_${plural.select(Number(vars.count))}`) ?? text(`${key}_other`) : undefined;
+    return String(form ?? text(key) ?? key).replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : `{${k}}`));
+  };
 }

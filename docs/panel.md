@@ -39,6 +39,7 @@ For JPEG pictures, **Edit** in the top bar opens the editor:
 - Click a text file (notes, logs, `.csv`, `.json`, `.yaml`, subtitles, ...) to read it. Markdown files are shown formatted. Files are shown read-only; to edit them, use an editor such as the File editor app.
 - Files over 256 KB show their first 256 KB, with a note.
 - A file that is not text says so instead of showing garbage.
+- Text that is not UTF-8, such as older subtitle files, is read in the code page of your language (Central European for Slovenian, Western otherwise).
 - **Download** in the menu (⋮) of a file, or in the picture viewer, saves the original file to your computer or phone.
 
 ## Rotations and settings

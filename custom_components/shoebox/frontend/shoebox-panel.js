@@ -29,6 +29,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const base = (p) => String(p).split("/").pop();
 const parent = (p) => (String(p).includes("/") ? String(p).slice(0, String(p).lastIndexOf("/")) : "");
 const icon = (name, slot = "") => `<ha-icon ${slot ? `slot="${slot}"` : ""} icon="${name}"></ha-icon>`;
+const STALE_MS = 25 * 60_000;
 const iconButton = (name, label, attrs = "") =>
   `<ha-icon-button label="${esc(label)}" ${attrs}>${icon(name)}</ha-icon-button>`;
 // other files open as text; the server refuses binary ones with a message
@@ -82,8 +83,6 @@ const STYLE = `
   .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--divider-color); overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; background: var(--primary-color); transition: width 0.2s; }
   .up .err { grid-column: 1 / -1; color: var(--error-color, #db4437); }
-    background: var(--secondary-background-color); display: flex; align-items: center; justify-content: center; color: var(--secondary-text-color); }
-  code { font-family: var(--ha-font-family-code, monospace); font-size: 0.95em; background: var(--secondary-background-color); padding: 1px 4px; border-radius: 4px; }
   /* dialogs */
   .dlg-text { margin: 0; color: var(--primary-text-color); }
   .folders { max-height: 50vh; overflow: auto; margin-top: var(--ha-space-2, 8px); }
@@ -126,13 +125,27 @@ class ShoeboxPanel extends HTMLElement {
     }, true);
   }
 
+  // Thumbnail URLs are signed for an hour and reused for half of that: list the folder again
+  // before the ones not loaded yet (they load lazily, on scrolling) expire.
+  connectedCallback() {
+    clearInterval(this._staleTimer);
+    this._staleTimer = setInterval(() => {
+      if (this._loadedAt && Date.now() - this._loadedAt > STALE_MS && !document.hidden) this._loadFolder();
+    }, 60_000);
+  }
+
+  disconnectedCallback() { clearInterval(this._staleTimer); }
+
   // ------------------------------------------------------------------ properties set by HA
 
   set hass(hass) {
     const first = !this._hass;
     this._hass = hass;
     if (first) this._start();
-    else if (this._lang !== (hass.locale?.language || hass.language)) this._renderShell();
+    else if (this._lang !== (hass.locale?.language || hass.language)) {
+      this._renderBar();
+      this._renderUploads();
+    }
   }
 
   get hass() { return this._hass; }
@@ -166,11 +179,26 @@ class ShoeboxPanel extends HTMLElement {
   }
 
   _renderShell() {
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style>
+      <ha-top-app-bar-fixed></ha-top-app-bar-fixed>
+      <input type="file" id="picker" multiple accept="image/*,video/*,audio/*" hidden>
+      <div id="drop"><div></div></div>
+      <div id="uploads" hidden></div>`;
+    this.shadowRoot.getElementById("picker").addEventListener("change", (e) => {
+      this._upload([...e.target.files], this._folder);
+      e.target.value = "";
+    });
+    this._renderBar();
+  }
+
+  // The top bar and the content, in the user's language. Rebuilt when the language changes;
+  // open dialogs and the upload list are siblings, so they stay.
+  _renderBar() {
     this.t = translator(this._hass);
     this._lang = this._hass.locale?.language || this._hass.language;
     const t = this.t;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style>
-      <ha-top-app-bar-fixed>
+    const bar = this.shadowRoot.querySelector("ha-top-app-bar-fixed");
+    bar.innerHTML = `
         <h1 class="page-title" slot="title">${esc(t("title"))}</h1>
         ${iconButton("mdi:folder-plus-outline", t("new_folder"), 'slot="actionItems" data-act="new-folder" class="files-only"')}
         ${iconButton("mdi:upload", t("upload"), 'slot="actionItems" data-act="upload" class="files-only"')}
@@ -179,24 +207,20 @@ class ShoeboxPanel extends HTMLElement {
           ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
           <ha-dropdown-item value="settings">${icon("mdi:cog-outline", "icon")}${esc(t("rotations_and_settings"))}</ha-dropdown-item>
         </ha-dropdown>
-        <div class="content" id="content"></div>
-      </ha-top-app-bar-fixed>
-      <input type="file" id="picker" multiple accept="image/*,video/*,audio/*" hidden>
-      <div id="drop"><div></div></div>
-      <div id="uploads" hidden></div>`;
-    const bar = this.shadowRoot.querySelector("ha-top-app-bar-fixed");
+        <div class="content" id="content"></div>`;
     bar.narrow = !!this._narrow;
-    this.shadowRoot.getElementById("picker").addEventListener("change", (e) => {
-      this._upload([...e.target.files], this._folder);
-      e.target.value = "";
-    });
     this.shadowRoot.getElementById("settings-menu").addEventListener("wa-select", () => this._openSettings());
     if (this._ready) this._applyRoute(true);
   }
 
   _applyRoute(force = false) {
     const path = (this._route?.path || "").replace(/^\/+/, "");
-    const folder = path.startsWith("folder/") ? path.slice(7).split("/").map(decodeURIComponent).join("/") : "";
+    let folder = "";
+    try {
+      if (path.startsWith("folder/")) folder = path.slice(7).split("/").map(decodeURIComponent).join("/");
+    } catch {
+      folder = ""; // a malformed address: the top level
+    }
     if (!force && folder === this._folder && this._loadedOnce) return;
     this._folder = folder;
     this._loadedOnce = true;
@@ -267,13 +291,18 @@ class ShoeboxPanel extends HTMLElement {
   async _loadFolder() {
     const content = this.shadowRoot.getElementById("content");
     if (!this._items.length || this._shownFolder !== this._folder) content.innerHTML = `<div class="center"><ha-spinner></ha-spinner></div>`;
+    const seq = (this._loadSeq = (this._loadSeq || 0) + 1);
     try {
       const r = await this._ws("browse", { path: this._folder });
+      if (seq !== this._loadSeq) return; // a newer listing was asked for meanwhile
+      this._loadedAt = Date.now();
       this._items = r.items;
       this._titles = r.titles;
       this._shownFolder = r.path;
       this._renderFolder();
     } catch (err) {
+      if (seq !== this._loadSeq) return;
+      this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = true; });
       content.innerHTML = `<ha-alert alert-type="error">${esc(err.message || err)}</ha-alert>
         <div class="crumbs"><a data-act="crumb" data-path="">${icon("mdi:folder-home")}${esc(this.t("media"))}</a></div>`;
     }
@@ -314,7 +343,7 @@ class ShoeboxPanel extends HTMLElement {
             </ha-dropdown>`}</div></ha-card></div>`;
     });
     const content = this.shadowRoot.getElementById("content");
-    content.innerHTML = `<div class="crumbs">${crumbs.join("")}<span class="count">${esc(t("pictures", { count: this._items.length }))}</span></div>
+    content.innerHTML = `<div class="crumbs">${crumbs.join("")}<span class="count">${esc(t("items", { count: this._items.length }))}</span></div>
       ${this._items.length ? `<div class="grid">${tiles.join("")}</div>` : `<ha-card outlined><div class="empty">${icon("mdi:image-plus-outline")}<p>${esc(t("empty"))}</p></div></ha-card>`}`;
     content.querySelectorAll("ha-dropdown").forEach((dd) => {
       dd.addEventListener("wa-select", (e) => this._menu(e, this._items[Number(dd.dataset.i)]));
@@ -488,17 +517,26 @@ class ShoeboxPanel extends HTMLElement {
     const setButtons = () => {
       dlg.querySelectorAll(".ed").forEach((b) => { b.disabled = !info?.editable || cropMode; });
     };
+    let loadSeq = 0;
+    let busy = false; // a save or a turn is running
     const load = async (it) => {
+      const seq = ++loadSeq;
       current = it;
+      info = null;
       dlg.headerTitle = it.name;
       cropMode = false;
+      dlg.querySelector(".crop-footer")?.remove();
+      setButtons();
       body.innerHTML = `<div class="center"><ha-spinner></ha-spinner></div>`;
+      let got;
       try {
-        info = await this._ws("info", { path: it.path });
+        got = await this._ws("info", { path: it.path });
       } catch (err) {
-        body.innerHTML = `<ha-alert alert-type="error">${esc(err.message)}</ha-alert>`;
+        if (seq === loadSeq) body.innerHTML = `<ha-alert alert-type="error">${esc(err.message)}</ha-alert>`;
         return;
       }
+      if (seq !== loadSeq) return; // the user went on to another picture
+      info = got;
       showView();
     };
     const showView = () => {
@@ -512,7 +550,7 @@ class ShoeboxPanel extends HTMLElement {
           ${idx > 0 ? iconButton("mdi:chevron-left", t("previous"), 'class="nav prev" data-v="prev"') : ""}
           ${idx >= 0 && idx < list.length - 1 ? iconButton("mdi:chevron-right", t("next"), 'class="nav next" data-v="next"') : ""}
         </div>
-        <div class="meta">${esc(current.path)} · ${info.width} × ${info.height} · ${esc(info.format || "")}${current.size ? ` · ${sizeText(current.size)}` : ""}</div>`;
+        <div class="meta">${esc(this._shown(current.path))} · ${info.width} × ${info.height} · ${esc(info.format || "")}${current.size ? ` · ${sizeText(current.size)}` : ""}</div>`;
     };
     const aspectLabel = (k) => (k === "free" ? t("free") : k === "original" ? t("original") : k);
     const showCrop = () => {
@@ -522,12 +560,12 @@ class ShoeboxPanel extends HTMLElement {
       // the turn and the crop are made here and saved together; Cancel drops both
       body.innerHTML = `<shoebox-crop><div slot="controls">
           <div class="chips"><span class="lbl">${esc(t("rotate"))}</span>
-            <ha-button size="small" appearance="plain" data-v="turn-left">${icon("mdi:rotate-left", "start")}${esc(t("rotate_left"))}</ha-button>
-            <ha-button size="small" appearance="plain" data-v="turn-right">${icon("mdi:rotate-right", "start")}${esc(t("rotate_right"))}</ha-button>
+            <ha-button size="s" appearance="plain" data-v="turn-left">${icon("mdi:rotate-left", "start")}${esc(t("rotate_left"))}</ha-button>
+            <ha-button size="s" appearance="plain" data-v="turn-right">${icon("mdi:rotate-right", "start")}${esc(t("rotate_right"))}</ha-button>
           </div>
           <div class="chips"><span class="lbl">${esc(t("aspect"))}</span>
             <ha-dropdown placement="bottom-start" id="aspect">
-              <ha-button slot="trigger" size="small" appearance="plain">${icon("mdi:aspect-ratio", "start")}<span id="aspect-label">${esc(aspectLabel("free"))}</span>${icon("mdi:menu-down", "end")}</ha-button>
+              <ha-button slot="trigger" size="s" appearance="plain">${icon("mdi:aspect-ratio", "start")}<span id="aspect-label">${esc(aspectLabel("free"))}</span>${icon("mdi:menu-down", "end")}</ha-button>
               ${ASPECTS.map(([k]) => `<ha-dropdown-item value="${k}">${esc(aspectLabel(k))}</ha-dropdown-item>`).join("")}
             </ha-dropdown>
           </div>
@@ -553,21 +591,30 @@ class ShoeboxPanel extends HTMLElement {
       crop.box = info.crop;
     };
     const save = async (data) => {
+      const button = dlg.querySelector('[data-v="save-crop"]');
+      if (button) button.loading = true;
       try {
         info = await this._ws("edit", { path: current.path, ...data });
         showView();
-        this._refreshThumb(current.path);
-      } catch (err) { this._error(err); }
+        this._refreshThumb();
+      } catch (err) {
+        this._error(err);
+      } finally {
+        if (button) button.loading = false;
+      }
     };
 
     dlg.addEventListener("click", async (e) => {
       const b = e.composedPath().find((n) => n instanceof Element && n.dataset?.v);
-      if (!b || b.disabled) return;
+      if (!b || b.disabled || busy) return;
       const v = b.dataset.v;
       const list = images();
       const idx = list.findIndex((i) => i.path === current.path);
       if (v === "edit") showCrop();
-      else if (v === "turn-left" || v === "turn-right") await body.querySelector("shoebox-crop").rotate(v === "turn-left" ? -90 : 90);
+      else if (v === "turn-left" || v === "turn-right") {
+        busy = true;
+        try { await body.querySelector("shoebox-crop").rotate(v === "turn-left" ? -90 : 90); } finally { busy = false; }
+      }
       else if (v === "cancel-crop") showView();
       else if (v === "prev" && idx > 0) load(list[idx - 1]);
       else if (v === "next" && idx < list.length - 1) load(list[idx + 1]);
@@ -576,11 +623,12 @@ class ShoeboxPanel extends HTMLElement {
         const crop = body.querySelector("shoebox-crop");
         const box = crop.box;
         const whole = !box || (box[0] < 0.001 && box[1] < 0.001 && box[2] > 0.999 && box[3] > 0.999);
-        await save({ rotate: crop.turn, crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) });
+        busy = true; // a second click while saving would turn the picture twice
+        try { await save({ rotate: crop.turn, crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) }); } finally { busy = false; }
       }
     });
     dlg.addEventListener("keydown", (e) => {
-      if (cropMode || e.target.closest?.("ha-input")) return;
+      if (cropMode || busy || e.target.closest?.("ha-input")) return;
       const list = images();
       const idx = list.findIndex((i) => i.path === current.path);
       if (e.key === "ArrowLeft" && idx > 0) load(list[idx - 1]);
@@ -607,7 +655,9 @@ class ShoeboxPanel extends HTMLElement {
     const body = dlg.querySelector("#body");
     try {
       const { text, size, shown } = await this._readText(item);
-      body.innerHTML = shown < size
+      body.innerHTML = !size
+        ? `<ha-alert alert-type="info">${esc(t("text_empty"))}</ha-alert>`
+        : shown < size
         ? `<ha-alert alert-type="info">${esc(t("text_truncated", { shown: sizeText(shown), size: sizeText(size) }))}</ha-alert>`
         : "";
       if (MARKDOWN.test(item.name) && customElements.get("ha-markdown")) {
@@ -646,7 +696,9 @@ class ShoeboxPanel extends HTMLElement {
         // try one byte shorter
       }
     }
-    throw new Error(this.t("not_text"));
+    // Not UTF-8: older Windows and subtitle files use the regional code page
+    const legacy = this._lang?.startsWith("sl") ? "windows-1250" : "windows-1252";
+    return { text: new TextDecoder(legacy).decode(bytes), size, shown: bytes.length };
   }
 
   async _download(item) {
@@ -664,7 +716,7 @@ class ShoeboxPanel extends HTMLElement {
     }
   }
 
-  _refreshThumb(path) {
+  _refreshThumb() {
     // the file changed (its mtime is part of the variant key): list the folder again for new thumbnails
     clearTimeout(this._refreshTimer);
     this._refreshTimer = setTimeout(() => this._loadFolder(), 300);
@@ -682,7 +734,8 @@ class ShoeboxPanel extends HTMLElement {
       const target = tile ? tile.dataset.folder : this._folder;
       const o = overlay();
       if (!o) return;
-      o.querySelector("div").textContent = this.t("drop_here", { folder: target ? `/media/${target}` : "/media" });
+      if (!target) { o.classList.remove("on"); return; } // the top level: drop on a media folder
+      o.querySelector("div").textContent = this.t("drop_here", { folder: this._shown(target) });
       o.classList.add("on");
     };
     const clear = () => {
@@ -699,8 +752,9 @@ class ShoeboxPanel extends HTMLElement {
     this.addEventListener("dragover", (e) => {
       if (!hasFiles(e)) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      mark(tileOf(e));
+      const tile = tileOf(e);
+      e.dataTransfer.dropEffect = tile || this._folder ? "copy" : "none";
+      mark(tile);
     });
     this.addEventListener("dragleave", (e) => {
       if (!hasFiles(e)) return;
@@ -712,7 +766,7 @@ class ShoeboxPanel extends HTMLElement {
       const tile = tileOf(e);
       const folder = tile ? tile.dataset.folder : this._folder;
       clear();
-      this._upload([...e.dataTransfer.files], folder);
+      if (folder) this._upload([...e.dataTransfer.files], folder);
     });
   }
 
@@ -757,10 +811,10 @@ class ShoeboxPanel extends HTMLElement {
         let body = {};
         try { body = JSON.parse(xhr.responseText); } catch (err) { /* not JSON */ }
         if (xhr.status === 200) { u.state = "done"; u.progress = 1; u.path = body.path; }
-        else { u.state = "error"; u.error = body.message || `HTTP ${xhr.status}`; }
+        else { u.state = "error"; u.error = body.message || this.t("http_error", { status: xhr.status }); }
         resolve();
       };
-      xhr.onerror = () => { u.state = "error"; u.error = "network error"; resolve(); };
+      xhr.onerror = () => { u.state = "error"; u.error = this.t("network_error"); resolve(); };
       const form = new FormData();
       form.append("file", u.file, u.file.name);
       xhr.send(form);

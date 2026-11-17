@@ -65,13 +65,23 @@ def panel_texts() -> dict[str, dict[str, str]]:
     }
 
 
+PLURAL = re.compile(r"_(zero|one|two|few|many|other)$")
+
+
 def test_panel_texts_exist_in_both_languages() -> None:
     texts = panel_texts()
     assert set(texts) == {"en", "sl"}
-    assert texts["en"].keys() == texts["sl"].keys()
+    # plural forms differ by language (Slovenian has one, two, few, other); each has _other
+    base = {lang: {PLURAL.sub("", k): k for k in t} for lang, t in texts.items()}
+    assert base["en"].keys() == base["sl"].keys()
+    for lang, t in texts.items():
+        assert all(f"{PLURAL.sub('', k)}_other" in t for k in t if PLURAL.search(k)), lang
     for key, english in texts["en"].items():
-        assert set(re.findall(r"\{(\w+)\}", english)) == set(
-            re.findall(r"\{(\w+)\}", texts["sl"][key])
-        ), key
+        for sl_key, slovene in texts["sl"].items():
+            if PLURAL.sub("", sl_key) == PLURAL.sub("", key):
+                assert set(re.findall(r"\{(\w+)\}", english)) == set(
+                    re.findall(r"\{(\w+)\}", slovene)
+                ), sl_key
     code = "".join((PACKAGE / f"frontend/{n}").read_text() for n in ("shoebox-panel.js", "crop.js"))
-    assert set(re.findall(r"""\bt\(\s*["'](\w+)["']""", code)) <= texts["en"].keys()
+    defined = {PLURAL.sub("", k) for k in texts["en"]}
+    assert set(re.findall(r"""\bt\(\s*["'](\w+)["']""", code)) <= defined

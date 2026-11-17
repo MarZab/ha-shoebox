@@ -6,14 +6,17 @@ connection, because an <img> cannot send the Authorization header.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from functools import partial
+import time
 from typing import Any, Final
 
 from homeassistant.components import websocket_api
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.util.hass_dict import HassKey
 import probatio as vol
 from yarl import URL
 
@@ -32,15 +35,46 @@ type _Message = dict[str, Any]
 type _Handler = Callable[[HomeAssistant, websocket_api.ActiveConnection, _Message], Awaitable[None]]
 
 
+# Signed thumbnail URLs per user, reused for half their lifetime: a new signature is a new URL,
+# and the browser would download every thumbnail again on each listing. The panel lists again
+# before they expire.
+_SIGNED: Final[HassKey[OrderedDict[tuple[str, str], tuple[str, float]]]] = HassKey("shoebox_signed")
+_SIGNED_MAX: Final = 20_000
+
+
 def picture_url(
-    hass: HomeAssistant, path: str, size: tuple[int, int, str], *, crop: bool = True
+    hass: HomeAssistant,
+    path: str,
+    size: tuple[int, int, str],
+    *,
+    crop: bool = True,
+    version: float | None = None,
 ) -> str:
+    """A signed render URL. With `version` (the file's mtime, so an edit changes the URL) it is
+    the same URL for the same user until half its lifetime is over."""
     width, height, fit = size
     query = {"path": path, "size": f"{width}x{height}", "fit": fit}
     if not crop:
         query["crop"] = "0"
+    if version is not None:
+        query["v"] = f"{version:.3f}"
     url = str(URL(RENDER_URL).with_query(query))
-    return async_sign_path(hass, url, timedelta(seconds=PANEL_URL_LIFETIME_S))
+    lifetime = timedelta(seconds=PANEL_URL_LIFETIME_S)
+    connection = websocket_api.current_connection.get()
+    user = connection.refresh_token_id if connection else None
+    if version is None or not user:
+        return async_sign_path(hass, url, lifetime)
+    signed = hass.data.setdefault(_SIGNED, OrderedDict())
+    now = time.monotonic()
+    hit = signed.get((user, url))
+    if hit and now - hit[1] < PANEL_URL_LIFETIME_S / 2:
+        signed.move_to_end((user, url))
+        return hit[0]
+    signed[(user, url)] = (async_sign_path(hass, url, lifetime), now)
+    signed.move_to_end((user, url))
+    while len(signed) > _SIGNED_MAX:
+        signed.popitem(last=False)
+    return signed[(user, url)][0]
 
 
 def _command(schema: dict[Any, Any]) -> Callable[[_Handler], websocket_api.WebSocketCommandHandler]:
@@ -58,7 +92,7 @@ def _command(schema: dict[Any, Any]) -> Callable[[_Handler], websocket_api.WebSo
 def _item(hass: HomeAssistant, entry: media.Entry) -> dict[str, Any]:
     item: dict[str, Any] = dict(entry.as_dict()) | {"name": entry.name}
     if entry.type == "image":
-        item["thumb"] = picture_url(hass, entry.path, THUMB)
+        item["thumb"] = picture_url(hass, entry.path, THUMB, version=entry.modified)
     return item
 
 
