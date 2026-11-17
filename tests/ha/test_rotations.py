@@ -64,6 +64,18 @@ async def test_add_rotation_refuses_bad_patterns(
     assert flow["errors"] == {"patterns": error}
 
 
+async def test_a_rotation_without_matches_can_still_be_saved(
+    hass: HomeAssistant, loaded: MockConfigEntry
+) -> None:
+    flow = await subentry_flow(hass, loaded)
+    flow = await hass.config_entries.subentries.async_configure(
+        flow["flow_id"], {"name": "Later", "patterns": ["local/nothing/*"]}
+    )
+    assert flow["description_placeholders"] == {"count": "0", "pattern": "-", "examples": "-"}
+    flow = await hass.config_entries.subentries.async_configure(flow["flow_id"], {})
+    assert flow["type"] is FlowResultType.CREATE_ENTRY
+
+
 async def test_reconfigure_keeps_the_state(
     hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree
 ) -> None:
