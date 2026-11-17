@@ -2,7 +2,7 @@
 
 The **Shoebox** panel in the sidebar manages the media folders. It is for administrators; others do not see it.
 
-![The Shoebox panel](images/panel.png)
+![The Shoebox panel](images/panel.jpg)
 
 ## Browsing
 

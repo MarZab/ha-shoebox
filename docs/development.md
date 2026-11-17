@@ -63,6 +63,10 @@ After changing the panel, also walk these by hand (or with Playwright):
 - [ ] Light and dark theme; phone width with the sidebar menu button
 - [ ] Your profile language set to Slovenian switches the panel
 
+## Screenshots
+
+The panel screenshot in the README shows real photos: `uv run python tools/scripts/screenshot_photos.py docker/media` downloads them (Unsplash photos through picsum.photos, free to use) into *Photos/Summer 2025*. Take it at 960 × 690 with the sidebar docked and twice the pixel density, and save it as JPEG.
+
 ## Repository
 
 | Path | |
@@ -72,6 +76,6 @@ After changing the panel, also walk these by hand (or with Playwright):
 | `docs/` | user and developer documentation |
 | `docker/` | the local Home Assistant |
 | `tools/tasks/` | mise tasks |
-| `tools/scripts/` | sample media, brand icon, dev token, panel check, release |
+| `tools/scripts/` | sample media, screenshot photos, brand icon, dev token, panel check, release |
 | `backlog/` | tasks and milestones ([Backlog.md](https://github.com/MrLesk/Backlog.md)) |
 | `.github/workflows/` | CI, validation, releases |

@@ -2,7 +2,7 @@
 
 Shoebox: media manager and picture organizer for Home Assistant. Organize, upload, rotate and crop the photos in your media folder, and show them as rotating pictures on dashboards, notifications and displays.
 
-![The Shoebox panel](docs/images/panel.png)
+![The Shoebox panel](docs/images/panel.jpg)
 
 Home Assistant's media browser can upload and delete files. Shoebox adds what it doesn't have: folders, moving and renaming, uploads that never overwrite, thumbnails, and rotate and crop that keep the picture's quality. On top of that, a *rotation* turns a set of pictures into an image that changes, for dashboards, phones and small displays.
 
