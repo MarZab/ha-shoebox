@@ -1,4 +1,4 @@
-"""Draw the Shoebox brand icon: a photo standing in an open box.
+"""Draw the Shoebox brand icon: a shoebox, its lid off behind it, with two photos inside.
 
 Usage: brand_icon.py <brand folder>  (writes icon.png at 256 px and icon@2x.png at 512 px)
 """
@@ -11,38 +11,49 @@ import sys
 from PIL import Image, ImageDraw
 
 BOX = (3, 169, 244)
-BOX_DARK = (2, 136, 209)
-PHOTO = (236, 239, 241)
+BOX_DARK = (2, 119, 189)
+INSIDE = (1, 87, 155)
+PHOTO = (250, 250, 250)
 SKY = (179, 229, 252)
 HILL = (76, 175, 80)
+HILL_DARK = (56, 142, 60)
 SUN = (255, 193, 7)
 SCALE = 4  # draw large, then downsample for smooth edges
+
+
+def _photo(u: float, width: float, height: float, angle: float, *, sun: bool) -> Image.Image:
+    """A photo with a white border: sky, two hills and maybe a sun, turned by `angle` degrees."""
+    photo = Image.new("RGBA", (int(width * u), int(height * u)), (0, 0, 0, 0))
+    p = ImageDraw.Draw(photo)
+    w, h = photo.size
+    b = 0.7 * u
+    p.rounded_rectangle((0, 0, w - 1, h - 1), radius=0.5 * u, fill=PHOTO)
+    p.rectangle((b, b, w - b, h - b), fill=SKY)
+    p.polygon([(b, h - b), (w * 0.42, h * 0.38), (w * 0.7, h - b)], fill=HILL)
+    p.polygon([(w * 0.48, h - b), (w * 0.72, h * 0.55), (w - b, h - b)], fill=HILL_DARK)
+    if sun:
+        p.ellipse((w * 0.66, h * 0.16, w * 0.84, h * 0.16 + w * 0.18), fill=SUN)
+    return photo.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
 
 
 def draw(size: int) -> Image.Image:
     s = size * SCALE
     im = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    u = s / 16
+    u = s / 32
 
-    # the photo, tilted slightly, standing out of the box
-    photo = Image.new("RGBA", (int(8 * u), int(7 * u)), (0, 0, 0, 0))
-    p = ImageDraw.Draw(photo)
-    pw, ph = photo.size
-    m = 0.5 * u
-    p.rounded_rectangle((0, 0, pw - 1, ph - 1), radius=0.4 * u, fill=PHOTO)
-    p.rectangle((m, m, pw - m, ph - m), fill=SKY)
-    p.polygon([(m, ph - m), (pw * 0.4, ph * 0.45), (pw * 0.7, ph - m)], fill=HILL)
-    p.polygon([(pw * 0.45, ph - m), (pw * 0.72, ph * 0.55), (pw - m, ph - m)], fill=HILL)
-    p.ellipse((pw * 0.62, ph * 0.18, pw * 0.82, ph * 0.18 + pw * 0.2), fill=SUN)
-    photo = photo.rotate(-8, resample=Image.Resampling.BICUBIC, expand=True)
-    im.alpha_composite(photo, (int(4.2 * u), int(0.8 * u)))
+    def place(photo: Image.Image, cx: float, cy: float) -> None:
+        im.alpha_composite(photo, (int(cx * u - photo.width / 2), int(cy * u - photo.height / 2)))
 
-    # the box: body and a front lip, wider at the top
-    d.polygon(
-        [(1.5 * u, 6.5 * u), (14.5 * u, 6.5 * u), (13.5 * u, 15 * u), (2.5 * u, 15 * u)], fill=BOX
-    )
-    d.rounded_rectangle((1 * u, 6 * u, 15 * u, 8.2 * u), radius=0.5 * u, fill=BOX_DARK)
+    # the lid, leaning against the back, and the dark inside of the box
+    d.rounded_rectangle((5 * u, 5.5 * u, 27 * u, 9.5 * u), radius=1 * u, fill=BOX_DARK)
+    d.rectangle((4 * u, 12.5 * u, 28 * u, 15.5 * u), fill=INSIDE)
+    # two photos standing in it
+    place(_photo(u, 11, 9, 8, sun=False), 11.5, 13)
+    place(_photo(u, 11, 9, -6, sun=True), 20.5, 12)
+    # the front: low and wide, with its rim
+    d.rounded_rectangle((3 * u, 14.5 * u, 29 * u, 26.5 * u), radius=1.2 * u, fill=BOX)
+    d.rectangle((3 * u, 14.5 * u, 29 * u, 16.7 * u), fill=BOX_DARK)
     return im.resize((size, size), Image.Resampling.LANCZOS)
 
 
