@@ -27,11 +27,12 @@ Click a picture to see it large; the arrows go to the previous and next picture 
 
 ![The crop editor](images/editor.png)
 
-For JPEG pictures, the top bar turns the picture left or right, and **Crop** opens the crop editor:
+For JPEG pictures, **Edit** in the top bar opens the editor:
 
-- Draw a box, move it, or drag its corners. The preview shows the result.
+- **Rotate left** and **Rotate right** turn the picture; a crop box turns with it.
+- Draw a box, move it, or drag its corners. The preview next to the controls shows the result.
 - **Aspect ratio** keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
-- **Save** stores the crop; **Reset** removes it.
+- **Save** stores the turn and the crop together. **Cancel** leaves the picture as it was. **Reset** removes the crop; save to keep that.
 
 ## Text files and downloads
 

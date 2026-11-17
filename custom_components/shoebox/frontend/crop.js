@@ -1,16 +1,21 @@
-// <shoebox-crop>: draw, move and resize a crop rectangle on a picture, optionally at a fixed aspect ratio, with a
-// live preview. Works in fractions of the picture as shown (what the shoebox/edit command takes).
+// <shoebox-crop>: turn a picture and draw, move and resize a crop rectangle on it, optionally at a fixed aspect
+// ratio, with a live preview. Works in fractions of the picture as shown after the turn (what the
+// shoebox/edit command takes). The turn happens here only; the caller saves it with the crop.
 // Properties: src (picture URL), box ([left, top, right, bottom] or null), aspect (width / height in pixels,
-// or null for free). Fires "box-changed" (detail: box) while the rectangle changes.
+// or null for free), turn (degrees clockwise, read-only; rotate(±90) changes it).
+// Slot "controls": shown left of the preview, above the picture.
+// Fires "box-changed" (detail: box) while the rectangle changes.
 
 const MIN = 0.02;
 
 const STYLE = `
-  :host { display: flex; gap: var(--ha-space-4, 16px); align-items: flex-start; flex-wrap: wrap; justify-content: center; }
-  .stage { position: relative; display: inline-block; touch-action: none; user-select: none; cursor: crosshair;
-    line-height: 0; margin: 12px; max-width: calc(100% - 24px); }
+  :host { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "controls side" "stage stage";
+    gap: var(--ha-space-3, 12px) var(--ha-space-4, 16px); align-items: start; }
+  .controls { grid-area: controls; min-width: 0; }
+  .stage { grid-area: stage; justify-self: center; position: relative; display: inline-block; touch-action: none;
+    user-select: none; cursor: crosshair; line-height: 0; margin: 12px; max-width: calc(100% - 24px); }
   .clip { position: relative; overflow: hidden; border-radius: var(--ha-border-radius-sm, 4px); }
-  img { display: block; max-width: min(100%, 900px); max-height: 60vh; pointer-events: none; }
+  img { display: block; max-width: min(100%, 900px); max-height: 50vh; pointer-events: none; }
   .box, .frame { position: absolute; box-sizing: border-box; }
   .box { border: 2px solid var(--primary-color); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); }
   .frame { cursor: move; }
@@ -22,7 +27,7 @@ const STYLE = `
     border: 2px solid var(--card-background-color); border-radius: 50%; box-sizing: border-box; z-index: 1; }
   .nw { left: -12px; top: -12px; cursor: nwse-resize; } .ne { right: -12px; top: -12px; cursor: nesw-resize; }
   .sw { left: -12px; bottom: -12px; cursor: nesw-resize; } .se { right: -12px; bottom: -12px; cursor: nwse-resize; }
-  .side { display: flex; flex-direction: column; gap: var(--ha-space-2, 8px); align-items: center;
+  .side { grid-area: side; display: flex; flex-direction: column; gap: var(--ha-space-2, 8px); align-items: center;
     color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); }
   canvas { max-width: 240px; max-height: 240px; border-radius: var(--ha-border-radius-sm, 4px);
     background: var(--secondary-background-color); }
@@ -33,6 +38,7 @@ class ShoeboxCrop extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" }).innerHTML = `<style>${STYLE}</style>
+      <div class="controls"><slot name="controls"></slot></div>
       <div class="stage"><div class="clip"><img alt=""><div class="box" hidden></div></div><div class="frame" hidden>
         <span class="h nw" data-c="nw"></span><span class="h ne" data-c="ne"></span>
         <span class="h sw" data-c="sw"></span><span class="h se" data-c="se"></span></div></div>
@@ -44,6 +50,8 @@ class ShoeboxCrop extends HTMLElement {
     this._stage = this.shadowRoot.querySelector(".stage");
     this._value = null;
     this._aspect = null;
+    this._turn = 0;
+    this._source = new Image(); // the picture as given; the stage shows it turned
     this._img.addEventListener("load", () => { this._applyAspect(); this._draw(); });
     this._stage.addEventListener("pointerdown", (e) => this._down(e));
     this._stage.addEventListener("pointermove", (e) => this._move(e));
@@ -51,7 +59,38 @@ class ShoeboxCrop extends HTMLElement {
     this._stage.addEventListener("pointercancel", (e) => this._up(e));
   }
 
-  set src(url) { this._img.src = url; }
+  set src(url) {
+    this._turn = 0;
+    this._source.src = url;
+    this._img.src = url;
+  }
+
+  get turn() { return this._turn; }
+
+  // Turn the picture shown by ±90 degrees; the crop rectangle turns with it.
+  async rotate(degrees) {
+    const v = this._value;
+    if (v) {
+      const [l, t, r, b] = v;
+      this._value = degrees > 0 ? [1 - b, l, 1 - t, r] : [t, 1 - r, b, 1 - l];
+    }
+    this._turn = (this._turn + degrees + 360) % 360;
+    if (!this._source.complete) await new Promise((ok) => this._source.addEventListener("load", ok, { once: true }));
+    const { naturalWidth: w, naturalHeight: h } = this._source;
+    const quarter = this._turn % 180 !== 0;
+    const canvas = document.createElement("canvas");
+    canvas.width = quarter ? h : w;
+    canvas.height = quarter ? w : h;
+    const ctx = canvas.getContext("2d");
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((this._turn * Math.PI) / 180);
+    ctx.drawImage(this._source, -w / 2, -h / 2);
+    const blob = await new Promise((ok) => canvas.toBlob(ok, "image/jpeg", 0.9));
+    if (this._url) URL.revokeObjectURL(this._url);
+    this._url = URL.createObjectURL(blob);
+    this._img.src = this._url; // its load event re-applies the aspect and draws
+    this._fire();
+  }
   set label(text) { this.shadowRoot.querySelector(".label").textContent = text; }
   get box() { return this._value ? [...this._value] : null; }
   set box(b) { this._value = b ? [...b] : null; this._draw(); }
@@ -59,7 +98,11 @@ class ShoeboxCrop extends HTMLElement {
   set aspect(a) { this._aspect = a || null; this._applyAspect(); this._draw(); this._fire(); }
 
   // width / height in fractions for the pixel aspect ratio
-  _k() { const [w, h] = this.natural; return this._aspect ? (this._aspect * h) / w : null; }
+  _k() {
+    if (this._aspect === "original") return 1; // the picture's own shape, also after a turn
+    const [w, h] = this.natural;
+    return this._aspect ? (this._aspect * h) / w : null;
+  }
 
   _applyAspect() {
     const k = this._k();

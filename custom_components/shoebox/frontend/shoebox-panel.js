@@ -97,7 +97,6 @@ const STYLE = `
   .viewer .prev { left: 0; } .viewer .next { right: 0; }
   .meta { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); margin-top: var(--ha-space-2, 8px); text-align: center; overflow-wrap: anywhere; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--ha-space-3, 12px) 0; align-items: center; }
-  @media (max-width: 600px) { .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .chips > * { flex: none; } }
   .chips .lbl { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); margin-inline-end: 4px; }
   ha-input { display: block; }
   pre.text { margin: 0; padding: var(--ha-space-3, 12px); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 70vh; overflow: auto;
@@ -475,9 +474,7 @@ class ShoeboxPanel extends HTMLElement {
     let cropMode = false;
     let aspect = null;
     const header = `
-      ${iconButton("mdi:rotate-left", t("rotate_left"), 'slot="headerActionItems" data-v="left" class="ed"')}
-      ${iconButton("mdi:rotate-right", t("rotate_right"), 'slot="headerActionItems" data-v="right" class="ed"')}
-      ${iconButton("mdi:crop", t("crop"), 'slot="headerActionItems" data-v="crop" class="ed"')}
+      ${iconButton("mdi:image-edit-outline", t("edit"), 'slot="headerActionItems" data-v="edit" class="ed"')}
       <ha-dropdown slot="headerActionItems" placement="bottom-end" id="more">
         ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
         <ha-dropdown-item value="download">${icon("mdi:download-outline", "icon")}${esc(t("download"))}</ha-dropdown-item>
@@ -521,9 +518,16 @@ class ShoeboxPanel extends HTMLElement {
       cropMode = true;
       setButtons();
       aspect = null;
-      body.innerHTML = `<div class="chips"><span class="lbl">${esc(t("aspect"))}</span>
-          ${ASPECTS.map(([k]) => `<ha-button size="small" appearance="${k === "free" ? "filled" : "plain"}" data-aspect="${k}">${esc(k === "free" ? t("free") : k === "original" ? t("original") : k)}</ha-button>`).join("")}
-        </div><shoebox-crop></shoebox-crop>`;
+      // the turn and the crop are made here and saved together; Cancel drops both
+      body.innerHTML = `<shoebox-crop><div slot="controls">
+          <div class="chips"><span class="lbl">${esc(t("rotate"))}</span>
+            <ha-button size="small" appearance="plain" data-v="turn-left">${icon("mdi:rotate-left", "start")}${esc(t("rotate_left"))}</ha-button>
+            <ha-button size="small" appearance="plain" data-v="turn-right">${icon("mdi:rotate-right", "start")}${esc(t("rotate_right"))}</ha-button>
+          </div>
+          <div class="chips"><span class="lbl">${esc(t("aspect"))}</span>
+            ${ASPECTS.map(([k]) => `<ha-button size="small" appearance="${k === "free" ? "filled" : "plain"}" data-aspect="${k}">${esc(k === "free" ? t("free") : k === "original" ? t("original") : k)}</ha-button>`).join("")}
+          </div>
+        </div></shoebox-crop>`;
       const footer = document.createElement("ha-dialog-footer");
       footer.slot = "footer";
       footer.className = "crop-footer";
@@ -551,22 +555,21 @@ class ShoeboxPanel extends HTMLElement {
       const v = b.dataset.v;
       const list = images();
       const idx = list.findIndex((i) => i.path === current.path);
-      if (v === "left" || v === "right") await save({ rotate: v === "left" ? -90 : 90, crop: info.crop });
-      else if (v === "crop") showCrop();
+      if (v === "edit") showCrop();
+      else if (v === "turn-left" || v === "turn-right") await body.querySelector("shoebox-crop").rotate(v === "turn-left" ? -90 : 90);
       else if (v === "cancel-crop") showView();
       else if (v === "prev" && idx > 0) load(list[idx - 1]);
       else if (v === "next" && idx < list.length - 1) load(list[idx + 1]);
-      else if (v === "reset") await save({ crop: null });  // only the crop; turning stays as set
+      else if (v === "reset") body.querySelector("shoebox-crop").box = null; // saved with Save, like the turn
       else if (v === "save-crop") {
-        const box = body.querySelector("shoebox-crop").box;
+        const crop = body.querySelector("shoebox-crop");
+        const box = crop.box;
         const whole = !box || (box[0] < 0.001 && box[1] < 0.001 && box[2] > 0.999 && box[3] > 0.999);
-        await save({ crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) });
+        await save({ rotate: crop.turn, crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) });
       } else if (b.dataset.aspect) {
         const crop = body.querySelector("shoebox-crop");
         body.querySelectorAll("[data-aspect]").forEach((x) => x.setAttribute("appearance", x === b ? "filled" : "plain"));
-        const a = ASPECTS.find(([k]) => k === b.dataset.aspect)[1];
-        const [w, h] = crop.natural;
-        aspect = a === "original" ? w / h : a;
+        aspect = ASPECTS.find(([k]) => k === b.dataset.aspect)[1];
         crop.aspect = aspect;
       }
     });

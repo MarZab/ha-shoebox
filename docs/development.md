@@ -54,8 +54,8 @@ After changing the panel, also walk these by hand (or with Playwright):
 - [ ] Browse into a folder and back; thumbnails show turned pictures upright
 - [ ] Upload several files by the picker and by dropping; a duplicate name becomes `name-1`; a non-media file is refused with a message
 - [ ] New folder, rename, move (with the folder search), delete with confirmation
-- [ ] Open a picture; previous and next; turn left and right
-- [ ] Crop with each aspect ratio; save; reset
+- [ ] Open a picture; previous and next
+- [ ] Edit: turn and crop with each aspect ratio; Cancel leaves the file as it was; Save writes both; Reset
 - [ ] Open a text file; download a file
 - [ ] The menu (⋮) opens the integration's page in Settings
 - [ ] Light and dark theme; phone width with the sidebar menu button
