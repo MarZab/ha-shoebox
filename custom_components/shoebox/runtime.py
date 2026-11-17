@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Mapping
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
-from .cache import VariantCache
+from . import imaging, media
+from .cache import Variant, VariantCache
 from .const import (
     CACHE_FOLDER,
+    CONCURRENT_RENDERS,
     CONF_CACHE_SIZE,
     CONF_SHOW_IN_SIDEBAR,
     DEFAULT_CACHE_SIZE_MB,
@@ -38,6 +42,18 @@ class Shoebox:
         self.root = media_root(hass)
         self.cache = variant_cache(hass, options)
         self.show_in_sidebar = bool(options.get(CONF_SHOW_IN_SIDEBAR, True))
+        self._renders = asyncio.Semaphore(CONCURRENT_RENDERS)
+
+    async def picture(
+        self, path: str, width: int, height: int, fit: imaging.Fit, *, use_crop: bool = True
+    ) -> Variant:
+        """A picture below the media folder prepared at a size, through the cache."""
+        source = await self.run(media.resolve_file, self.root, path)
+        make = partial(imaging.render, source, width, height, fit, use_crop)
+        async with self._renders:
+            return await self.run(
+                self.cache.get, source, width, height, fit, make, "" if use_crop else "nocrop"
+            )
 
     async def run[T](self, func: Callable[..., T], *args: Any) -> T:
         """Run file or picture work in the executor; its errors become translated HA errors."""

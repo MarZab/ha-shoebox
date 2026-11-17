@@ -16,6 +16,8 @@ dev = [
   # Pins homeassistant (and pytest) to the versions the tests run on.
   "pytest-homeassistant-custom-component==0.13.375",
   "pillow-heif==1.8.1",
+  # What the frontend integration of that Home Assistant requires; the panel tests load it.
+  "home-assistant-frontend==20260930.5",
   "mypy>=1.18",
   "ruff>=0.14",
 ]
@@ -39,3 +41,8 @@ strict = true
 files = ["custom_components/shoebox"]
 explicit_package_bases = true
 namespace_packages = true
+
+[[tool.mypy.overrides]]
+# Home Assistant re-exports names from its packages without listing them in __all__.
+module = ["homeassistant.*"]
+implicit_reexport = true
