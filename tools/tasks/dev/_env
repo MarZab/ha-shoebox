@@ -2,4 +2,17 @@
 HA_VERSION=$(uv run --quiet python -c "from homeassistant.const import __version__; print(__version__)")
 export HA_VERSION
 [ -d docker/media ] || uv run --quiet python tools/scripts/sample_media.py docker/media
+# A first configuration: My media, and a country so Settings shows no "country not configured"
+# repair (it would badge every screenshot). Home Assistant keeps it after that.
+if [ ! -f docker/ha-config/configuration.yaml ]; then
+  mkdir -p docker/ha-config
+  cat > docker/ha-config/configuration.yaml <<'YAML'
+default_config:
+
+homeassistant:
+  country: US
+  media_dirs:
+    local: /media
+YAML
+fi
 compose() { docker compose -f docker/compose.yaml "$@"; }

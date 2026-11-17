@@ -52,7 +52,7 @@ const STYLE = `
   .crumbs a { display: inline-flex; align-items: center; gap: 4px; color: var(--primary-color); text-decoration: none; cursor: pointer; padding: 4px 6px; border-radius: var(--ha-border-radius-sm, 4px); }
   .crumbs a:hover { background: var(--secondary-background-color); }
   .crumbs .here { color: var(--primary-text-color); padding: 4px 6px; font-weight: var(--ha-font-weight-medium, 500); }
-  .crumbs ha-icon { --mdc-icon-size: 18px; }
+  .crumbs ha-icon { --mdc-icon-size: 18px; display: flex; } /* no line box around the glyph: centred on the text */
   .count { margin-inline-start: auto; font-size: var(--ha-font-size-s, 12px); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--mm-tile, 160px), 1fr)); gap: var(--ha-space-4, 16px); }
   :host([narrow]) .grid { --mm-tile: 140px; gap: var(--ha-space-2, 8px); }
