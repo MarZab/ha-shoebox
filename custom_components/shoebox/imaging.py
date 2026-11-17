@@ -11,6 +11,8 @@ and writes a baseline JPEG. This module does not import Home Assistant.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
 import io
 import math
 import os
@@ -20,7 +22,7 @@ import struct
 import tempfile
 from typing import Final, Literal, TypedDict
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageEnhance, ImageOps
 import pillow_heif
 
 from .errors import ImageError
@@ -61,6 +63,116 @@ _TRANSPOSE: Final = {
 }
 _INVERSE: Final = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 8, 7: 7, 8: 6}
 _NO_LENGTH: Final = frozenset({0x01, *range(0xD0, 0xD8)})  # TEM and RSTn carry no length
+
+
+# ---------------------------------------------------------------- looks for displays
+
+type Format = Literal["jpeg", "png", "bmp"]
+type RGB = tuple[int, int, int]
+
+# Named palettes for e-paper and similar displays. Real panels show duller colours than these;
+# a list of measured hex colours in place of a name calibrates for one.
+PALETTES: Final[dict[str, tuple[str, ...]]] = {
+    "bw": ("000000", "ffffff"),
+    "gray4": ("000000", "555555", "aaaaaa", "ffffff"),
+    "gray16": tuple(f"{v:02x}" * 3 for v in range(0, 256, 17)),
+    "spectra6": ("000000", "ffffff", "ff0000", "ffff00", "0000ff", "00ff00"),
+    "acep7": ("000000", "ffffff", "ff0000", "ffff00", "0000ff", "00ff00", "ff8000"),
+}
+MIME: Final[dict[str, str]] = {"jpeg": "image/jpeg", "png": "image/png", "bmp": "image/bmp"}
+MAX_ENHANCE: Final = 3.0
+
+
+@dataclass(frozen=True)
+class Look:
+    """How a display wants the picture: colours, dithering, file format and adjustments."""
+
+    colors: tuple[RGB, ...] | None = None
+    dither: bool = True
+    format: Format = "jpeg"
+    contrast: float = 1.0
+    saturation: float = 1.0
+    brightness: float = 1.0
+
+    @property
+    def key(self) -> str:
+        """Part of the cache key; empty for the plain look, so plain pictures keep their keys."""
+        if self == Look():
+            return ""
+        colors = ".".join(f"{r:02x}{g:02x}{b:02x}" for r, g, b in self.colors or ())
+        return (
+            f"look:{colors}:{int(self.dither)}:{self.format}"
+            f":{self.contrast:g}:{self.saturation:g}:{self.brightness:g}"
+        )
+
+    @property
+    def mime(self) -> str:
+        return MIME[self.format]
+
+
+def _rgb(text: str) -> RGB:
+    value = text.strip().lstrip("#").lower()
+    if len(value) != 6 or any(c not in "0123456789abcdef" for c in value):
+        raise ValueError(text)
+    return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)
+
+
+def parse_look(query: Mapping[str, str]) -> Look:
+    """A look from URL parameters; ValueError when one is not valid.
+
+    colors: a palette name or 2 to 256 hex colours separated by commas. dither: floyd or none.
+    format: jpeg, png or bmp (png by default with colors). contrast, saturation, brightness:
+    0 to 3, 1 leaves the picture as it is.
+    """
+    colors: tuple[RGB, ...] | None = None
+    if spec := query.get("colors", "").strip():
+        names = PALETTES.get(spec.lower()) or tuple(spec.split(","))
+        colors = tuple(_rgb(c) for c in names)
+        if not 2 <= len(colors) <= 256:
+            raise ValueError(spec)
+    dither = query.get("dither", "floyd")
+    if dither not in ("floyd", "none"):
+        raise ValueError(dither)
+    fmt = query.get("format", "png" if colors else "jpeg")
+    if fmt not in MIME:
+        raise ValueError(fmt)
+    enhance = []
+    for name in ("contrast", "saturation", "brightness"):
+        value = float(query.get(name, "1"))
+        if not 0 <= value <= MAX_ENHANCE:  # also refuses nan
+            raise ValueError(name)
+        enhance.append(value)
+    return Look(colors, dither == "floyd", fmt, *enhance)  # type: ignore[arg-type]  # checked above
+
+
+def _apply_look(im: Image.Image, look: Look) -> bytes:
+    """Adjust, reduce to the palette and encode the prepared picture."""
+    if look.brightness != 1:
+        im = ImageEnhance.Brightness(im).enhance(look.brightness)
+    if look.contrast != 1:
+        im = ImageEnhance.Contrast(im).enhance(look.contrast)
+    if look.saturation != 1:
+        im = ImageEnhance.Color(im).enhance(look.saturation)
+    out = io.BytesIO()
+    if look.colors:
+        flat = [v for rgb in look.colors for v in rgb]
+        palette = Image.new("P", (1, 1))
+        palette.putpalette(flat + flat[:3] * (256 - len(look.colors)))  # padding is never chosen
+        dither = Image.Dither.FLOYDSTEINBERG if look.dither else Image.Dither.NONE
+        im = im.quantize(palette=palette, dither=dither)
+        if look.format == "png":  # as few bits per pixel as the palette needs
+            bits = next(b for b in (1, 2, 4, 8) if len(look.colors) <= 1 << b)
+            im.save(out, "PNG", optimize=True, bits=bits)
+            return out.getvalue()
+        im = im.convert("RGB")
+    if look.format == "png":
+        im.save(out, "PNG", optimize=True)
+    elif look.format == "bmp":
+        im.save(out, "BMP")  # 24 bits: every BMP reader takes it
+    else:
+        # baseline, not progressive: small displays such as ESPHome decode only baseline JPEG
+        im.save(out, "JPEG", quality=JPEG_QUALITY, progressive=False)
+    return out.getvalue()
 
 
 class ImageInfo(TypedDict):
@@ -538,11 +650,19 @@ def _check_pixels(im: Image.Image, path: Path) -> None:
         )
 
 
-def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bool = True) -> bytes:
-    """The picture as a baseline JPEG: crop, orientation, then cover or contain.
+def render(
+    path: Path,
+    width: int,
+    height: int,
+    fit: Fit = "cover",
+    use_crop: bool = True,
+    look: Look = Look(),  # frozen, so one shared default is safe
+) -> bytes:
+    """The picture as a baseline JPEG: crop, orientation, then cover or contain; then the look.
 
     cover is exactly width x height, scaled to cover with the overhang cut evenly; contain is scaled
-    to fit inside, aspect kept. use_crop=False ignores the crop, e.g. to draw a new crop on.
+    to fit inside, aspect kept. use_crop=False ignores the crop, e.g. to draw a new crop on. A look
+    adjusts it, reduces it to a display's colours and picks the file format.
     """
     if fit not in FITS:
         raise ImageError("invalid_fit")
@@ -557,7 +677,7 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
     except Exception as err:  # Pillow raises several kinds for unreadable files
         raise _unreadable(path, err) from err
     try:
-        return _render(im, path, crop, width, height, fit)
+        return _render(im, path, crop, width, height, fit, look)
     except ImageError:
         raise
     except Exception as err:  # decoding happens here, and Pillow raises several kinds
@@ -565,7 +685,7 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
 
 
 def _render(
-    im: Image.Image, path: Path, crop: Box | None, width: int, height: int, fit: Fit
+    im: Image.Image, path: Path, crop: Box | None, width: int, height: int, fit: Fit, look: Look
 ) -> bytes:
     with im:
         if (
@@ -593,7 +713,4 @@ def _render(
             out_im = ImageOps.contain(out_im, (width, height), method=Image.Resampling.LANCZOS)
         if out_im.mode != "RGB":
             out_im = out_im.convert("RGB")
-        out = io.BytesIO()
-        # baseline, not progressive: small displays such as ESPHome decode only baseline JPEG
-        out_im.save(out, "JPEG", quality=JPEG_QUALITY, progressive=False)
-        return out.getvalue()
+        return _apply_look(out_im, look)

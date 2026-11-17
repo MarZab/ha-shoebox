@@ -2,6 +2,10 @@
 
 All notable changes to Shoebox are listed here. Versions follow [Semantic Versioning](https://semver.org/); pre-releases use Home Assistant's style (`1.0.0b1`, `1.0.0rc1`).
 
+## Unreleased
+
+- The device URL can prepare pictures for e-paper and other limited displays: palettes (black and white, greys, 6 and 7 colour e-paper, or your own colours), dithering, PNG or BMP, and contrast, saturation and brightness.
+
 ## 0.2.1
 
 - iPhone photos saved as JPEG with an HDR gain map or depth map (MPO) can be turned and cropped; the extra images in them are kept.

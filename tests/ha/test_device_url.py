@@ -50,6 +50,24 @@ async def test_device_gets_the_picture_at_its_size(
         assert "progressive" not in im.info
 
 
+async def test_a_display_gets_its_palette_and_format(
+    hass: HomeAssistant, device: TestClient, tree: Tree
+) -> None:
+    tree("evening/a.jpg")
+    await press(hass)
+    plain = await device.get(URL, params={"width": "64", "height": "40"})
+    epaper = await device.get(URL, params={"width": "64", "height": "40", "colors": "bw"})
+    assert (epaper.status, epaper.headers["Content-Type"]) == (200, "image/png")
+    assert epaper.headers["ETag"] != plain.headers["ETag"]  # each look is its own picture
+    with Image.open(io.BytesIO(await epaper.read())) as im:
+        assert {c for _, c in im.convert("RGB").getcolors()} <= {(0, 0, 0), (255, 255, 255)}
+    etag = epaper.headers["ETag"]
+    again = await device.get(
+        URL, params={"width": "64", "height": "40", "colors": "bw"}, headers={"If-None-Match": etag}
+    )
+    assert again.status == 304
+
+
 async def test_unchanged_picture_is_not_sent_again(
     hass: HomeAssistant, device: TestClient, tree: Tree
 ) -> None:
@@ -161,6 +179,7 @@ async def test_token_refusals(
         (URL, {"height": "5000"}, 400),
         (URL, {"width": "abc"}, 400),
         (URL, {"fit": "stretch"}, 400),
+        (URL, {"colors": "rainbow"}, 400),
     ],
 )
 async def test_refusals(device: TestClient, url: str, params: dict[str, str], status: int) -> None:

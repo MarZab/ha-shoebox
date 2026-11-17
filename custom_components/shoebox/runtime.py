@@ -57,21 +57,34 @@ class Shoebox:
         self._renders = asyncio.Semaphore(CONCURRENT_RENDERS)
         self.rotations = Rotations(hass, self.library, self.run)
 
-    async def picture_key(self, path: str, width: int, height: int, fit: imaging.Fit) -> str:
+    async def picture_key(
+        self,
+        path: str,
+        width: int,
+        height: int,
+        fit: imaging.Fit,
+        look: imaging.Look = imaging.Look(),  # noqa: B008  # frozen
+    ) -> str:
         """The key picture() would give, from the file's metadata only: no preparing."""
         source = await self.run(self.library.resolve_file, path)
-        return await self.run(self.cache.key, source, width, height, fit)
+        return await self.run(self.cache.key, source, width, height, fit, look.key)
 
     async def picture(
-        self, path: str, width: int, height: int, fit: imaging.Fit, *, use_crop: bool = True
+        self,
+        path: str,
+        width: int,
+        height: int,
+        fit: imaging.Fit,
+        *,
+        use_crop: bool = True,
+        look: imaging.Look = imaging.Look(),  # noqa: B008  # frozen
     ) -> Variant:
-        """A picture in a media folder prepared at a size, through the cache."""
+        """A picture in a media folder prepared at a size and look, through the cache."""
         source = await self.run(self.library.resolve_file, path)
-        make = partial(imaging.render, source, width, height, fit, use_crop)
+        make = partial(imaging.render, source, width, height, fit, use_crop, look)
+        extra = ("" if use_crop else "nocrop") + look.key
         async with self._renders:
-            return await self.run(
-                self.cache.get, source, width, height, fit, make, "" if use_crop else "nocrop"
-            )
+            return await self.run(self.cache.get, source, width, height, fit, make, extra)
 
     def _shown(self, filename: object) -> str:
         """A path for messages: prefixed below a media folder, else only its name; never the

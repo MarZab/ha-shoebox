@@ -117,22 +117,31 @@ class DeviceImageView(HomeAssistantView):
         except ValueError:
             return self.json_message(f"width and height 1..{MAX_SIDE}, fit cover or contain", 400)
         try:
+            look = imaging.parse_look(q)
+        except ValueError:
+            return self.json_message(
+                "colors: a palette (" + ", ".join(imaging.PALETTES) + ") or 2 to 256 hex colours;"
+                " dither floyd or none; format jpeg, png or bmp;"
+                f" contrast, saturation, brightness 0..{imaging.MAX_ENHANCE:g}",
+                400,
+            )
+        try:
             shoebox = loaded_shoebox(hass)
             state = shoebox.rotations.state(rotation_id)
             if state.file is None:
                 return self.json_message("the rotation shows no picture yet", 404)
             # a device that has the picture already gets 304 before anything is prepared
-            etag = f'"{await shoebox.picture_key(state.file, width, height, fit)}"'
+            etag = f'"{await shoebox.picture_key(state.file, width, height, fit, look)}"'
             headers = {hdrs.ETAG: etag, hdrs.CACHE_CONTROL: "no-cache"}
             if updated := dt_util.parse_datetime(state.updated or ""):
                 headers[hdrs.LAST_MODIFIED] = updated.strftime("%a, %d %b %Y %H:%M:%S GMT")
             if etag in request.headers.get(hdrs.IF_NONE_MATCH, ""):
                 return web.Response(status=304, headers=headers)
-            variant = await shoebox.picture(state.file, width, height, fit)
+            variant = await shoebox.picture(state.file, width, height, fit, look=look)
         except HomeAssistantError as err:
             return self.json_message(str(err), 404)
         headers[hdrs.ETAG] = f'"{variant.key}"'
-        return web.Response(body=variant.data, content_type="image/jpeg", headers=headers)
+        return web.Response(body=variant.data, content_type=look.mime, headers=headers)
 
     @staticmethod
     def _authenticate(request: web.Request, entity_id: str) -> str:

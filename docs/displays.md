@@ -53,8 +53,12 @@ http://<home assistant>:8123/api/shoebox/image/image.living_room?width=800&heigh
 |-----------|---------|---|
 | `width`, `height` | 1280 | The size in pixels, 1 to 4096 |
 | `fit` | `contain` | `cover`: exactly this size, the overhang cut evenly. `contain`: fitted inside, aspect kept |
+| `colors` | none | A palette for e-paper and other limited displays: `bw`, `gray4`, `gray16`, `spectra6` (black, white, red, yellow, blue, green), `acep7` (adds orange), or your own 2 to 256 hex colours, such as `000000,ffffff,c03030` |
+| `dither` | `floyd` | With `colors`: `floyd` (Floyd–Steinberg error diffusion) or `none` (nearest colour) |
+| `format` | `jpeg`, or `png` with `colors` | `jpeg`, `png` or `bmp` (24 bit). Dithered pictures need `png` or `bmp`: JPEG smears the dots |
+| `contrast`, `saturation`, `brightness` | `1` | 0 to 3; applied before the palette. E-paper often looks better with more contrast and saturation |
 
-- The picture is a baseline JPEG, which small displays can decode.
+- The picture is a baseline JPEG, which small displays can decode, unless `colors` or `format` asks for something else.
 - The URL stays the same while the rotation moves on, across reloads and restarts.
 - Each response has an `ETag`. A device that sends it back in `If-None-Match` gets `304 Not Modified` while the picture is unchanged.
 - Before the rotation's first Next, the URL answers `404`.
@@ -187,6 +191,33 @@ triggers:
 actions:
   - action: esphome.photo_frame_show_next_photo
 ```
+
+### E-paper and other limited displays
+
+E-paper panels show a few colours, and a photo needs dithering to look right on them. Shoebox does it before the device downloads the picture, so the device only draws pixels:
+
+![One photo, plain and for three kinds of panel](images/display-looks.png)
+
+For a black and white panel, ask for `colors=bw` and let ESPHome read it as a 1-bit image:
+
+```yaml
+online_image:
+  - id: photo
+    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room?width=800&height=480&fit=cover&colors=bw
+    format: PNG
+    type: BINARY
+    update_interval: never
+```
+
+With the [ESPHome example](#esphome), add the same parameters to the URL in its `set_url`, and set `format` and `type` as here. For greyscale panels use `colors=gray4` or `gray16` with `type: GRAYSCALE`; for colour e-paper use `spectra6` or `acep7` with `type: RGB`.
+
+The named palettes use pure colours. A real panel shows duller ones, so a photo can look grainy or off. To tune it:
+
+- Raise `contrast` and `saturation` a little, such as `contrast=1.2&saturation=1.4`.
+- Give the colours your panel really shows instead of a name: photograph or measure each of its colours and list them, such as `colors=1a1a1a,f0f0e6,b03a2e,e8c13a,2e4d8a,3a7d44`. Dithering then picks the colours as the panel shows them.
+- Try `dither=none` for drawings and text, where dots look worse than flat colours.
+
+Each combination of parameters is prepared once and cached, with its own `ETag`.
 
 ## URL lifetime
 

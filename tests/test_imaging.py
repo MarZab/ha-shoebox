@@ -298,3 +298,64 @@ def test_render_png_with_transparency(tmp_path: Path) -> None:
     path = tmp_path / "a.png"
     Image.new("RGBA", (20, 20), (255, 0, 0, 255)).save(path)
     assert colours(imaging.render(path, 10, 10)) == ["red"] * 4
+
+
+# ---------------------------------------------------------------- looks for displays
+
+
+def used_colours(data: bytes) -> set[tuple[int, int, int]]:
+    with Image.open(io.BytesIO(data)) as im:
+        return {c for _, c in im.convert("RGB").getcolors(1 << 16)}
+
+
+BW = {(0, 0, 0), (255, 255, 255)}
+SPECTRA6 = BW | {(255, 0, 0), (255, 255, 0), (0, 0, 255), (0, 255, 0)}
+RGB3 = {(255, 0, 0), (0, 255, 0), (0, 0, 255)}
+
+
+@pytest.mark.parametrize(
+    ("query", "fmt", "allowed"),
+    [
+        ({}, "JPEG", None),  # the plain picture, as before
+        ({"colors": "bw"}, "PNG", BW),
+        ({"colors": "spectra6", "dither": "none"}, "PNG", SPECTRA6),
+        ({"colors": "ff0000,#00FF00, 0000ff", "format": "bmp"}, "BMP", RGB3),  # calibrated
+        ({"format": "png", "saturation": "0"}, "PNG", None),
+    ],
+)
+def test_looks_for_displays(
+    tmp_path: Path, query: dict[str, str], fmt: str, allowed: set[tuple[int, int, int]] | None
+) -> None:
+    look = imaging.parse_look(query)
+    data = imaging.render(write_image(tmp_path / "a.jpg", (80, 40)), 40, 20, "cover", look=look)
+    with Image.open(io.BytesIO(data)) as im:
+        assert (im.format, im.size) == (fmt, (40, 20))
+        assert look.mime == Image.MIME[fmt]
+    colours = used_colours(data)
+    if allowed is not None:
+        assert colours <= allowed
+    if query.get("saturation") == "0":
+        assert all(r == g == b for r, g, b in colours)  # no colour left
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"colors": "rainbow"},
+        {"colors": "ff0000"},  # one colour is no palette
+        {"colors": ",".join(["000000"] * 257)},
+        {"dither": "ordered"},
+        {"format": "gif"},
+        {"contrast": "4"},
+        {"brightness": "nan"},
+        {"saturation": "-1"},
+    ],
+)
+def test_bad_looks_are_refused(query: dict[str, str]) -> None:
+    with pytest.raises(ValueError, match=r"."):
+        imaging.parse_look(query)
+
+
+def test_the_plain_look_keeps_cache_keys() -> None:
+    assert imaging.parse_look({}).key == ""
+    assert imaging.parse_look({"colors": "bw"}).key != imaging.parse_look({"colors": "gray4"}).key
