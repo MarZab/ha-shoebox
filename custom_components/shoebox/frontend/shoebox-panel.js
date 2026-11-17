@@ -271,12 +271,19 @@ class ShoeboxPanel extends HTMLElement {
     try {
       const r = await this._ws("browse", { path: this._folder });
       this._items = r.items;
+      this._titles = r.titles;
       this._shownFolder = r.path;
       this._renderFolder();
     } catch (err) {
       content.innerHTML = `<ha-alert alert-type="error">${esc(err.message || err)}</ha-alert>
         <div class="crumbs"><a data-act="crumb" data-path="">${icon("mdi:folder-home")} ${esc(this.t("media"))}</a></div>`;
     }
+  }
+
+  // A path as Home Assistant's media browser names it: the media folder by its directory's name
+  _shown(path) {
+    const [first, ...rest] = String(path).split("/");
+    return [this._titles?.[first] ?? first, ...rest].join("/");
   }
 
   _renderFolder() {
@@ -286,7 +293,8 @@ class ShoeboxPanel extends HTMLElement {
     parts.forEach((p, i) => {
       const path = parts.slice(0, i + 1).join("/");
       crumbs.push(icon("mdi:chevron-right"));
-      crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(p)}</span>` : `<a data-act="crumb" data-path="${esc(path)}">${esc(p)}</a>`);
+      const name = i === 0 ? this._shown(p) : p;
+      crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(name)}</span>` : `<a data-act="crumb" data-path="${esc(path)}">${esc(name)}</a>`);
     });
     const top = !this._folder; // the media folders themselves cannot be renamed, moved or deleted
     const tiles = this._items.map((it, i) => {
@@ -337,15 +345,15 @@ class ShoeboxPanel extends HTMLElement {
     const t = this.t;
     let folders;
     try { folders = (await this._ws("folders")).folders; } catch (err) { this._error(err); return; }
-    const all = ["", ...folders];
+    const all = folders; // the top level only lists the media folders: nothing can go there
     const from = parent(item.path);
     let selected = null;
     const rows = (filter) => all
-      .filter((f) => !filter || f.toLowerCase().includes(filter.toLowerCase()))
+      .filter((f) => !filter || this._shown(f).toLowerCase().includes(filter.toLowerCase()))
       .map((f) => {
         const off = f === from || (item.type === "folder" && (f === item.path || f.startsWith(item.path + "/")));
         return `<div class="folder-row ${f === selected ? "sel" : ""}" data-f="${esc(f)}" ${off ? "disabled" : ""}>
-          ${icon(f ? "mdi:folder-outline" : "mdi:folder-home-outline")}<span>${esc(f || t("media"))}</span></div>`;
+          ${icon(f.includes("/") ? "mdi:folder-outline" : "mdi:folder-home-outline")}<span>${esc(this._shown(f))}</span></div>`;
       }).join("");
     const dlg = this._dialog({
       title: t("move_title", { name: item.name }),

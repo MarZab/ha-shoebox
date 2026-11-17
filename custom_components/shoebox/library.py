@@ -43,6 +43,11 @@ class Library:
             raise MediaError("unknown_folder", path=path, folder=name)
         return name, self.folders[name], rest
 
+    @property
+    def titles(self) -> dict[str, str]:
+        """How Home Assistant's media browser shows each folder: its directory's name."""
+        return {name: folder.name or name for name, folder in self.folders.items()}
+
     @staticmethod
     def join(name: str, rest: str) -> str:
         return f"{name}/{rest}" if rest else name

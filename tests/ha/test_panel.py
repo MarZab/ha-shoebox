@@ -149,10 +149,9 @@ async def test_browse_and_signed_thumbnails(
 ) -> None:
     tree("x/b.jpg", "x/a.txt", "x/sub/")
     top = (await ws("browse"))["result"]
-    assert (top["path"], [(i["name"], i["type"]) for i in top["items"]]) == (
-        "",
-        [("local", "folder")],
-    )
+    # shown by the directory's name, as Home Assistant's media browser does; the path keeps the ID
+    assert [(i["name"], i["path"]) for i in top["items"]] == [("media", "local")]
+    assert top["titles"] == {"local": "media"}
     msg = await ws("browse", path="local/x")
     assert msg["success"]
     assert msg["result"]["path"] == "local/x"

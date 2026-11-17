@@ -6,7 +6,7 @@ The **Shoebox** panel in the sidebar manages the media folders. It is for admini
 
 ## Browsing
 
-The panel opens at the media folders Shoebox uses, such as `local` (My media). Inside them, folders come first, then files, each sorted by name; pictures show a thumbnail with their [edits](editing.md) applied. Click a folder to open it, and the path at the top to go back. Hidden files and symbolic links are not shown.
+The panel opens at the media folders Shoebox uses, named as in Home Assistant's media browser: by their directory, such as `media` for My media. (Paths in actions and patterns use the folder's ID instead, such as `local/Family/beach.jpg`.) Inside them, folders come first, then files, each sorted by name; pictures show a thumbnail with their [edits](editing.md) applied. Click a folder to open it, and the path at the top to go back. Hidden files and symbolic links are not shown.
 
 ## Uploading
 

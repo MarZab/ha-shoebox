@@ -77,7 +77,12 @@ async def ws_browse(
 ) -> None:
     box = loaded_shoebox(hass)
     rel, entries = await box.run(box.library.list_folder, msg["path"])
-    connection.send_result(msg["id"], {"path": rel, "items": [_item(hass, e) for e in entries]})
+    titles = box.library.titles
+    items = [_item(hass, e) for e in entries]
+    if not rel:
+        for item in items:
+            item["name"] = titles[item["path"]]
+    connection.send_result(msg["id"], {"path": rel, "items": items, "titles": titles})
 
 
 @_command({vol.Required("type"): "shoebox/folders"})
