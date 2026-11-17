@@ -13,22 +13,19 @@ from typing import Any, Final
 
 from homeassistant.components import websocket_api
 from homeassistant.components.http.auth import async_sign_path
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 import probatio as vol
 from yarl import URL
 
 from . import imaging, media
-from .const import CONF_ORDER, DOMAIN, ORDER_PATH, PANEL_URL_LIFETIME_S, RENDER_URL
+from .const import PANEL_URL_LIFETIME_S, RENDER_URL
 from .runtime import Shoebox
 from .views import loaded_shoebox
 
 THUMB: Final = (320, 320, "cover")
 VIEW: Final = (2048, 2048, "contain")
 BASE: Final = (1600, 1600, "contain")  # the editor draws a new crop on the whole picture
-ROTATION: Final = "rotation"
 
 _FRACTION: Final = vol.All(vol.Coerce(float), vol.Range(min=0, max=1))
 
@@ -136,53 +133,7 @@ async def ws_edit(
     connection.send_result(msg["id"], await _info(hass, box, msg["path"]))
 
 
-def _rotation_patterns(entry: ConfigEntry) -> list[tuple[str, str, list[str], str]]:
-    """(subentry id, title, patterns, order) of each rotation."""
-    return [
-        (
-            sub.subentry_id,
-            sub.title,
-            list(sub.data.get("patterns", [])),
-            sub.data.get(CONF_ORDER, ORDER_PATH),
-        )
-        for sub in entry.subentries.values()
-        if sub.subentry_type == ROTATION
-    ]
-
-
-@_command({vol.Required("type"): "shoebox/rotations"})
-async def ws_rotations(
-    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: _Message
-) -> None:
-    """Each rotation: what its patterns select now, its current picture and its entities."""
-    box = loaded_shoebox(hass)
-    entry = hass.config_entries.async_loaded_entries(DOMAIN)[0]
-    registry = er.async_get(hass)
-    entries = await box.run(box.library.walk)
-    out = []
-    for subentry_id, title, patterns, order in _rotation_patterns(entry):
-        files = await box.run(media.select_pictures, entries, patterns)
-        state = box.rotations.state(subentry_id)
-        out.append(
-            {
-                "id": subentry_id,
-                "title": title,
-                "patterns": patterns,
-                "order": order,
-                "count": len(files),
-                "position": state.position,
-                "file": state.file,
-                "thumb": picture_url(hass, state.file, THUMB) if state.file else None,
-                "entity_id": registry.async_get_entity_id("image", DOMAIN, subentry_id),
-                "next_entity_id": registry.async_get_entity_id(
-                    "button", DOMAIN, f"{subentry_id}_next"
-                ),
-            }
-        )
-    connection.send_result(msg["id"], {"rotations": out})
-
-
 @callback
 def async_setup_websocket(hass: HomeAssistant) -> None:
-    for command in (ws_browse, ws_folders, ws_info, ws_edit, ws_rotations):
+    for command in (ws_browse, ws_folders, ws_info, ws_edit):
         websocket_api.async_register_command(hass, command)

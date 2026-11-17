@@ -56,7 +56,8 @@ After changing the panel, also walk these by hand (or with Playwright):
 - [ ] New folder, rename, move (with the folder search), delete with confirmation
 - [ ] Open a picture; previous and next; turn left and right
 - [ ] Crop with each aspect ratio; save; reset
-- [ ] Rotations view: current picture, position, Next, the entity opens its details, Manage rotations opens Settings
+- [ ] Open a text file; download a file
+- [ ] The menu (⋮) opens the integration's page in Settings
 - [ ] Light and dark theme; phone width with the sidebar menu button
 - [ ] Your profile language set to Slovenian switches the panel
 

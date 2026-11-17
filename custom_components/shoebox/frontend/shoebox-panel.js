@@ -1,5 +1,5 @@
 // The admin sidebar panel "Shoebox" of the shoebox component: files and folders below /media
-// (thumbnails, upload by drop or picker, rename, move, delete, rotate, crop) and rotations.
+// (thumbnails, upload by drop or picker, rename, move, delete, rotate, crop, text preview, download).
 // Plain ES modules, no build step. Built from the HA frontend's own elements (ha-top-app-bar-fixed with
 // ha-menu-button, ha-card, ha-icon, ha-icon-button, ha-dropdown, ha-dialog, ha-button, ha-input,
 // ha-alert, ha-spinner) and HA theme variables only. Those elements are HA internals: check
@@ -82,18 +82,7 @@ const STYLE = `
   .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--divider-color); overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; background: var(--primary-color); transition: width 0.2s; }
   .up .err { grid-column: 1 / -1; color: var(--error-color, #db4437); }
-  .actions-row { display: flex; gap: var(--ha-space-2, 8px); margin-bottom: var(--ha-space-4, 16px); flex-wrap: wrap; }
-  .rot { display: flex; gap: var(--ha-space-4, 16px); padding: var(--ha-space-4, 16px); align-items: center; border-top: 1px solid var(--divider-color); }
-  .rot:first-child { border-top: 0; }
-  .previews ha-icon { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; color: var(--secondary-text-color); background: var(--secondary-background-color); border-radius: var(--ha-border-radius-sm, 4px); }
-  .rot .pic { width: 72px; height: 72px; border-radius: var(--ha-border-radius-md, 8px); object-fit: cover; flex: none;
     background: var(--secondary-background-color); display: flex; align-items: center; justify-content: center; color: var(--secondary-text-color); }
-  .rot .txt { flex: 1; min-width: 0; }
-  :host([narrow]) .rot { gap: var(--ha-space-2, 8px); padding: var(--ha-space-3, 12px) var(--ha-space-2, 8px); }
-  :host([narrow]) .rot .pic { width: 48px; height: 48px; }
-  .rot .nm { font-size: var(--ha-font-size-l, 16px); font-weight: var(--ha-font-weight-medium, 500); }
-  .rot .sub { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); overflow-wrap: anywhere; }
-  .rot a.entity { color: var(--primary-color); cursor: pointer; text-decoration: none; }
   code { font-family: var(--ha-font-family-code, monospace); font-size: 0.95em; background: var(--secondary-background-color); padding: 1px 4px; border-radius: 4px; }
   /* dialogs */
   .dlg-text { margin: 0; color: var(--primary-text-color); }
@@ -110,12 +99,6 @@ const STYLE = `
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--ha-space-3, 12px) 0; align-items: center; }
   @media (max-width: 600px) { .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .chips > * { flex: none; } }
   .chips .lbl { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); margin-inline-end: 4px; }
-  .patterns { display: flex; flex-direction: column; gap: var(--ha-space-2, 8px); }
-  .prow { display: flex; align-items: center; gap: 4px; }
-  .prow ha-input { flex: 1; }
-  .match { margin-top: var(--ha-space-3, 12px); color: var(--secondary-text-color); }
-  .previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin-top: var(--ha-space-2, 8px); }
-  .previews img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--ha-border-radius-sm, 4px); background: var(--secondary-background-color); }
   ha-input { display: block; }
   pre.text { margin: 0; padding: var(--ha-space-3, 12px); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 70vh; overflow: auto;
     font-family: var(--ha-font-family-code, monospace); font-size: var(--ha-font-size-s, 12px); background: var(--secondary-background-color);
@@ -128,7 +111,6 @@ class ShoeboxPanel extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._folder = "";
-    this._view = "files";
     this._items = [];
     this._uploads = [];
     this._dragDepth = 0;
@@ -191,10 +173,13 @@ class ShoeboxPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${STYLE}</style>
       <ha-top-app-bar-fixed>
         <h1 class="page-title" slot="title">${esc(t("title"))}</h1>
-        ${iconButton("mdi:image-multiple-outline", t("rotations"), 'slot="actionItems" data-act="toggle-view" id="toggle"')}
         ${iconButton("mdi:folder-plus-outline", t("new_folder"), 'slot="actionItems" data-act="new-folder" class="files-only"')}
         ${iconButton("mdi:upload", t("upload"), 'slot="actionItems" data-act="upload" class="files-only"')}
         ${iconButton("mdi:refresh", t("refresh"), 'slot="actionItems" data-act="refresh"')}
+        <ha-dropdown slot="actionItems" placement="bottom-end" id="settings-menu">
+          ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
+          <ha-dropdown-item value="settings">${icon("mdi:cog-outline", "icon")}${esc(t("rotations_and_settings"))}</ha-dropdown-item>
+        </ha-dropdown>
         <div class="content" id="content"></div>
       </ha-top-app-bar-fixed>
       <input type="file" id="picker" multiple accept="image/*,video/*,audio/*" hidden>
@@ -206,34 +191,25 @@ class ShoeboxPanel extends HTMLElement {
       this._upload([...e.target.files], this._folder);
       e.target.value = "";
     });
+    this.shadowRoot.getElementById("settings-menu").addEventListener("wa-select", () => this._openSettings());
     if (this._ready) this._applyRoute(true);
   }
 
   _applyRoute(force = false) {
     const path = (this._route?.path || "").replace(/^\/+/, "");
-    let view = "files", folder = "";
-    if (path === "rotations") { view = "rotations"; folder = this._folder || ""; }  // back to the same folder
-    else if (path.startsWith("folder/")) folder = path.slice(7).split("/").map(decodeURIComponent).join("/");
-    if (!force && view === this._view && folder === this._folder && this._loadedOnce) return;
-    this._view = view;
+    const folder = path.startsWith("folder/") ? path.slice(7).split("/").map(decodeURIComponent).join("/") : "";
+    if (!force && folder === this._folder && this._loadedOnce) return;
     this._folder = folder;
     this._loadedOnce = true;
-    // the toggle shows where it leads: rotations from the files, the files from the rotations
-    const toggle = this.shadowRoot.getElementById("toggle");
-    const to = view === "files" ? ["mdi:image-multiple-outline", "rotations"] : ["mdi:folder-multiple-image", "files"];
-    toggle.setAttribute("label", this.t(to[1]));
-    toggle.innerHTML = icon(to[0]);
     // the top level lists the media folders: uploads and new folders go into one of them
-    this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = view !== "files" || !folder; });
-    if (view === "rotations") this._loadRotations();
-    else this._loadFolder();
+    this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = !folder; });
+    this._loadFolder();
   }
 
-  _navigate(view, folder = "") {
+  _navigate(folder = "") {
     const prefix = this._route?.prefix || "/shoebox";
     let path = prefix;
-    if (view === "rotations") path += "/rotations";
-    else if (folder) path += "/folder/" + folder.split("/").map(encodeURIComponent).join("/");
+    if (folder) path += "/folder/" + folder.split("/").map(encodeURIComponent).join("/");
     history.pushState(null, "", path);
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
@@ -263,20 +239,16 @@ class ShoeboxPanel extends HTMLElement {
     if (act) {
       const a = act.dataset.act;
       if (a === "upload") this.shadowRoot.getElementById("picker").click();
-      else if (a === "toggle-view") this._view === "files" ? this._navigate("rotations") : this._navigate("files", this._folder);
       else if (a === "new-folder") this._newFolder();
-      else if (a === "refresh") this._view === "rotations" ? this._loadRotations() : this._loadFolder();
-      else if (a === "crumb") this._navigate("files", act.dataset.path);
-      else if (a === "settings") this._openSettings();
-      else if (a === "next-rotation") this._nextRotation(act.dataset.entity);
-      else if (a === "more-info") this._moreInfo(act.dataset.entity);
+      else if (a === "refresh") this._loadFolder();
+      else if (a === "crumb") this._navigate(act.dataset.path);
       else if (a === "close-uploads") this._closeUploads();
       return;
     }
     const tile = el(".tile");
     if (tile) {
       const item = this._items[Number(tile.dataset.i)];
-      if (item.type === "folder") this._navigate("files", item.path);
+      if (item.type === "folder") this._navigate(item.path);
       else if (item.type === "image") this._openViewer(item);
       else if (previewable(item)) this._openText(item);
     }
@@ -284,7 +256,7 @@ class ShoeboxPanel extends HTMLElement {
 
   _menu(e, item) {
     const v = e.detail?.item?.value;
-    if (v === "open") item.type === "folder" ? this._navigate("files", item.path) : item.type === "image" ? this._openViewer(item) : this._openText(item);
+    if (v === "open") item.type === "folder" ? this._navigate(item.path) : item.type === "image" ? this._openViewer(item) : this._openText(item);
     else if (v === "download") this._download(item);
     else if (v === "rename") this._rename(item);
     else if (v === "move") this._move(item);
@@ -678,7 +650,7 @@ class ShoeboxPanel extends HTMLElement {
   _refreshThumb(path) {
     // the file changed (its mtime is part of the variant key): list the folder again for new thumbnails
     clearTimeout(this._refreshTimer);
-    this._refreshTimer = setTimeout(() => this._view === "files" && this._loadFolder(), 300);
+    this._refreshTimer = setTimeout(() => this._loadFolder(), 300);
   }
 
   // ------------------------------------------------------------------ upload
@@ -702,13 +674,13 @@ class ShoeboxPanel extends HTMLElement {
       this.shadowRoot.querySelectorAll(".tile.drop").forEach((x) => x.classList.remove("drop"));
     };
     this.addEventListener("dragenter", (e) => {
-      if (!hasFiles(e) || this._view !== "files") return;
+      if (!hasFiles(e)) return;
       e.preventDefault();
       this._dragDepth++;
       mark(tileOf(e));
     });
     this.addEventListener("dragover", (e) => {
-      if (!hasFiles(e) || this._view !== "files") return;
+      if (!hasFiles(e)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       mark(tileOf(e));
@@ -718,7 +690,7 @@ class ShoeboxPanel extends HTMLElement {
       if (--this._dragDepth <= 0) clear();
     });
     this.addEventListener("drop", (e) => {
-      if (!hasFiles(e) || this._view !== "files") return;
+      if (!hasFiles(e)) return;
       e.preventDefault();
       const tile = tileOf(e);
       const folder = tile ? tile.dataset.folder : this._folder;
@@ -779,7 +751,7 @@ class ShoeboxPanel extends HTMLElement {
   }
 
   _afterUpload(u) {
-    if (u.state === "done" && this._view === "files" && (u.folder === this._folder || parent(u.folder) === this._folder)) {
+    if (u.state === "done" && (u.folder === this._folder || parent(u.folder) === this._folder)) {
       clearTimeout(this._reloadTimer);
       this._reloadTimer = setTimeout(() => this._loadFolder(), 400);
     }
@@ -813,43 +785,7 @@ class ShoeboxPanel extends HTMLElement {
 
   _closeUploads() { this._uploads = []; this._renderUploads(); }
 
-  // ------------------------------------------------------------------ rotations
-
-  async _loadRotations() {
-    const t = this.t;
-    const content = this.shadowRoot.getElementById("content");
-    content.innerHTML = `<div class="center"><ha-spinner></ha-spinner></div>`;
-    try {
-      this._rotations = (await this._ws("rotations")).rotations;
-    } catch (err) {
-      content.innerHTML = `<ha-alert alert-type="error">${esc(err.message)}</ha-alert>`;
-      return;
-    }
-    const rows = this._rotations.map((r) => `<div class="rot">
-        ${r.thumb ? `<img class="pic" alt="" src="${esc(r.thumb)}">` : `<div class="pic">${icon("mdi:image-off-outline")}</div>`}
-        <div class="txt"><div class="nm">${esc(r.title)}</div>
-          <div class="sub">${r.patterns.map((p) => `<code>${esc(p)}</code>`).join(" ")}${r.order === "shuffle" ? ` · ${esc(t("shuffled"))}` : ""}</div>
-          <div class="sub">${esc(r.position ? t("position", { position: r.position, count: r.count }) : t("not_started", { count: r.count }))}${
-            r.entity_id ? ` · <a class="entity" data-act="more-info" data-entity="${esc(r.entity_id)}">${esc(r.entity_id)}</a>` : ""}</div>
-          ${r.file ? `<div class="sub">${esc(t("current", { file: r.file }))}</div>` : ""}</div>
-        ${r.next_entity_id ? iconButton("mdi:skip-next", t("next"), `data-act="next-rotation" data-entity="${esc(r.next_entity_id)}"`) : ""}
-      </div>`).join("");
-    content.innerHTML = `<div class="actions-row"><ha-button data-act="settings">${icon("mdi:cog-outline", "start")}${esc(t("manage_rotations"))}</ha-button></div>
-      <ha-card outlined>${rows || `<div class="empty">${esc(t("no_rotations"))}</div>`}</ha-card>`;
-  }
-
-  async _nextRotation(entityId) {
-    try {
-      await this._hass.callService("button", "press", { entity_id: entityId });
-      await this._loadRotations();
-    } catch (err) {
-      this._error(err);
-    }
-  }
-
-  _moreInfo(entityId) {
-    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
-  }
+  // ------------------------------------------------------------------ settings
 
   _openSettings() {
     history.pushState(null, "", `/config/integrations/integration/${DOMAIN}`);

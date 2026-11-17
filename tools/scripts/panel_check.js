@@ -31,10 +31,7 @@ const RUNS = [
     await page.waitForSelector("shoebox-panel", { timeout: 30000 });
     await page.waitForTimeout(3000);
     const missing = await page.evaluate((names) => names.filter((n) => !customElements.get(n)), ELEMENTS);
-    for (const view of ["files", "rotations"]) {
-      if (view === "rotations") await page.goto(`${BASE}/shoebox/rotations`), await page.waitForTimeout(2500);
-      await page.screenshot({ path: `${OUT}/${run.name}-${view}.png` });
-    }
+    await page.screenshot({ path: `${OUT}/${run.name}.png` });
     const ok = !missing.length && !errors.length;
     failed ||= !ok;
     console.log(`${ok ? "ok  " : "FAIL"} ${run.name}`, missing.length ? `missing ${missing}` : "", errors.join(" | "));

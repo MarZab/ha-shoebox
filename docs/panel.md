@@ -40,9 +40,9 @@ For JPEG pictures, the top bar turns the picture left or right, and **Crop** ope
 - A file that is not text says so instead of showing garbage.
 - **Download** in the menu (⋮) of a file, or in the picture viewer, saves the original file to your computer or phone.
 
-## Rotations
+## Rotations and settings
 
-The image button in the top bar switches to the rotations: each with its current picture, patterns, position and entity. **Next** moves a rotation on; the entity opens its details. **Manage rotations** goes to the integration's page in Settings, where rotations are added, changed and deleted (see [rotations](rotations.md)).
+The menu (⋮) in the top bar opens **Rotations and settings**: the integration's page in Settings, where rotations are added, changed and deleted (see [rotations](rotations.md)) and the [options](configuration.md#options) live.
 
 ![Rotations in Settings](images/settings.png)
 

@@ -147,29 +147,6 @@ async def test_deleting_the_rotation_drops_its_state(
     assert hass_storage["shoebox.rotations"]["data"] == {"rotations": {}}
 
 
-async def test_rotations_command_lists_subentries(
-    hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree, hass_ws_client: Any
-) -> None:
-    tree("evening/a.jpg", "evening/b.jpg")
-    rid = rotation_id(with_rotation)
-    await with_rotation.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
-    client = await hass_ws_client()
-    await client.send_json_auto_id({"type": "shoebox/rotations"})
-    (result,) = (await client.receive_json())["result"]["rotations"]
-    assert result.pop("thumb").startswith("/api/shoebox/render?")
-    assert result == {
-        "id": rid,
-        "title": "Evening",
-        "patterns": ["local/evening/*"],
-        "order": "path",
-        "count": 2,
-        "position": 1,
-        "file": "local/evening/a.jpg",
-        "entity_id": "image.evening",
-        "next_entity_id": "button.evening_next",
-    }
-
-
 async def test_a_rotation_spans_media_folders(
     hass: HomeAssistant, media_root: Path, tmp_path: Path
 ) -> None:

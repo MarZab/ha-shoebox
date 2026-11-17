@@ -48,7 +48,7 @@ Who asks: the image entity (1280 × 1280, contain), the panel's render view (thu
 
 ### The panel
 
-The panel talks over the WebSocket (`websocket.py`: browse, folders, info, edit, rotations, text) and the file actions. Its `<img>` elements cannot send the Authorization header, so picture URLs point at the render view and are signed for the user's connection (`async_sign_path`, one hour). Uploads go to the upload view as multipart and stream to a hidden temporary file. Downloads use the download view, with a URL the panel signs through Home Assistant's `auth/sign_path`: Home Assistant's own media view serves only pictures, video and audio.
+The panel talks over the WebSocket (`websocket.py`: browse, folders, info, edit) and the file actions. Its `<img>` elements cannot send the Authorization header, so picture URLs point at the render view and are signed for the user's connection (`async_sign_path`, one hour). Uploads go to the upload view as multipart and stream to a hidden temporary file. Downloads use the download view, with a URL the panel signs through Home Assistant's `auth/sign_path`: Home Assistant's own media view serves only pictures, video and audio.
 
 ## Storage
 
