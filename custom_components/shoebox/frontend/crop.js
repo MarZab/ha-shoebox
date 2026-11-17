@@ -5,15 +5,19 @@
 // or null for free), turn (degrees clockwise, read-only; rotate(±90) changes it).
 // Slot "controls": shown left of the preview, above the picture.
 // Fires "box-changed" (detail: box) while the rectangle changes.
+// Keyboard, on the focused picture: arrow keys move the rectangle, Shift with arrow keys resizes it
+// (right and bottom edges); a rectangle over the whole picture appears with the first key.
 
 const MIN = 0.02;
+const STEP = 0.01; // per key press, of the picture's width or height
 
 const STYLE = `
   :host { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "controls side" "stage stage";
     gap: var(--ha-space-3, 12px) var(--ha-space-4, 16px); align-items: start; }
   .controls { grid-area: controls; min-width: 0; }
   .stage { grid-area: stage; justify-self: center; position: relative; display: inline-block; touch-action: none;
-    user-select: none; cursor: crosshair; line-height: 0; margin: 12px; max-width: calc(100% - 24px); }
+    user-select: none; cursor: crosshair; line-height: 0; margin: 12px; max-width: calc(100% - 24px); outline: none; }
+  .stage:focus-visible .clip { outline: 2px solid var(--primary-color); outline-offset: 4px; }
   .clip { position: relative; overflow: hidden; border-radius: var(--ha-border-radius-sm, 4px); }
   img { display: block; max-width: min(100%, 900px); max-height: 50vh; pointer-events: none; }
   .box, .frame { position: absolute; box-sizing: border-box; }
@@ -38,7 +42,7 @@ class ShoeboxCrop extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" }).innerHTML = `<style>${STYLE}</style>
       <div class="controls"><slot name="controls"></slot></div>
-      <div class="stage"><div class="clip"><img alt=""><div class="box" hidden></div></div><div class="frame" hidden>
+      <div class="stage" tabindex="0" role="application"><div class="clip"><img alt=""><div class="box" hidden></div></div><div class="frame" hidden>
         <span class="h nw" data-c="nw"></span><span class="h ne" data-c="ne"></span>
         <span class="h sw" data-c="sw"></span><span class="h se" data-c="se"></span></div></div>
       <div class="side"><span class="label"></span><canvas width="1" height="1"></canvas></div>`;
@@ -56,6 +60,39 @@ class ShoeboxCrop extends HTMLElement {
     this._stage.addEventListener("pointermove", (e) => this._move(e));
     this._stage.addEventListener("pointerup", (e) => this._up(e));
     this._stage.addEventListener("pointercancel", (e) => this._up(e));
+    this._stage.addEventListener("keydown", (e) => this._key(e));
+  }
+
+  // what a screen reader announces for the picture, with how to use the keys
+  set keyLabel(text) { this._stage.setAttribute("aria-label", text); }
+
+  _key(e) {
+    const dx = { ArrowLeft: -1, ArrowRight: 1 }[e.key] || 0;
+    const dy = { ArrowUp: -1, ArrowDown: 1 }[e.key] || 0;
+    if (!dx && !dy) return;
+    e.preventDefault();
+    e.stopPropagation(); // not the viewer's previous and next
+    if (!this._value) { this._value = [0, 0, 1, 1]; this._applyAspect(); }
+    let [l, t, r, b] = this._value;
+    if (e.shiftKey) {
+      const k = this._k();
+      let w = Math.min(Math.max(r - l + dx * STEP, MIN), 1 - l);
+      let h = Math.min(Math.max(b - t + dy * STEP, MIN), 1 - t);
+      if (k) { // keep the ratio: follow the side the key changed, then fit inside the picture
+        if (dx) h = w / k; else w = h * k;
+        if (l + w > 1) { w = 1 - l; h = w / k; }
+        if (t + h > 1) { h = 1 - t; w = h * k; }
+      }
+      [r, b] = [l + w, t + h];
+    } else {
+      const w = r - l, h = b - t;
+      l = Math.min(Math.max(l + dx * STEP, 0), 1 - w);
+      t = Math.min(Math.max(t + dy * STEP, 0), 1 - h);
+      [r, b] = [l + w, t + h];
+    }
+    this._value = [l, t, r, b];
+    this._draw();
+    this._fire();
   }
 
   set src(url) {

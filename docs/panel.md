@@ -34,6 +34,12 @@ For JPEG pictures, **Edit** in the top bar opens the editor:
 - **Aspect ratio** (a dropdown) keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
 - **Save** stores the turn and the crop together. **Cancel** leaves the picture as it was. **Reset** removes the crop; save to keep that.
 
+## Keyboard
+
+- **Tab** reaches folders, files, the path at the top and every button; **Enter** or **Space** opens what has focus.
+- In a picture, the left and right arrow keys go to the previous and next picture.
+- In the editor, focus the picture: the arrow keys move the crop, **Shift** with the arrow keys makes it larger or smaller. **Escape** goes back to the picture without saving.
+
 ## Text files and downloads
 
 - Click a text file (notes, logs, `.csv`, `.json`, `.yaml`, subtitles, ...) to read it. Markdown files are shown formatted. Files are shown read-only; to edit them, use an editor such as the File editor app.

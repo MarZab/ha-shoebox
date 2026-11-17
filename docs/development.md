@@ -58,6 +58,7 @@ After changing the panel, also walk these by hand (or with Playwright):
 - [ ] Edit: turn and crop with each aspect ratio; Cancel leaves the file as it was; Save writes both; Reset
 - [ ] Open a text file; download a file
 - [ ] The menu (⋮) opens the integration's page in Settings
+- [ ] Keyboard only: Tab to a folder and open it, open a picture, crop with the arrow keys, Escape back
 - [ ] Light and dark theme; phone width with the sidebar menu button
 - [ ] Your profile language set to Slovenian switches the panel
 

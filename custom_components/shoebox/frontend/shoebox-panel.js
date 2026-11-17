@@ -88,6 +88,7 @@ const STYLE = `
   .folders { max-height: 50vh; overflow: auto; margin-top: var(--ha-space-2, 8px); }
   .folder-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--ha-border-radius-md, 8px); cursor: pointer; }
   .folder-row:hover { background: var(--secondary-background-color); }
+  .tile:focus-visible, .folder-row:focus-visible, .crumbs a:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
   .folder-row.sel { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15); color: var(--primary-color); }
   .folder-row[disabled] { opacity: 0.4; pointer-events: none; }
   .viewer { display: flex; align-items: center; justify-content: center; min-height: 40vh; position: relative; }
@@ -113,6 +114,13 @@ class ShoeboxPanel extends HTMLElement {
     this._uploads = [];
     this._dragDepth = 0;
     this.shadowRoot.addEventListener("click", (e) => this._click(e));
+    // Tiles, breadcrumbs and folder rows are not buttons: Enter and Space work them like a click
+    this.shadowRoot.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target.matches?.(".tile, .folder-row, .crumbs a")) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
     // a picture that cannot be shown (file gone, unreadable): an icon instead of the browser's broken image
     this.shadowRoot.addEventListener("error", (e) => {
       const img = e.target;
@@ -304,7 +312,7 @@ class ShoeboxPanel extends HTMLElement {
       if (seq !== this._loadSeq) return;
       this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = true; });
       content.innerHTML = `<ha-alert alert-type="error">${esc(err.message || err)}</ha-alert>
-        <div class="crumbs"><a data-act="crumb" data-path="">${icon("mdi:folder-home")}${esc(this.t("media"))}</a></div>`;
+        <div class="crumbs"><a data-act="crumb" data-path="" tabindex="0" role="link">${icon("mdi:folder-home")}${esc(this.t("media"))}</a></div>`;
     }
   }
 
@@ -317,12 +325,12 @@ class ShoeboxPanel extends HTMLElement {
   _renderFolder() {
     const t = this.t;
     const parts = this._folder ? this._folder.split("/") : [];
-    const crumbs = [`<a data-act="crumb" data-path="">${icon("mdi:folder-home-outline")}${esc(t("media"))}</a>`];
+    const crumbs = [`<a data-act="crumb" data-path="" tabindex="0" role="link">${icon("mdi:folder-home-outline")}${esc(t("media"))}</a>`];
     parts.forEach((p, i) => {
       const path = parts.slice(0, i + 1).join("/");
       crumbs.push(icon("mdi:chevron-right"));
       const name = i === 0 ? this._shown(p) : p;
-      crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(name)}</span>` : `<a data-act="crumb" data-path="${esc(path)}">${esc(name)}</a>`);
+      crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(name)}</span>` : `<a data-act="crumb" data-path="${esc(path)}" tabindex="0" role="link">${esc(name)}</a>`);
     });
     const top = !this._folder; // the media folders themselves cannot be renamed, moved or deleted
     const tiles = this._items.map((it, i) => {
@@ -330,7 +338,7 @@ class ShoeboxPanel extends HTMLElement {
       if (it.type === "folder") thumb = `<ha-icon class="folder" icon="mdi:folder"></ha-icon>`;
       else if (it.type === "image") thumb = `<img loading="lazy" decoding="async" alt="" src="${esc(it.thumb)}">`;
       else thumb = `<ha-icon icon="${VIDEO.test(it.name) ? "mdi:file-video-outline" : AUDIO.test(it.name) ? "mdi:file-music-outline" : "mdi:file-outline"}"></ha-icon>`;
-      return `<div class="tile" data-i="${i}" ${it.type === "folder" ? `data-folder="${esc(it.path)}"` : ""} title="${esc(it.name)}${it.type !== "folder" ? ` · ${sizeText(it.size)}` : ""}">
+      return `<div class="tile" data-i="${i}" tabindex="0" role="button" aria-label="${esc(it.name)}" ${it.type === "folder" ? `data-folder="${esc(it.path)}"` : ""} title="${esc(it.name)}${it.type !== "folder" ? ` · ${sizeText(it.size)}` : ""}">
         <ha-card outlined><div class="thumb">${thumb}</div>
           <div class="label"><span class="name">${esc(it.name)}</span>
             ${top ? "" : `<ha-dropdown data-i="${i}" placement="bottom-end">
@@ -380,7 +388,7 @@ class ShoeboxPanel extends HTMLElement {
       .filter((f) => !filter || this._shown(f).toLowerCase().includes(filter.toLowerCase()))
       .map((f) => {
         const off = f === from || (item.type === "folder" && (f === item.path || f.startsWith(item.path + "/")));
-        return `<div class="folder-row ${f === selected ? "sel" : ""}" data-f="${esc(f)}" ${off ? "disabled" : ""}>
+        return `<div class="folder-row ${f === selected ? "sel" : ""}" data-f="${esc(f)}" ${off ? "disabled" : 'tabindex="0" role="option"'} aria-selected="${f === selected}">
           ${icon(f.includes("/") ? "mdi:folder-outline" : "mdi:folder-home-outline")}<span>${esc(this._shown(f))}</span></div>`;
       }).join("");
     const dlg = this._dialog({
@@ -388,7 +396,7 @@ class ShoeboxPanel extends HTMLElement {
       body: `<ha-input with-clear label="${esc(t("filter_folders"))}" id="filter"></ha-input><div class="folders">${rows("")}</div>`,
       primary: t("move_to"),
       onPrimary: async () => {
-        if (selected === null) return false;
+        if (selected === null) throw new Error(t("choose_folder"));
         await this._action("move", { path: item.path, to: selected });
         await this._loadFolder();
         after?.(selected ? `${selected}/${item.name}` : item.name);
@@ -401,7 +409,10 @@ class ShoeboxPanel extends HTMLElement {
       const row = e.target.closest(".folder-row");
       if (!row) return;
       selected = row.dataset.f;
-      list.querySelectorAll(".folder-row").forEach((r) => r.classList.toggle("sel", r === row));
+      list.querySelectorAll(".folder-row").forEach((r) => {
+        r.classList.toggle("sel", r === row);
+        r.setAttribute("aria-selected", String(r === row));
+      });
     });
   }
 
@@ -587,6 +598,7 @@ class ShoeboxPanel extends HTMLElement {
         crop.aspect = aspect;
       });
       crop.label = t("preview");
+      crop.keyLabel = t("crop_keys");
       crop.src = info.base;
       crop.box = info.crop;
     };
@@ -627,6 +639,14 @@ class ShoeboxPanel extends HTMLElement {
         try { await save({ rotate: crop.turn, crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) }); } finally { busy = false; }
       }
     });
+    // Escape in the editor goes back to the picture (dropping the turn and crop), not out of the viewer
+    dlg.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && cropMode && !busy) {
+        e.preventDefault();
+        e.stopPropagation();
+        showView();
+      }
+    }, true);
     dlg.addEventListener("keydown", (e) => {
       if (cropMode || busy || e.target.closest?.("ha-input")) return;
       const list = images();
