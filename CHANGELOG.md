@@ -2,7 +2,7 @@
 
 All notable changes to Shoebox are listed here. Versions follow [Semantic Versioning](https://semver.org/); pre-releases use Home Assistant's style (`1.0.0b1`, `1.0.0rc1`).
 
-## Unreleased
+## 0.3.0
 
 - **Preview** in the picture viewer and a picture's menu: every device URL option on one picture, with a live preview and the parameters to copy.
 - The device URL can prepare pictures for e-paper and other limited displays: palettes (black and white, greys, 6 and 7 colour e-paper, or your own colours), dithering, PNG or BMP, and contrast, saturation and brightness.
