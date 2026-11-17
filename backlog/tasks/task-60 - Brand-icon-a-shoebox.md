@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T15:04:00Z'
-updated_date: '2026-11-17T15:04:00Z'
+updated_date: '2026-11-17T15:07:00Z'
 labels:
   - release
 milestone: m-6
@@ -38,4 +38,6 @@ The brand icon (HACS, Settings) looked like a bucket: tall, tapered, no lid. Red
 
 <!-- SECTION:NOTES:BEGIN -->
 Chosen by the user from a draft. Checked on the integration page in the dev HA, where Settings trims the transparent edges.
+
+docs/images/settings.png retaken with the new icon (960 x 600 at 2x).
 <!-- SECTION:NOTES:END -->
