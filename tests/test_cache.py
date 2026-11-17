@@ -38,21 +38,30 @@ def test_key_changes_with_every_part(source: Path) -> None:
     assert len(variants) == 6
 
 
-def test_get_or_make_makes_once(cache: VariantCache, source: Path) -> None:
+def test_get_makes_once_then_reads_the_cache(cache: VariantCache, source: Path) -> None:
     made: list[int] = []
 
     def make() -> bytes:
         made.append(1)
         return b"jpeg"
 
-    name, hit = cache.get_or_make(source, 10, 10, "cover", make)
-    assert (hit, made) == (False, [1])
-    os.utime(cache.directory / name, (0, 0))
-    assert cache.get_or_make(source, 10, 10, "cover", make) == (name, True)
-    assert made == [1]
-    assert (cache.directory / name).stat().st_mtime > 0
-    assert cache.path(name) == cache.directory / name
+    first = cache.get(source, 10, 10, "cover", make)
+    assert (first.data, first.hit, made) == (b"jpeg", False, [1])
+    stored = cache.directory / f"{first.key}.jpg"
+    os.utime(stored, (0, 0))
+    second = cache.get(source, 10, 10, "cover", make)
+    assert (second.data, second.key, second.hit, made) == (b"jpeg", first.key, True, [1])
+    assert stored.stat().st_mtime > 0
     assert cache.usage() == (1, 4)
+
+
+def test_size_zero_stores_nothing(tmp_path: Path, source: Path) -> None:
+    cache = VariantCache(tmp_path / "cache", limit_bytes=0)
+    assert not cache.enabled
+    for _ in range(2):
+        variant = cache.get(source, 10, 10, "cover", lambda: b"jpeg")
+        assert (variant.data, variant.hit) == (b"jpeg", False)
+    assert not cache.directory.exists()
 
 
 def test_make_failure_leaves_nothing(cache: VariantCache, source: Path) -> None:
@@ -60,7 +69,7 @@ def test_make_failure_leaves_nothing(cache: VariantCache, source: Path) -> None:
         raise ValueError("broken")
 
     with pytest.raises(ValueError, match="broken"):
-        cache.get_or_make(source, 10, 10, "cover", fail)
+        cache.get(source, 10, 10, "cover", fail)
     assert cache.usage() == (0, 0)
 
 
@@ -71,7 +80,7 @@ def test_evict_removes_least_recently_used_but_not_the_new_one(
     for i, size in enumerate((10, 10, 10)):
         src = tmp_path / f"{i}.jpg"
         src.write_bytes(b"x")
-        name, _ = cache.get_or_make(src, 1, 1, "cover", lambda size=size: b"v" * size)
+        name = cache.get(src, 1, 1, "cover", lambda size=size: b"v" * size).key + ".jpg"
         os.utime(cache.directory / name, (i, i))
         names.append(name)
     assert not (cache.directory / names[0]).exists()
@@ -82,7 +91,7 @@ def test_evict_removes_least_recently_used_but_not_the_new_one(
 
 
 def test_clear_removes_only_its_own_files(cache: VariantCache, source: Path) -> None:
-    cache.get_or_make(source, 1, 1, "cover", lambda: b"v")
+    cache.get(source, 1, 1, "cover", lambda: b"v")
     (cache.directory / ".leftover.tmp").write_bytes(b"")
     (cache.directory / "notes.txt").write_text("keep")
     assert cache.clear() == 2
@@ -98,13 +107,8 @@ def test_empty_or_missing_cache(cache: VariantCache) -> None:
 @pytest.mark.parametrize(
     "name", ["../secret.jpg", "a.jpg", "0" * 63 + ".jpg", "0" * 64 + ".png", "G" * 64 + ".jpg"]
 )
-def test_path_refuses_foreign_names(cache: VariantCache, name: str) -> None:
+def test_foreign_names_are_not_variants(name: str) -> None:
     assert not is_variant_name(name)
-    assert cache.path(name) is None
-
-
-def test_path_of_missing_variant(cache: VariantCache) -> None:
-    assert cache.path("0" * 64 + ".jpg") is None
 
 
 def test_failed_write_leaves_no_temp_file(
@@ -115,7 +119,7 @@ def test_failed_write_leaves_no_temp_file(
 
     monkeypatch.setattr("custom_components.shoebox.cache.os.replace", fail)
     with pytest.raises(OSError, match="disk full"):
-        cache.get_or_make(source, 1, 1, "cover", lambda: b"v")
+        cache.get(source, 1, 1, "cover", lambda: b"v")
     assert list(cache.directory.iterdir()) == []
 
 

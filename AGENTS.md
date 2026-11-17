@@ -57,6 +57,7 @@ mise run dev:up       # Home Assistant in Docker at http://localhost:8123
 mise run dev:restart  # pick up integration edits
 mise run dev:logs     # tail HA logs
 mise run dev:down     # stop it
+mise run dev:token    # access token for scripted checks (onboards as dev/dev on first use)
 ```
 
 Without mise: `uv run pytest`, `uv run ruff check .`, `uv run mypy`.
@@ -66,7 +67,7 @@ Without mise: `uv run pytest`, `uv run ruff check .`, `uv run mypy`.
 Follow what core integrations do. When unsure, look at a current core integration of the same shape and at the developer docs (developers.home-assistant.io), including the [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rules.
 
 - **Manifest**: `domain` and `name` first, then keys alphabetical. `version` is required for custom integrations. Set `documentation` and `issue_tracker`. Keep `requirements` minimal; Pillow comes with HA.
-- **Config entries**: typed `ConfigEntry[Shoebox]` alias, state on `entry.runtime_data`, never `hass.data` for entry state. `single_config_entry: true`. `async_setup_entry` and `async_unload_entry` return `None` and raise on failure (`async_unload_platforms_or_raise`). Find the loaded entry with `hass.config_entries.async_loaded_entries`.
+- **Config entries**: typed `ConfigEntry[Shoebox]` alias, state on `entry.runtime_data`, never `hass.data` for entry state. `single_config_entry: true`. `async_setup_entry` and `async_unload_entry` return a bool: Home Assistant 2026.10 requires it, and later versions still accept it from custom integrations. Find the loaded entry with `hass.config_entries.async_loaded_entries`.
 - **No YAML**: configured in the UI only, with `cv.config_entry_only_config_schema`.
 - **Services**: register in `async_setup`, not per entry. Describe them in `services.yaml`, with names and descriptions in `translations/en.json` and icons in `icons.json`. Admin actions use `async_register_admin_service`.
 - **Errors**: raise `ServiceValidationError` for bad input and `HomeAssistantError` for failures, both with `translation_domain` + `translation_key`. The HA-free modules raise their own exceptions, which the manager translates at the boundary.

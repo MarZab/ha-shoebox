@@ -3,7 +3,8 @@
 One JPEG per (file path, file size, file mtime, width, height, fit), named by a hash of that key.
 Any change to a file changes its size or mtime and so produces a new variant; the old one ages out.
 Using a variant touches its mtime, and above the size limit the least recently used variants are
-removed. Only files named like the cache's own are ever removed. This module does not import Home
+removed. A limit of 0 turns the cache off: pictures are prepared on every request and nothing is
+stored. Only files named like the cache's own are ever removed. This module does not import Home
 Assistant.
 """
 
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import contextlib
+from dataclasses import dataclass
 import hashlib
 import os
 from pathlib import Path
@@ -28,6 +30,13 @@ def is_variant_name(name: str) -> bool:
     return bool(_NAME.match(name))
 
 
+@dataclass(frozen=True)
+class Variant:
+    data: bytes
+    key: str  # identifies this prepared picture, e.g. for an ETag
+    hit: bool
+
+
 class VariantCache:
     def __init__(self, directory: Path, limit_bytes: int) -> None:
         self.directory = Path(directory)
@@ -43,14 +52,11 @@ class VariantCache:
             text += "|" + extra
         return hashlib.sha256(text.encode()).hexdigest()
 
-    def path(self, name: str) -> Path | None:
-        """The variant file for a name from a URL; None for anything that is not one of ours."""
-        if not is_variant_name(name):
-            return None
-        p = self.directory / name
-        return p if p.is_file() else None
+    @property
+    def enabled(self) -> bool:
+        return self.limit_bytes > 0
 
-    def get_or_make(
+    def get(
         self,
         source: Path,
         width: int,
@@ -58,16 +64,19 @@ class VariantCache:
         fit: str,
         make: Callable[[], bytes],
         extra: str = "",
-    ) -> tuple[str, bool]:
-        """(variant file name, cache hit). Makes and stores the variant when it is missing."""
-        name = self.key(source, width, height, fit, extra) + ".jpg"
-        target = self.directory / name
+    ) -> Variant:
+        """The prepared picture, from the cache or made now (and stored when the cache is on)."""
+        key = self.key(source, width, height, fit, extra)
+        if not self.enabled:
+            return Variant(make(), key, hit=False)
+        target = self.directory / f"{key}.jpg"
         try:
+            data = target.read_bytes()
             os.utime(target)  # used now, for least-recently-used order
         except FileNotFoundError:
             pass
         else:
-            return name, True
+            return Variant(data, key, hit=True)
         data = make()
         self.directory.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(prefix=".", suffix=".tmp", dir=self.directory)
@@ -79,8 +88,8 @@ class VariantCache:
             if os.path.exists(tmp):
                 os.unlink(tmp)
             raise
-        self.evict(keep=name)
-        return name, False
+        self.evict(keep=target.name)
+        return Variant(data, key, hit=False)
 
     def _files(self) -> list[tuple[float, int, str]]:
         try:

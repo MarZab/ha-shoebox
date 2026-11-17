@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Print an access token for the dev Home Assistant (onboards it as dev/dev on first use)"
+set -euo pipefail
+exec uv run --quiet python tools/scripts/dev_token.py "$@"
