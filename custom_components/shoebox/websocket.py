@@ -130,6 +130,7 @@ async def ws_edit(
     await box.run(
         partial(imaging.edit, real, msg["rotate"], crop, orientation=msg.get("orientation"))
     )
+    box.rotations.async_file_changed(media.relative(box.root, real))
     connection.send_result(msg["id"], await _info(hass, box, msg["path"]))
 
 

@@ -1,11 +1,32 @@
 {
+  "entity": {
+    "image": {
+      "rotation": {
+        "default": "mdi:image-album"
+      }
+    }
+  },
   "services": {
-    "list": { "service": "mdi:format-list-bulleted" },
-    "create_folder": { "service": "mdi:folder-plus-outline" },
-    "move": { "service": "mdi:folder-move-outline" },
-    "rename": { "service": "mdi:rename-outline" },
-    "delete": { "service": "mdi:delete-outline" },
-    "rotate": { "service": "mdi:rotate-right" },
-    "crop": { "service": "mdi:crop" }
+    "list": {
+      "service": "mdi:format-list-bulleted"
+    },
+    "create_folder": {
+      "service": "mdi:folder-plus-outline"
+    },
+    "move": {
+      "service": "mdi:folder-move-outline"
+    },
+    "rename": {
+      "service": "mdi:rename-outline"
+    },
+    "delete": {
+      "service": "mdi:delete-outline"
+    },
+    "rotate": {
+      "service": "mdi:rotate-right"
+    },
+    "crop": {
+      "service": "mdi:crop"
+    }
   }
 }

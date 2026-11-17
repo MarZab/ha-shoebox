@@ -102,7 +102,9 @@ async def _rotate(call: ServiceCall) -> ServiceResponse:
         await box.run(imaging.set_orientation, real, orientation)
     else:
         orientation = await box.run(imaging.rotate, real, call.data["by"])
-    return {"path": media.relative(box.root, real), "orientation": orientation}
+    rel = media.relative(box.root, real)
+    box.rotations.async_file_changed(rel)
+    return {"path": rel, "orientation": orientation}
 
 
 async def _crop(call: ServiceCall) -> ServiceResponse:
@@ -114,7 +116,9 @@ async def _crop(call: ServiceCall) -> ServiceResponse:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="crop_sides")
         crop = (call.data["left"], call.data["top"], call.data["right"], call.data["bottom"])
     stored = await box.run(imaging.crop_shown, real, crop)
-    return {"path": media.relative(box.root, real), "crop": list(stored) if stored else None}
+    rel = media.relative(box.root, real)
+    box.rotations.async_file_changed(rel)
+    return {"path": rel, "crop": list(stored) if stored else None}
 
 
 type _Handler = Callable[[ServiceCall], Coroutine[Any, Any, ServiceResponse]]

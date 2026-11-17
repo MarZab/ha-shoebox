@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
@@ -18,6 +19,7 @@ from .websocket import async_setup_websocket
 DATA_FRONTEND_VERSION: HassKey[str] = HassKey(f"{DOMAIN}_frontend_version")
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+PLATFORMS = [Platform.IMAGE]
 
 type ShoeboxConfigEntry = ConfigEntry[Shoebox]
 
@@ -41,6 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
     )
     entry.runtime_data = shoebox
     entry.async_on_unload(entry.add_update_listener(_async_reload))
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if shoebox.show_in_sidebar:
         await async_register_panel(hass, hass.data[DATA_FRONTEND_VERSION])
         entry.async_on_unload(lambda: async_remove_panel(hass))
@@ -48,8 +51,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await entry.runtime_data.rotations.async_save()
-    return True
+    return unloaded
 
 
 async def _async_reload(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> None:

@@ -36,3 +36,5 @@ STORAGE_KEY: Final = DOMAIN + ".rotations"
 STORAGE_VERSION: Final = 1
 # Dispatcher signal sent when a rotation changes; format with the subentry id
 SIGNAL_ROTATION: Final = DOMAIN + "_rotation_{}"
+# The image entities serve the current picture fitted inside this box
+ENTITY_SIZE: Final = (1280, 1280)

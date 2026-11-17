@@ -86,6 +86,11 @@ class Rotations:
         async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))
         return state
 
-    def async_touch(self, rotation_id: str) -> None:
-        """Tell listeners the rotation's current picture changed in place, e.g. after an edit."""
-        async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))
+    def async_file_changed(self, path: str) -> None:
+        """A file was edited in place: rotations showing it now count as updated."""
+        now = dt_util.utcnow().isoformat()
+        for rotation_id, state in self._states.items():
+            if state.file == path:
+                state.updated = now
+                self._store.async_delay_save(self._data, 1)
+                async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))

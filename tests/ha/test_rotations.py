@@ -2,37 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER, ConfigSubentryData
+from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shoebox.const import DOMAIN, SUBENTRY_ROTATION, TITLE
+from custom_components.shoebox.const import SUBENTRY_ROTATION
 
 from ..conftest import Tree
-
-
-def rotation(title: str = "Evening", *patterns: str) -> ConfigSubentryData:
-    return ConfigSubentryData(
-        data={"patterns": list(patterns or ("evening/*",))},
-        subentry_type=SUBENTRY_ROTATION,
-        title=title,
-        unique_id=None,
-    )
-
-
-@pytest.fixture
-async def with_rotation(hass: HomeAssistant) -> MockConfigEntry:
-    entry = MockConfigEntry(domain=DOMAIN, title=TITLE, data={}, subentries_data=[rotation()])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    return entry
-
-
-def rotation_id(entry: MockConfigEntry) -> str:
-    return next(iter(entry.subentries))
+from .conftest import rotation_id
 
 
 async def subentry_flow(
