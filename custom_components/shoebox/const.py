@@ -38,3 +38,4 @@ STORAGE_VERSION: Final = 1
 SIGNAL_ROTATION: Final = DOMAIN + "_rotation_{}"
 # The image entities serve the current picture fitted inside this box
 ENTITY_SIZE: Final = (1280, 1280)
+DEVICE_IMAGE_URL: Final = "/api/shoebox/image/{entity_id}"

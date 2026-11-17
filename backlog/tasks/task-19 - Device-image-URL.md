@@ -1,9 +1,11 @@
 ---
 id: TASK-19
 title: Device image URL
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T10:25:00Z'
 labels:
   - integration
 milestone: m-3
@@ -29,16 +31,22 @@ GET /api/shoebox/image/<entity_id>?width=&height=&fit=cover|contain
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Without a token 401; a non-admin user's token gets the picture
-- [ ] #2 Unknown or foreign entity 404; invalid size or fit 400
-- [ ] #3 Baseline JPEG at the requested size and fit
-- [ ] #4 304 while unchanged, 200 after the rotation advances
-- [ ] #5 The URL stays the same across advances, reloads and restarts
+- [x] #1 Without a token 401; a non-admin user's token gets the picture
+- [x] #2 Unknown or foreign entity 404; invalid size or fit 400
+- [x] #3 Baseline JPEG at the requested size and fit
+- [x] #4 304 while unchanged, 200 after the rotation advances
+- [x] #5 The URL stays the same across advances, reloads and restarts
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 `mise run check` passes
-- [ ] #2 New or changed behaviour is covered by tests
-- [ ] #3 README and AGENTS.md match the change
+- [x] #1 `mise run check` passes
+- [x] #2 New or changed behaviour is covered by tests
+- [x] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+DeviceImageView at /api/shoebox/image/<entity_id>: width/height default to the entity size and fit to contain. ETag is the variant key (it changes with the file, its edits, the size and fit); Cache-Control no-cache so clients revalidate; Last-Modified from the rotation's last step. Only this integration's image entities. Verified in the Docker HA: 800x480 cover baseline JPEG with ETag and Last-Modified; If-None-Match gives 304.
+<!-- SECTION:NOTES:END -->

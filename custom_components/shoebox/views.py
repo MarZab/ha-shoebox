@@ -15,9 +15,19 @@ from homeassistant.components.http import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from . import imaging, upload
-from .const import DOMAIN, MAX_SIDE, MAX_UPLOAD_BYTES, RENDER_URL, UPLOAD_URL
+from .const import (
+    DEVICE_IMAGE_URL,
+    DOMAIN,
+    ENTITY_SIZE,
+    MAX_SIDE,
+    MAX_UPLOAD_BYTES,
+    RENDER_URL,
+    UPLOAD_URL,
+)
 from .runtime import Shoebox
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,6 +87,47 @@ class RenderView(HomeAssistantView):
         except HomeAssistantError as err:
             return self.json_message(str(err), 404)
         return jpeg(variant.data, variant.key, 3600)
+
+
+class DeviceImageView(HomeAssistantView):
+    """The current picture of a rotation, for devices outside Home Assistant.
+
+    The URL stays the same while the rotation advances. Any user may fetch it, so a device can
+    use a long-lived token of a user without admin rights. Query: width, height (default the
+    entity size), fit=cover|contain (default contain). ETag and Last-Modified let a device skip
+    a picture it already has.
+    """
+
+    url = DEVICE_IMAGE_URL
+    name = "api:shoebox:image"
+    requires_auth = True
+
+    async def get(self, request: web.Request, entity_id: str) -> web.StreamResponse:
+        hass = request.app[KEY_HASS]
+        q = request.query
+        try:
+            size = f"{q.get('width', ENTITY_SIZE[0])}x{q.get('height', ENTITY_SIZE[1])}"
+            width, height, fit = parse_size(size, q.get("fit", "contain"))
+        except ValueError:
+            return self.json_message(f"width and height 1..{MAX_SIDE}, fit cover or contain", 400)
+        entry = er.async_get(hass).async_get(entity_id)
+        if entry is None or entry.platform != DOMAIN or entry.domain != "image":
+            return self.json_message("no such rotation", 404)
+        try:
+            shoebox = loaded_shoebox(hass)
+            state = shoebox.rotations.state(entry.config_subentry_id or "")
+            if state.file is None:
+                return self.json_message("the rotation shows no picture yet", 404)
+            variant = await shoebox.picture(state.file, width, height, fit)
+        except HomeAssistantError as err:
+            return self.json_message(str(err), 404)
+        etag = f'"{variant.key}"'
+        headers = {hdrs.ETAG: etag, hdrs.CACHE_CONTROL: "no-cache"}
+        if updated := dt_util.parse_datetime(state.updated or ""):
+            headers[hdrs.LAST_MODIFIED] = updated.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        if etag in request.headers.get(hdrs.IF_NONE_MATCH, ""):
+            return web.Response(status=304, headers=headers)
+        return web.Response(body=variant.data, content_type="image/jpeg", headers=headers)
 
 
 class _TooLarge(Exception):
