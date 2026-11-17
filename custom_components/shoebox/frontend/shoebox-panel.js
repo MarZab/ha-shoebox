@@ -43,7 +43,7 @@ const STYLE = `
   :host([narrow]) .content { padding: var(--ha-space-2, 8px); }
   .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 var(--ha-space-4, 16px);
     font-size: var(--ha-font-size-l, 16px); color: var(--secondary-text-color); }
-  .crumbs a { color: var(--primary-color); text-decoration: none; cursor: pointer; padding: 4px 6px; border-radius: var(--ha-border-radius-sm, 4px); }
+  .crumbs a { display: inline-flex; align-items: center; gap: 4px; color: var(--primary-color); text-decoration: none; cursor: pointer; padding: 4px 6px; border-radius: var(--ha-border-radius-sm, 4px); }
   .crumbs a:hover { background: var(--secondary-background-color); }
   .crumbs .here { color: var(--primary-text-color); padding: 4px 6px; font-weight: var(--ha-font-weight-medium, 500); }
   .crumbs ha-icon { --mdc-icon-size: 18px; }
@@ -275,7 +275,7 @@ class ShoeboxPanel extends HTMLElement {
       this._renderFolder();
     } catch (err) {
       content.innerHTML = `<ha-alert alert-type="error">${esc(err.message || err)}</ha-alert>
-        <div class="crumbs"><a data-act="crumb" data-path="">${icon("mdi:folder-home")} ${esc(this.t("media"))}</a></div>`;
+        <div class="crumbs"><a data-act="crumb" data-path="">${icon("mdi:folder-home")}${esc(this.t("media"))}</a></div>`;
     }
   }
 
@@ -288,7 +288,7 @@ class ShoeboxPanel extends HTMLElement {
   _renderFolder() {
     const t = this.t;
     const parts = this._folder ? this._folder.split("/") : [];
-    const crumbs = [`<a data-act="crumb" data-path="">${icon("mdi:folder-home-outline")}&nbsp;${esc(t("media"))}</a>`];
+    const crumbs = [`<a data-act="crumb" data-path="">${icon("mdi:folder-home-outline")}${esc(t("media"))}</a>`];
     parts.forEach((p, i) => {
       const path = parts.slice(0, i + 1).join("/");
       crumbs.push(icon("mdi:chevron-right"));
