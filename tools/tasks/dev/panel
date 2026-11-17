@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Check the Shoebox panel in a headless browser and save screenshots (needs dev:up and Playwright)"
+set -euo pipefail
+mise run dev:token >/dev/null  # onboards the dev Home Assistant as dev/dev on first use
+if [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ -d /opt/ms-playwright ]; then
+  export PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+fi
+NODE_PATH="$(npm root -g)" exec node tools/scripts/panel_check.js docker/screenshots "$@"

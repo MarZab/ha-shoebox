@@ -58,6 +58,7 @@ mise run dev:restart  # pick up integration edits
 mise run dev:logs     # tail HA logs
 mise run dev:down     # stop it
 mise run dev:token    # access token for scripted checks (onboards as dev/dev on first use)
+mise run dev:panel    # panel in a headless browser: light, dark, phone; screenshots in docker/screenshots
 ```
 
 Without mise: `uv run pytest`, `uv run ruff check .`, `uv run mypy`.
