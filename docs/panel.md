@@ -31,7 +31,7 @@ For JPEG pictures, **Edit** in the top bar opens the editor:
 
 - **Rotate left** and **Rotate right** turn the picture; a crop box turns with it.
 - Draw a box, move it, or drag its corners. The preview next to the controls shows the result.
-- **Aspect ratio** keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
+- **Aspect ratio** (a dropdown) keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
 - **Save** stores the turn and the crop together. **Cancel** leaves the picture as it was. **Reset** removes the crop; save to keep that.
 
 ## Text files and downloads

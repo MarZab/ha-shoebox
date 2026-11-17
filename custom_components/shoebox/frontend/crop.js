@@ -29,9 +29,9 @@ const STYLE = `
   .sw { left: -12px; bottom: -12px; cursor: nesw-resize; } .se { right: -12px; bottom: -12px; cursor: nwse-resize; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: var(--ha-space-2, 8px); align-items: center;
     color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); }
-  canvas { max-width: 240px; max-height: 240px; border-radius: var(--ha-border-radius-sm, 4px);
+  canvas { width: 100%; height: 160px; object-fit: contain; border-radius: var(--ha-border-radius-sm, 4px);
     background: var(--secondary-background-color); }
-  @media (max-width: 600px) { img { max-height: 50vh; } canvas { max-width: 140px; max-height: 140px; } }
+  @media (max-width: 600px) { img { max-height: 50vh; } canvas { height: 120px; } }
 `;
 
 class ShoeboxCrop extends HTMLElement {

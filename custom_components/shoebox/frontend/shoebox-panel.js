@@ -514,6 +514,7 @@ class ShoeboxPanel extends HTMLElement {
         </div>
         <div class="meta">${esc(current.path)} · ${info.width} × ${info.height} · ${esc(info.format || "")}${current.size ? ` · ${sizeText(current.size)}` : ""}</div>`;
     };
+    const aspectLabel = (k) => (k === "free" ? t("free") : k === "original" ? t("original") : k);
     const showCrop = () => {
       cropMode = true;
       setButtons();
@@ -525,7 +526,10 @@ class ShoeboxPanel extends HTMLElement {
             <ha-button size="small" appearance="plain" data-v="turn-right">${icon("mdi:rotate-right", "start")}${esc(t("rotate_right"))}</ha-button>
           </div>
           <div class="chips"><span class="lbl">${esc(t("aspect"))}</span>
-            ${ASPECTS.map(([k]) => `<ha-button size="small" appearance="${k === "free" ? "filled" : "plain"}" data-aspect="${k}">${esc(k === "free" ? t("free") : k === "original" ? t("original") : k)}</ha-button>`).join("")}
+            <ha-dropdown placement="bottom-start" id="aspect">
+              <ha-button slot="trigger" size="small" appearance="plain">${icon("mdi:aspect-ratio", "start")}<span id="aspect-label">${esc(aspectLabel("free"))}</span>${icon("mdi:menu-down", "end")}</ha-button>
+              ${ASPECTS.map(([k]) => `<ha-dropdown-item value="${k}">${esc(aspectLabel(k))}</ha-dropdown-item>`).join("")}
+            </ha-dropdown>
           </div>
         </div></shoebox-crop>`;
       const footer = document.createElement("ha-dialog-footer");
@@ -537,6 +541,13 @@ class ShoeboxPanel extends HTMLElement {
           <ha-button slot="primaryAction" data-v="save-crop">${esc(t("save"))}</ha-button>`;
       dlg.appendChild(footer);
       const crop = body.querySelector("shoebox-crop");
+      body.querySelector("#aspect").addEventListener("wa-select", (e) => {
+        const key = e.detail?.item?.value;
+        if (!key) return;
+        body.querySelector("#aspect-label").textContent = aspectLabel(key);
+        aspect = ASPECTS.find(([k]) => k === key)[1];
+        crop.aspect = aspect;
+      });
       crop.label = t("preview");
       crop.src = info.base;
       crop.box = info.crop;
@@ -550,7 +561,7 @@ class ShoeboxPanel extends HTMLElement {
     };
 
     dlg.addEventListener("click", async (e) => {
-      const b = e.composedPath().find((n) => n instanceof Element && (n.dataset?.v || n.dataset?.aspect));
+      const b = e.composedPath().find((n) => n instanceof Element && n.dataset?.v);
       if (!b || b.disabled) return;
       const v = b.dataset.v;
       const list = images();
@@ -566,11 +577,6 @@ class ShoeboxPanel extends HTMLElement {
         const box = crop.box;
         const whole = !box || (box[0] < 0.001 && box[1] < 0.001 && box[2] > 0.999 && box[3] > 0.999);
         await save({ rotate: crop.turn, crop: whole ? null : box.map((x) => Math.min(Math.max(x, 0), 1)) });
-      } else if (b.dataset.aspect) {
-        const crop = body.querySelector("shoebox-crop");
-        body.querySelectorAll("[data-aspect]").forEach((x) => x.setAttribute("appearance", x === b ? "filled" : "plain"));
-        aspect = ASPECTS.find(([k]) => k === b.dataset.aspect)[1];
-        crop.aspect = aspect;
       }
     });
     dlg.addEventListener("keydown", (e) => {
