@@ -9,13 +9,13 @@ rules:
   config-flow: done
   config-flow-test-coverage: done
   dependency-transparency: done
-  docs-actions: todo
+  docs-actions: done
   docs-conditions:
     status: exempt
     comment: The integration provides no conditions.
-  docs-high-level-description: todo
-  docs-installation-instructions: todo
-  docs-removal-instructions: todo
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
   docs-triggers:
     status: exempt
     comment: The integration provides no triggers.
@@ -32,8 +32,8 @@ rules:
   # Silver
   action-exceptions: done
   config-entry-unloading: done
-  docs-configuration-parameters: todo
-  docs-installation-parameters: todo
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
   entity-unavailable:
     status: exempt
     comment: The entities show local files; there is no device or service that can become unreachable.

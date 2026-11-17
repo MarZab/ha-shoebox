@@ -7,12 +7,13 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.hass_dict import HassKey
 
-from .const import DOMAIN, SUBENTRY_ROTATION
+from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION, SUBENTRY_ROTATION
 from .panel import async_register_panel, async_remove_panel, async_serve_frontend
-from .runtime import Shoebox
+from .runtime import Shoebox, variant_cache
 from .services import async_setup_services
 from .views import DeviceImageView, MediaView, RenderView, UploadView
 from .websocket import async_setup_websocket
@@ -63,6 +64,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> 
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await entry.runtime_data.rotations.async_save()
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> None:
+    """Removing the integration removes its rotation state and cache; media files stay."""
+    await Store[dict[str, object]](hass, STORAGE_VERSION, STORAGE_KEY).async_remove()
+    await hass.async_add_executor_job(variant_cache(hass, entry.options).clear)
 
 
 async def _async_reload(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> None:

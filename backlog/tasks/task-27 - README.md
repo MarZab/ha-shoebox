@@ -1,9 +1,11 @@
 ---
 id: TASK-27
 title: README
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T10:40:00Z'
 labels:
   - docs
 milestone: m-5
@@ -42,8 +44,8 @@ The entry point users and HACS see. Short and task-oriented, in the words people
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 Install and both quick starts work as written on a clean Docker HA
-- [ ] #2 Every use case links to a working recipe
-- [ ] #3 Every action and entity links to its reference
+- [x] #2 Every use case links to a working recipe
+- [x] #3 Every action and entity links to its reference
 - [ ] #4 Renders correctly in HACS
 <!-- AC:END -->
 
@@ -53,3 +55,9 @@ The entry point users and HACS see. Short and task-oriented, in the words people
 - [ ] #2 New or changed behaviour is covered by tests
 - [ ] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+README written. Checked in the Docker HA: the dashboard quick start (rotation, picture entity card, timed automation pressing Next). The ESPHome quick start was checked up to the HTTP request (URL, Authorization header, 304); no device here. Open: installing through HACS and how HACS renders the README need the GitHub repository (TASK-4, TASK-31).
+<!-- SECTION:NOTES:END -->

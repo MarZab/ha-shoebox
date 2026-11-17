@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant
@@ -34,3 +35,19 @@ async def test_setup_waits_for_the_media_folder(
     assert not await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.SETUP_RETRY
     assert entry.reason == f"The media folder {media_root / 'missing'} does not exist"
+
+
+async def test_removing_keeps_media_and_drops_state_and_cache(
+    hass: HomeAssistant, loaded: MockConfigEntry, media_root: Path, hass_storage: dict[str, Any]
+) -> None:
+    (media_root / "a.jpg").write_bytes(b"jpeg")
+    cache = Path(hass.config.path(".cache/shoebox"))
+    cache.mkdir(parents=True)
+    (cache / f"{0:064x}.jpg").write_bytes(b"v")
+    await loaded.runtime_data.rotations.async_save()
+    assert "shoebox.rotations" in hass_storage
+    assert await hass.config_entries.async_remove(loaded.entry_id)
+    await hass.async_block_till_done()
+    assert "shoebox.rotations" not in hass_storage
+    assert list(cache.iterdir()) == []
+    assert (media_root / "a.jpg").exists()

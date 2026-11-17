@@ -1,0 +1,55 @@
+# Rotations
+
+A rotation is a set of pictures shown one at a time. Each rotation has a name and one or more patterns; the patterns choose pictures by their path below the media folder. Pressing the rotation's **Next** button moves it to the next picture.
+
+## Adding, changing and deleting
+
+All in **Settings → Devices & services → Shoebox Media Manager**:
+
+- **Add rotation** asks for a name and patterns. The next step shows how many pictures the patterns select and the first few, before anything is saved.
+- The gear next to a rotation changes its name or patterns. Renaming keeps its entities, areas and customizations.
+- The rotation's menu (⋮) deletes it, with its device and entities. Pictures stay.
+
+Each rotation becomes a device with two entities: an [image](entities.md#image) and a [Next button](entities.md#next-button). Their entity IDs come from the name: a rotation named *Living room* has `image.living_room` and `button.living_room_next`.
+
+## Patterns
+
+Patterns match the path below the media folder, such as `Family/2024 Summer/beach.jpg`.
+
+| Pattern | Selects |
+|---------|---------|
+| `Family/*` | pictures directly in `Family` |
+| `Family/**` | pictures in `Family` and every folder below it |
+| `**/beach*.jpg` | `beach…jpg` files anywhere |
+| `Family/202?/*` | pictures in `Family/2020` … `Family/2029` |
+| `Wallpapers/[a-m]*` | pictures in `Wallpapers` starting with a to m |
+| `Wallpapers/[!a-m]*` | the other pictures in `Wallpapers` |
+| `re:summer` | paths that contain `summer` (a regular expression) |
+| `re:^Phone/IMG_\d+\.jpe?g$` | a regular expression matched against the whole path |
+
+- A glob (`*`, `**`, `?`, `[...]`) must match the whole path. `*` and `?` stay within one folder; `**` crosses folders; `**/` also matches no folder at all. A leading `/` is ignored.
+- `re:` followed by a [regular expression](https://docs.python.org/3/library/re.html) matches anywhere in the path; use `^` and `$` to match the whole path.
+- Matching is case-sensitive.
+
+Only pictures count: `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`, `.avif`, `.gif`, `.bmp`, `.tif` and `.tiff`. Hidden files and folders (names starting with `.`) and symbolic links are skipped.
+
+### Fallbacks
+
+A rotation can have several patterns. The first pattern that selects any picture is used, and the others are ignored. That makes fallbacks:
+
+```text
+Seasons/Winter/**
+Wallpapers/**
+```
+
+shows winter pictures while there are any, and wallpapers otherwise. The rotation's `pattern` attribute tells which one is in use.
+
+## Order
+
+Pictures are shown in path order: sorted by their full path, so `Family/2023/…` comes before `Family/2024/…`. After the last picture the rotation starts again at the first.
+
+The rotation remembers its current picture, also across restarts. When files change:
+
+- New pictures join in their place in the order.
+- If the current picture is deleted, moved or renamed, the rotation continues with the picture that sorts after it, so it does not start over.
+- If the patterns select nothing, the rotation shows no picture until they do.
