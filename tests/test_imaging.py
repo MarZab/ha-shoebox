@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 import pytest
 
 from custom_components.shoebox import imaging
-from custom_components.shoebox.imaging import ImageError
+from custom_components.shoebox.errors import ImageError
 
 from .images import ORIENTATION_TAG, colour_at, write_image
 
@@ -188,7 +188,7 @@ def test_edits_refuse_png(tmp_path: Path, call: object) -> None:
 def test_damaged_jpeg(tmp_path: Path, data: bytes) -> None:
     path = tmp_path / "a.jpg"
     path.write_bytes(data)
-    with pytest.raises(ImageError, match="damaged JPEG"):
+    with pytest.raises(ImageError, match="Damaged JPEG"):
         imaging.set_orientation(path, 6)
 
 
@@ -266,3 +266,8 @@ def test_get_orientation_of_unusual_values(tmp_path: Path) -> None:
     exif[ORIENTATION_TAG] = 42
     Image.new("RGB", (8, 8)).save(path, "JPEG", exif=exif.tobytes())
     assert imaging.get_orientation(path) == 1
+
+
+def test_crop_shown_refuses_an_inverted_box(tmp_path: Path) -> None:
+    with pytest.raises(ImageError, match="crop needs"):
+        imaging.crop_shown(write_image(tmp_path / "a.jpg"), (0.5, 0.0, 0.2, 1.0))

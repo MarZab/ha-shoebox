@@ -25,5 +25,232 @@
         }
       }
     }
+  },
+  "services": {
+    "list": {
+      "name": "List media",
+      "description": "Lists the files and folders below the media folder that match a pattern.",
+      "fields": {
+        "pattern": {
+          "name": "Pattern",
+          "description": "A glob over paths below the media folder (\"*\" within a folder, \"**\" at any depth, \"?\", \"[...]\"), or \"re:\" followed by a regular expression."
+        },
+        "type": {
+          "name": "Type",
+          "description": "Only pictures, other files or folders."
+        }
+      }
+    },
+    "create_folder": {
+      "name": "Create folder",
+      "description": "Creates a folder below the media folder, with any missing parent folders.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "The new folder, for example \"Family/2025 Summer\"."
+        }
+      }
+    },
+    "move": {
+      "name": "Move",
+      "description": "Moves a file or folder into another folder. Nothing is overwritten.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+        },
+        "to": {
+          "name": "To",
+          "description": "The folder to move into; empty for the media folder itself."
+        }
+      }
+    },
+    "rename": {
+      "name": "Rename",
+      "description": "Renames a file or folder in place. Nothing is overwritten.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+        },
+        "name": {
+          "name": "New name",
+          "description": "The new name, without a folder."
+        }
+      }
+    },
+    "delete": {
+      "name": "Delete",
+      "description": "Deletes a file, or a folder with everything in it. This cannot be undone.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "File or folder below the media folder, for example \"Family/beach.jpg\"."
+        }
+      }
+    },
+    "rotate": {
+      "name": "Rotate picture",
+      "description": "Turns a JPEG picture by changing its EXIF orientation; the picture data is not re-encoded.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "Picture below the media folder, for example \"Family/beach.jpg\"."
+        },
+        "by": {
+          "name": "By",
+          "description": "How far to turn the picture as shown, clockwise."
+        },
+        "orientation": {
+          "name": "Orientation",
+          "description": "Sets the EXIF orientation (1 to 8) instead of turning."
+        }
+      }
+    },
+    "crop": {
+      "name": "Crop picture",
+      "description": "Crops a JPEG picture by storing the crop in its XMP data, as photo editors do; the picture data is not changed.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "Picture below the media folder, for example \"Family/beach.jpg\"."
+        },
+        "left": {
+          "name": "Left",
+          "description": "The left edge of the crop, as a fraction of the picture as shown (0 to 1)."
+        },
+        "top": {
+          "name": "Top",
+          "description": "The top edge of the crop, as a fraction of the picture as shown (0 to 1)."
+        },
+        "right": {
+          "name": "Right",
+          "description": "The right edge of the crop, as a fraction of the picture as shown (0 to 1)."
+        },
+        "bottom": {
+          "name": "Bottom",
+          "description": "The bottom edge of the crop, as a fraction of the picture as shown (0 to 1)."
+        },
+        "clear": {
+          "name": "Clear",
+          "description": "Removes the crop instead."
+        }
+      }
+    }
+  },
+  "selector": {
+    "type": {
+      "options": {
+        "all": "Everything",
+        "image": "Pictures",
+        "file": "Other files",
+        "folder": "Folders"
+      }
+    },
+    "by": {
+      "options": {
+        "90": "90° clockwise",
+        "180": "180°",
+        "270": "90° counterclockwise"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_path": {
+      "message": "Invalid path."
+    },
+    "parent_not_allowed": {
+      "message": "\"{path}\": \"..\" is not allowed."
+    },
+    "outside_media": {
+      "message": "\"{path}\" is outside the media folder."
+    },
+    "symbolic_link": {
+      "message": "\"{path}\" is a symbolic link."
+    },
+    "media_folder_itself": {
+      "message": "\"{path}\" is the media folder itself."
+    },
+    "invalid_name": {
+      "message": "\"{name}\" is not a valid name."
+    },
+    "empty_pattern": {
+      "message": "The pattern is empty."
+    },
+    "invalid_pattern": {
+      "message": "Invalid pattern \"{pattern}\": {error}."
+    },
+    "invalid_type": {
+      "message": "The type must be one of {types}."
+    },
+    "exists_not_folder": {
+      "message": "\"{path}\" exists and is not a folder."
+    },
+    "not_found": {
+      "message": "\"{path}\" does not exist."
+    },
+    "not_a_folder": {
+      "message": "\"{path}\" is not a folder."
+    },
+    "not_a_file": {
+      "message": "\"{path}\" is not a file."
+    },
+    "move_into_itself": {
+      "message": "Cannot move \"{path}\" into itself."
+    },
+    "already_exists": {
+      "message": "\"{path}\" already exists."
+    },
+    "invalid_file_name": {
+      "message": "\"{name}\" is not a valid file name."
+    },
+    "upload_type": {
+      "message": "\"{name}\": only pictures, videos and audio can be uploaded."
+    },
+    "no_free_name": {
+      "message": "No free name for \"{name}\"."
+    },
+    "rotate_by_90": {
+      "message": "Rotate by a multiple of 90 degrees."
+    },
+    "not_jpeg": {
+      "message": "Not a JPEG file."
+    },
+    "jpeg_only": {
+      "message": "{name}: edits are only possible in JPEG files."
+    },
+    "damaged_jpeg": {
+      "message": "Damaged JPEG file."
+    },
+    "metadata_too_large": {
+      "message": "The metadata segment is too large."
+    },
+    "damaged_exif": {
+      "message": "{name}: damaged EXIF data, not changed."
+    },
+    "orientation_range": {
+      "message": "The orientation must be 1..8."
+    },
+    "crop_range": {
+      "message": "The crop needs 0 <= left < right <= 1 and 0 <= top < bottom <= 1."
+    },
+    "xmp_unsupported": {
+      "message": "{name}: the XMP data has no rdf:Description, not changed."
+    },
+    "unreadable": {
+      "message": "{name}: cannot read the image ({error})."
+    },
+    "invalid_fit": {
+      "message": "The fit must be cover or contain."
+    },
+    "not_loaded": {
+      "message": "Shoebox is not set up."
+    },
+    "file_error": {
+      "message": "{error}: {path}"
+    },
+    "crop_sides": {
+      "message": "Give left, top, right and bottom, or clear the crop."
+    }
   }
 }

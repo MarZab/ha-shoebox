@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .cache import VariantCache
 from .const import (
@@ -14,7 +15,9 @@ from .const import (
     CONF_CACHE_SIZE,
     CONF_SHOW_IN_SIDEBAR,
     DEFAULT_CACHE_SIZE_MB,
+    DOMAIN,
 )
+from .errors import ShoeboxError
 
 MB = 1024 * 1024
 
@@ -35,3 +38,23 @@ class Shoebox:
         self.root = media_root(hass)
         self.cache = variant_cache(hass, options)
         self.show_in_sidebar = bool(options.get(CONF_SHOW_IN_SIDEBAR, True))
+
+    async def run[T](self, func: Callable[..., T], *args: Any) -> T:
+        """Run file or picture work in the executor; its errors become translated HA errors."""
+        try:
+            return await self.hass.async_add_executor_job(func, *args)
+        except ShoeboxError as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key=err.key,
+                translation_placeholders=err.placeholders,
+            ) from err
+        except OSError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="file_error",
+                translation_placeholders={
+                    "error": err.strerror or str(err),
+                    "path": str(err.filename or ""),
+                },
+            ) from err

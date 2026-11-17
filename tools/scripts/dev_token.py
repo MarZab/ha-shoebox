@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sys
 from typing import Any
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -32,7 +33,12 @@ def call(
 
 def token(base: str) -> str:
     client = f"{base}/"
-    steps = {s["step"]: s["done"] for s in call(f"{base}/api/onboarding")}
+    try:
+        steps = {s["step"]: s["done"] for s in call(f"{base}/api/onboarding")}
+    except HTTPError as err:
+        if err.code != 404:  # 404: onboarding is finished and its API is gone
+            raise
+        steps = {"user": True, "core_config": True, "analytics": True, "integration": True}
     if not steps.get("user"):
         code = call(f"{base}/api/onboarding/users", USER | {"client_id": client})["auth_code"]
     else:

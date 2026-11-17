@@ -16,15 +16,13 @@ import re
 import shutil
 from typing import Final, Literal
 
+from .errors import MediaError
+
 IMAGE_SUFFIXES: Final = frozenset(
     {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif", ".gif", ".bmp", ".tif", ".tiff"}
 )
 type EntryType = Literal["image", "file", "folder"]
 TYPES: Final = ("all", "image", "file", "folder")
-
-
-class MediaError(Exception):
-    """A refused or failed operation; the message is meant for the user."""
 
 
 def is_image(name: str) -> bool:
@@ -46,21 +44,21 @@ def resolve(root: Path, path: str, *, allow_root: bool = False) -> Path:
     be below the root. The path need not exist.
     """
     if not isinstance(path, str) or "\0" in path:
-        raise MediaError("invalid path")
+        raise MediaError("invalid_path")
     p = Path(path.strip())
     if ".." in p.parts:
-        raise MediaError(f"'{path}': '..' is not allowed")
+        raise MediaError("parent_not_allowed", path=path)
     root_real = os.path.realpath(root)
     candidate = p if p.is_absolute() else Path(root_real, p)
     if p.is_absolute() and not (_inside(str(root), str(p)) or _inside(root_real, str(p))):
-        raise MediaError(f"'{path}' is outside {root}")
+        raise MediaError("outside_media", path=path)
     if os.path.islink(candidate):
-        raise MediaError(f"'{path}' is a symbolic link")
+        raise MediaError("symbolic_link", path=path)
     real = os.path.realpath(candidate)
     if not _inside(root_real, real):
-        raise MediaError(f"'{path}' is outside {root}")
+        raise MediaError("outside_media", path=path)
     if real == root_real and not allow_root:
-        raise MediaError(f"'{path}' is the media folder itself")
+        raise MediaError("media_folder_itself", path=path)
     return Path(real)
 
 
@@ -71,7 +69,7 @@ def relative(root: Path, real: Path) -> str:
 
 def _check_name(name: str) -> str:
     if not name or name in (".", "..") or "/" in name or "\0" in name or name != name.strip():
-        raise MediaError(f"'{name}' is not a valid name")
+        raise MediaError("invalid_name", name=name)
     return name
 
 
@@ -165,13 +163,13 @@ def compile_pattern(pattern: str) -> re.Pattern[str]:
     "re:<regular expression>" is searched in the path.
     """
     if not isinstance(pattern, str) or not pattern.strip():
-        raise MediaError("empty pattern")
+        raise MediaError("empty_pattern")
     try:
         if pattern.startswith("re:"):
             return re.compile(pattern[3:])
         return re.compile(r"\A(?:" + _glob_to_regex(pattern.strip().lstrip("/")) + r")\Z")
     except re.error as err:
-        raise MediaError(f"invalid pattern '{pattern}': {err}") from err
+        raise MediaError("invalid_pattern", pattern=pattern, error=err) from err
 
 
 def matches(pattern: str, path: str) -> bool:
@@ -181,7 +179,7 @@ def matches(pattern: str, path: str) -> bool:
 
 def select(entries: Iterable[Entry], pattern: str, type_: str = "all") -> list[Entry]:
     if type_ not in TYPES:
-        raise MediaError(f"type must be one of {', '.join(TYPES)}")
+        raise MediaError("invalid_type", types=", ".join(TYPES))
     rx = compile_pattern(pattern)
     find = rx.search if pattern.startswith("re:") else rx.match
     return [e for e in entries if (type_ in ("all", e.type)) and find(e.path)]
@@ -213,10 +211,18 @@ def advance(files: Sequence[str], current: str | None) -> int:
 # ---------------------------------------------------------------- file operations
 
 
+def resolve_file(root: Path, path: str) -> Path:
+    """The real path of an existing file below the root."""
+    real = resolve(root, path)
+    if not real.is_file():
+        raise MediaError("not_a_file", path=path)
+    return real
+
+
 def create_folder(root: Path, path: str) -> str:
     target = resolve(root, path)
     if target.exists() and not target.is_dir():
-        raise MediaError(f"'{path}' exists and is not a folder")
+        raise MediaError("exists_not_folder", path=path)
     target.mkdir(parents=True, exist_ok=True)
     return relative(root, target)
 
@@ -226,14 +232,14 @@ def move(root: Path, path: str, to: str) -> str:
     src = resolve(root, path)
     dest_dir = resolve(root, to or ".", allow_root=True)
     if not src.exists():
-        raise MediaError(f"'{path}' does not exist")
+        raise MediaError("not_found", path=path)
     if not dest_dir.is_dir():
-        raise MediaError(f"'{to}' is not a folder")
+        raise MediaError("not_a_folder", path=to)
     if src.is_dir() and (dest_dir == src or src in dest_dir.parents):
-        raise MediaError(f"cannot move '{path}' into itself")
+        raise MediaError("move_into_itself", path=path)
     target = dest_dir / src.name
     if target.exists() or target.is_symlink():
-        raise MediaError(f"'{relative(root, target)}' already exists")
+        raise MediaError("already_exists", path=relative(root, target))
     shutil.move(src, target)
     return relative(root, target)
 
@@ -241,11 +247,11 @@ def move(root: Path, path: str, to: str) -> str:
 def rename(root: Path, path: str, name: str) -> str:
     src = resolve(root, path)
     if not src.exists():
-        raise MediaError(f"'{path}' does not exist")
+        raise MediaError("not_found", path=path)
     target = src.parent / _check_name(name)
     resolve(root, str(target))
     if target.exists() or target.is_symlink():
-        raise MediaError(f"'{relative(root, target)}' already exists")
+        raise MediaError("already_exists", path=relative(root, target))
     src.rename(target)
     return relative(root, target)
 
@@ -254,7 +260,7 @@ def delete(root: Path, path: str) -> str:
     """Delete a file, or a folder with everything in it."""
     target = resolve(root, path)
     if not target.exists():
-        raise MediaError(f"'{path}' does not exist")
+        raise MediaError("not_found", path=path)
     rel = relative(root, target)
     if target.is_dir():
         shutil.rmtree(target)
@@ -270,7 +276,7 @@ def list_folder(root: Path, path: str = "") -> tuple[str, list[Entry]]:
     """
     folder = resolve(root, path or ".", allow_root=True)
     if not folder.is_dir():
-        raise MediaError(f"'{path}' is not a folder")
+        raise MediaError("not_a_folder", path=path)
     rel_dir = "" if folder == Path(os.path.realpath(root)) else relative(root, folder)
     found: list[Entry] = []
     with os.scandir(folder) as it:

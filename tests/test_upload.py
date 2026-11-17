@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from custom_components.shoebox import upload
-from custom_components.shoebox.media import MediaError
+from custom_components.shoebox.errors import MediaError
 
 from .conftest import Tree
 

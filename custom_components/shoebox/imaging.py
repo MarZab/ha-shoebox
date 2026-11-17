@@ -23,6 +23,8 @@ from typing import Final, Literal, TypedDict
 from PIL import Image, ImageOps
 import pillow_heif
 
+from .errors import ImageError
+
 pillow_heif.register_heif_opener()
 
 ORIENTATION_TAG: Final = 0x0112
@@ -48,10 +50,6 @@ _TRANSPOSE: Final = {
 }
 _INVERSE: Final = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 8, 7: 7, 8: 6}
 _NO_LENGTH: Final = frozenset({0x01, *range(0xD0, 0xD8)})  # TEM and RSTn carry no length
-
-
-class ImageError(Exception):
-    """A refused or failed image operation; the message is meant for the user."""
 
 
 class ImageInfo(TypedDict):
@@ -92,7 +90,7 @@ def transpose(im: Image.Image, orientation: int) -> Image.Image:
 def rotated(orientation: int, degrees: int) -> int:
     """The orientation that shows the picture turned `degrees` clockwise past `orientation`."""
     if degrees % 90:
-        raise ImageError("rotate by a multiple of 90 degrees")
+        raise ImageError("rotate_by_90")
     probe = Image.new("L", (2, 3))
     probe.putdata([0, 1, 2, 3, 4, 5])
     want = transpose(probe, orientation).rotate(-(degrees % 360), expand=True)
@@ -113,12 +111,12 @@ def _valid_orientation(value: object) -> int:
 def _jpeg_segments(data: bytes) -> tuple[list[tuple[int, bytes]], int]:
     """The segments before the image data, as (marker, payload), and where the rest starts."""
     if data[:2] != b"\xff\xd8":
-        raise ImageError("not a JPEG file")
+        raise ImageError("not_jpeg")
     segs: list[tuple[int, bytes]] = []
     i = 2
     while i < len(data):
         if data[i] != 0xFF:
-            raise ImageError("damaged JPEG file")
+            raise ImageError("damaged_jpeg")
         while i < len(data) and data[i] == 0xFF:  # fill bytes
             i += 1
         if i >= len(data):
@@ -135,7 +133,7 @@ def _jpeg_segments(data: bytes) -> tuple[list[tuple[int, bytes]], int]:
         (length,) = struct.unpack(">H", data[i : i + 2])
         segs.append((marker, data[i + 2 : i + length]))
         i += length
-    raise ImageError("damaged JPEG file")
+    raise ImageError("damaged_jpeg")
 
 
 def _jpeg_join(segs: list[tuple[int, bytes]], rest: bytes) -> bytes:
@@ -144,7 +142,7 @@ def _jpeg_join(segs: list[tuple[int, bytes]], rest: bytes) -> bytes:
         out += bytes((0xFF, marker))
         if marker not in _NO_LENGTH:
             if len(payload) + 2 > 0xFFFF:
-                raise ImageError("metadata segment too large")
+                raise ImageError("metadata_too_large")
             out += struct.pack(">H", len(payload) + 2) + payload
     return bytes(out) + rest
 
@@ -185,7 +183,7 @@ def _write_atomic(path: Path, data: bytes) -> None:
 def _require_jpeg(path: Path) -> bytes:
     data = path.read_bytes()
     if data[:2] != b"\xff\xd8":
-        raise ImageError(f"{path.name}: edits are only possible in JPEG files")
+        raise ImageError("jpeg_only", name=path.name)
     return data
 
 
@@ -194,7 +192,7 @@ def _require_jpeg(path: Path) -> bytes:
 
 def _tiff_with_orientation(tiff: bytes, value: int) -> bytes:
     if tiff[:2] not in (b"II", b"MM"):
-        raise ImageError("damaged EXIF data")
+        raise ValueError("unknown byte order")
     bo = "<" if tiff[:2] == b"II" else ">"
     (ifd0,) = struct.unpack(bo + "I", tiff[4:8])
     (n,) = struct.unpack(bo + "H", tiff[ifd0 : ifd0 + 2])
@@ -223,15 +221,15 @@ def get_orientation(path: Path) -> int:
 
 def set_orientation(path: Path, value: int) -> None:
     if not 1 <= value <= 8:
-        raise ImageError("orientation must be 1..8")
+        raise ImageError("orientation_range")
     data = _require_jpeg(path)
     segs, start = _jpeg_segments(data)
     for k, seg in enumerate(segs):
         if _is_exif(seg):
             try:
                 tiff = _tiff_with_orientation(seg[1][len(EXIF_HEADER) :], value)
-            except (struct.error, IndexError) as err:
-                raise ImageError(f"{path.name}: damaged EXIF data, not changed") from err
+            except (struct.error, IndexError, ValueError) as err:
+                raise ImageError("damaged_exif", name=path.name) from err
             segs[k] = (seg[0], EXIF_HEADER + tiff)
             break
     else:
@@ -328,7 +326,7 @@ def get_crop(path: Path) -> Box | None:
 def _check_box(box: Box) -> None:
     left, top, right, bottom = box
     if not (0 <= left < right <= 1 and 0 <= top < bottom <= 1):
-        raise ImageError("crop needs 0 <= left < right <= 1 and 0 <= top < bottom <= 1")
+        raise ImageError("crop_range")
 
 
 def set_crop(path: Path, box: Box | None) -> None:
@@ -356,7 +354,7 @@ def set_crop(path: Path, box: Box | None) -> None:
         if box is not None:
             m = re.search(r"<rdf:Description\b", xmp)
             if not m:
-                raise ImageError("XMP without rdf:Description: not changed")
+                raise ImageError("xmp_unsupported", name=path.name)
             if not p:
                 p = "crs"
                 attrs = f' xmlns:crs="{CRS_NS}"' + attrs
@@ -382,6 +380,7 @@ def crop_shown(path: Path, box: Box | None) -> Box | None:
     if box is None:
         set_crop(path, None)
         return None
+    _check_box(box)
     o = get_orientation(path)
     stored = _bounds(stored_point(o, box[0], box[1]), stored_point(o, box[2], box[3]))
     set_crop(path, stored)
@@ -408,7 +407,7 @@ def info(path: Path) -> ImageInfo:
             fmt = im.format
             o = _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
     except Exception as err:  # Pillow raises several kinds for unreadable files
-        raise ImageError(f"{path.name}: cannot read the image ({err})") from err
+        raise ImageError("unreadable", name=path.name, error=err) from err
     if o >= 5:
         w, h = h, w
     crop = crop_as_shown(path)
@@ -449,7 +448,7 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
     to fit inside, aspect kept. use_crop=False ignores the crop, e.g. to draw a new crop on.
     """
     if fit not in FITS:
-        raise ImageError("fit must be cover or contain")
+        raise ImageError("invalid_fit")
     crop: Box | None = None
     if use_crop:
         try:
@@ -459,7 +458,7 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
     try:
         im = Image.open(path)
     except Exception as err:  # Pillow raises several kinds for unreadable files
-        raise ImageError(f"{path.name}: cannot read the image ({err})") from err
+        raise ImageError("unreadable", name=path.name, error=err) from err
     with im:
         orientation = _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
         sw, sh = im.size

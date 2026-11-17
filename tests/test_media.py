@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from custom_components.shoebox import media
-from custom_components.shoebox.media import MediaError
+from custom_components.shoebox.errors import MediaError
 
 from .conftest import Tree
 
@@ -31,9 +31,9 @@ def test_resolve_need_not_exist(media_root: Path) -> None:
 @pytest.mark.parametrize(
     ("path", "message"),
     [
-        ("../x", "'..' is not allowed"),
-        ("a/../../x", "'..' is not allowed"),
-        ("a\0b", "invalid path"),
+        ("../x", '".." is not allowed'),
+        ("a/../../x", '".." is not allowed'),
+        ("a\0b", "Invalid path"),
         ("/etc/passwd", "outside"),
         ("", "media folder itself"),
         (".", "media folder itself"),
@@ -130,7 +130,7 @@ def test_matches(pattern: str, path: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    ("pattern", "message"), [("", "empty"), ("  ", "empty"), ("re:(", "invalid")]
+    ("pattern", "message"), [("", "empty"), ("  ", "empty"), ("re:(", "Invalid pattern")]
 )
 def test_compile_pattern_refuses(pattern: str, message: str) -> None:
     with pytest.raises(MediaError, match=message):
