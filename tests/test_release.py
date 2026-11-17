@@ -10,6 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parents[1] / "tools/scripts"))
 
 from release import ReleaseError, check_tree, next_version, publish
+from release_notes import notes
 
 
 @pytest.mark.parametrize(
@@ -104,3 +105,19 @@ def test_a_failed_push_leaves_no_commit_or_tag(
         "",
         "",
     )
+
+
+CHANGELOG = (
+    "# Changelog\n\nIntro.\n\n"
+    "## 0.2.0b1\n\n- Beta.\n\n"
+    "## 0.2.0\n\n- New.\n\n\n- More.\n\n"
+    "## 0.1.0\n\n- First.\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [("0.2.0", "- New.\n\n- More."), ("0.1.0", "- First."), ("0.2.0b1", "- Beta."), ("0.3.0", "")],
+)
+def test_release_notes_are_the_versions_changelog_section(version: str, expected: str) -> None:
+    assert notes(CHANGELOG, version) == expected

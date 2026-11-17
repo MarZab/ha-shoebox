@@ -26,7 +26,7 @@ Shoebox is released through HACS: a release is a Git tag and a GitHub release.
    The task shows its plan, warns when the changelog has no section for the version, refuses a dirty working tree, an existing tag, an older version or an `origin` it cannot reach, and asks before changing anything (`--yes` skips the question). It commits `Release vX.Y.Z`, creates the annotated tag `vX.Y.Z` and pushes the branch and the tag in one atomic push. If the push fails, the commit and the tag are undone, so the release can simply be run again.
 
 3. GitHub Actions does the rest:
-   - `release.yaml` checks that the tag matches `manifest.json` and creates the GitHub release: a full release for `vX.Y.Z`, a pre-release for `a`, `b` and `rc` tags.
+   - `release.yaml` checks that the tag matches `manifest.json` and creates the GitHub release: a full release for `vX.Y.Z`, a pre-release for `a`, `b` and `rc` tags. Its text is the version's section of `CHANGELOG.md` (HACS shows it when people update), followed by GitHub's generated list of changes.
    - `validate.yaml` runs hassfest and HACS validation on every push and nightly.
 
 HACS offers pre-releases only to users who enable beta versions for the repository. A bad release is fixed with the next version; tags are never moved or deleted.

@@ -6,7 +6,6 @@ All notable changes to Shoebox are listed here. Versions follow [Semantic Versio
 
 The first release.
 
-
 - Media folder management: folders, upload, move, rename, delete, rotate and crop.
 - Works on one or more of Home Assistant's media folders, chosen at setup; paths start with the folder's name, such as `local/Family/beach.jpg`.
 - Text files open read-only in the panel; any file can be downloaded.
