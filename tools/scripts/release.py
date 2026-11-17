@@ -4,6 +4,8 @@ Usage: release.py [VERSION | patch | minor | major | beta | rc | final] [--dry-r
 
 Without an argument it shows the current version. Pre-releases use Home Assistant's style:
 1.2.0b1, 1.2.0rc1. A stable version starts a beta or release candidate of the next minor version.
+The current version itself can be released while it has no tag: the first release, or a version
+set by hand.
 """
 
 from __future__ import annotations
@@ -25,8 +27,11 @@ class ReleaseError(Exception):
     pass
 
 
-def next_version(current: str, kind: str) -> str:
-    """The version after `current` for a kind, or `kind` itself when it is a version."""
+def next_version(current: str, kind: str, *, released: bool = True) -> str:
+    """The version after `current` for a kind, or `kind` itself when it is a version.
+
+    While `current` is not released (no tag yet), it may be released as it is.
+    """
     now = Version(current)
     base = f"{now.major}.{now.minor}.{now.micro}"
     if kind not in KINDS:
@@ -36,7 +41,7 @@ def next_version(current: str, kind: str) -> str:
             raise ReleaseError(
                 f"{kind} is neither a version nor one of {', '.join(KINDS)}"
             ) from err
-        if wanted <= now:
+        if wanted < now or (wanted == now and released):
             raise ReleaseError(f"{kind} is not newer than {current}")
         return str(wanted)
     stage, number = now.pre or (None, 0)
@@ -74,7 +79,27 @@ def check_tree(tag: str) -> list[str]:
         problems.append("the working tree has uncommitted changes")
     if git("tag", "--list", tag):
         problems.append(f"tag {tag} already exists")
+    try:  # before anything changes: a push that fails later would leave a commit and a tag
+        git("ls-remote", "--heads", "origin")
+    except subprocess.CalledProcessError:
+        problems.append("origin cannot be reached (git remote add origin <url>?)")
     return problems
+
+
+def publish(version: str, tag: str, branch: str) -> None:
+    """Commit the version (if it changed), tag it and push both at once; undo all on failure."""
+    head = git("rev-parse", "HEAD")
+    try:
+        if json.loads(MANIFEST.read_text())["version"] != version:
+            write_version(version)
+            git("commit", "--quiet", "-am", f"Release {tag}")
+        git("tag", "--annotate", tag, "--message", f"Shoebox {version}")
+        git("push", "--quiet", "--atomic", "origin", branch, tag)
+    except subprocess.CalledProcessError:
+        if git("tag", "--list", tag):
+            git("tag", "--delete", tag)
+        git("reset", "--quiet", "--hard", head)  # the tree was clean: only the release commit goes
+        raise
 
 
 def write_version(version: str) -> None:
@@ -92,17 +117,21 @@ def main() -> int:
     if args.target is None:
         print(f"Shoebox {current}")
         return 0
+    released = bool(git("tag", "--list", f"v{current}"))
     try:
-        version = next_version(current, args.target)
+        version = next_version(current, args.target, released=released)
     except ReleaseError as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
     tag = f"v{version}"
     branch = git("rev-parse", "--abbrev-ref", "HEAD")
     channel = "pre-release" if Version(version).is_prerelease else "full release (latest)"
-    print(f"{current} -> {version}: manifest.json, commit 'Release {tag}', tag {tag}")
+    if version == current:
+        print(f"{version}: tag {tag} (manifest.json already says {version})")
+    else:
+        print(f"{current} -> {version}: manifest.json, commit 'Release {tag}', tag {tag}")
     print(f"push {branch} and {tag} to origin; GitHub publishes a {channel}")
-    if f"## {version}" not in Path("CHANGELOG.md").read_text():
+    if not re.search(rf"^## {re.escape(version)}\s*$", Path("CHANGELOG.md").read_text(), re.M):
         print(f"warning: CHANGELOG.md has no '## {version}' section")
     if problems := check_tree(tag):
         print("\n".join(f"cannot release: {p}" for p in problems), file=sys.stderr)
@@ -112,10 +141,12 @@ def main() -> int:
     if not args.yes and (not sys.stdin.isatty() or input("Release? [y/N] ").strip().lower() != "y"):
         print("nothing changed")
         return 1
-    write_version(version)
-    git("commit", "--quiet", "-am", f"Release {tag}")
-    git("tag", "--annotate", tag, "--message", f"Shoebox {version}")
-    git("push", "--quiet", "origin", branch, tag)
+    try:
+        publish(version, tag, branch)
+    except subprocess.CalledProcessError as err:
+        print(f"error: {' '.join(err.cmd)} failed: {err.stderr.strip()}", file=sys.stderr)
+        print("nothing changed", file=sys.stderr)
+        return 1
     print(f"released {tag}")
     return 0
 

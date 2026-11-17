@@ -1,9 +1,11 @@
 ---
 id: TASK-51
 title: 'Release: first version and safe failure'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T12:40:00Z'
+updated_date: '2026-11-17T13:05:00Z'
 labels:
   - release
   - tooling
@@ -22,9 +24,9 @@ The manifest is 0.1.0 with no tag, so the release task cannot release 0.1.0. It 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The first release can be made with mise run release
-- [ ] #2 A missing or failing remote leaves no commit or tag behind
-- [ ] #3 CHANGELOG has the first version's section
+- [x] #1 The first release can be made with mise run release
+- [x] #2 A missing or failing remote leaves no commit or tag behind
+- [x] #3 CHANGELOG has the first version's section
 <!-- AC:END -->
 
 ## Definition of Done
@@ -33,3 +35,9 @@ The manifest is 0.1.0 with no tag, so the release task cannot release 0.1.0. It 
 - [ ] #2 New or changed behaviour is covered by tests
 - [ ] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+next_version accepts the current version while it has no tag (first release, hand-set versions). check_tree refuses an origin it cannot reach (ls-remote). publish() commits only if the version changes, tags, pushes branch and tag with --atomic, and on failure deletes the tag and resets to the previous HEAD; tested with a missing remote. The changelog check matches the whole heading line (0.2.0 no longer matches 0.2.0b1). CHANGELOG has ## 0.1.0 with media source, diagnostics and translations. docs/release.md and TASK-31 describe the first release.
+<!-- SECTION:NOTES:END -->

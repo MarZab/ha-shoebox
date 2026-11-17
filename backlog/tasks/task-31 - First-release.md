@@ -4,6 +4,7 @@ title: First release
 status: To Do
 assignee: []
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T13:05:00Z'
 labels:
   - release
 milestone: m-6
@@ -23,12 +24,12 @@ ordinal: 31000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Tag the first release and install it through HACS as a custom repository on a clean Docker HA.
+Release 0.1.0, the version already in manifest.json: mise run release -- 0.1.0 tags it without a version commit and pushes branch and tag atomically. Then install it through HACS as a custom repository on a clean Docker HA. Needs the GitHub repository (TASK-4).
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 CHANGELOG has the version's entry
+- [x] #1 CHANGELOG has the version's entry
 - [ ] #2 The tag matches manifest.json and release.yaml creates the GitHub release
 - [ ] #3 Installed through HACS on a clean HA: integration, rotations, actions, entities, device URL and panel work
 <!-- AC:END -->

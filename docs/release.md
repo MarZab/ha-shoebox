@@ -11,6 +11,8 @@ Shoebox is released through HACS: a release is a Git tag and a GitHub release.
 ## Releasing
 
 1. Add a `## X.Y.Z` section to `CHANGELOG.md` and commit it.
+
+   The first release is the version already in `manifest.json` (0.1.0): `mise run release -- 0.1.0` tags it without a version commit. A version without a tag can always be released as it is.
 2. Release:
 
    ```bash
@@ -21,7 +23,7 @@ Shoebox is released through HACS: a release is a Git tag and a GitHub release.
 
    The argument is `patch`, `minor`, `major`, `beta`, `rc`, `final`, or a version such as `1.4.0`. From a stable version, `beta` and `rc` start the next minor version.
 
-   The task shows its plan, warns when the changelog has no section for the version, refuses a dirty working tree, an existing tag or an older version, and asks before changing anything (`--yes` skips the question). It commits `Release vX.Y.Z`, creates the annotated tag `vX.Y.Z` and pushes the branch and the tag.
+   The task shows its plan, warns when the changelog has no section for the version, refuses a dirty working tree, an existing tag, an older version or an `origin` it cannot reach, and asks before changing anything (`--yes` skips the question). It commits `Release vX.Y.Z`, creates the annotated tag `vX.Y.Z` and pushes the branch and the tag in one atomic push. If the push fails, the commit and the tag are undone, so the release can simply be run again.
 
 3. GitHub Actions does the rest:
    - `release.yaml` checks that the tag matches `manifest.json` and creates the GitHub release: a full release for `vX.Y.Z`, a pre-release for `a`, `b` and `rc` tags.
