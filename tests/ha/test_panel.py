@@ -83,7 +83,7 @@ async def test_panel_files_are_served(hass: HomeAssistant, client: TestClient) -
 # ---------------------------------------------------------------- render view
 
 
-async def test_render(client: TestClient, media_root: Path) -> None:
+async def test_render(client: TestClient, media_root: Path, loaded: MockConfigEntry) -> None:
     write_image(media_root / "a.jpg", (80, 40), crop=(0.5, 0.5, 1.0, 1.0))
     response = await client.get(
         RENDER_URL, params={"path": "local/a.jpg", "size": "30x30", "fit": "cover"}
@@ -97,6 +97,13 @@ async def test_render(client: TestClient, media_root: Path) -> None:
         RENDER_URL, params={"path": "local/a.jpg", "size": "30x30", "crop": "0"}
     )
     assert colour_at(await whole.read(), 0.2, 0.2) == "red"
+    # the display preview: the device URL's options, prepared without filling the cache
+    stored = loaded.runtime_data.cache.usage()
+    epaper = await client.get(
+        RENDER_URL, params={"path": "local/a.jpg", "size": "30x30", "colors": "bw", "cache": "0"}
+    )
+    assert (epaper.status, epaper.headers["Content-Type"]) == (200, "image/png")
+    assert loaded.runtime_data.cache.usage() == stored
 
 
 @pytest.mark.parametrize(
@@ -106,6 +113,7 @@ async def test_render(client: TestClient, media_root: Path) -> None:
         ({"path": "a.jpg", "size": "5000x10"}, 400),
         ({"path": "a.jpg", "size": "10"}, 400),
         ({"path": "a.jpg", "size": "10x10", "fit": "stretch"}, 400),
+        ({"path": "local/a.jpg", "size": "10x10", "colors": "rainbow"}, 400),
         ({"path": "../etc/passwd", "size": "10x10"}, 400),  # Home Assistant's security filter
         ({"path": "/etc/passwd", "size": "10x10"}, 404),
         ({"path": "missing.jpg", "size": "10x10"}, 404),

@@ -4,8 +4,9 @@ Shoebox: media manager and picture organizer for Home Assistant. Organize, uploa
 
 <!-- absolute addresses: HACS shows this README too, and rewrites only Markdown links, not HTML -->
 <p>
-  <a href="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/panel.jpg"><img src="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/panel.jpg" alt="The Shoebox panel" width="49%"></a>
-  <a href="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/editor.jpg"><img src="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/editor.jpg" alt="Turning and cropping a picture" width="49%"></a>
+  <a href="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/panel.jpg"><img src="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/panel.jpg" alt="The Shoebox panel" width="32%"></a>
+  <a href="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/editor.jpg"><img src="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/editor.jpg" alt="Turning and cropping a picture" width="32%"></a>
+  <a href="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/display-try.jpg"><img src="https://raw.githubusercontent.com/MarZab/ha-shoebox/main/docs/images/display-try.jpg" alt="Previewing a picture for a 6-colour e-paper display" width="32%"></a>
 </p>
 
 Home Assistant's media browser can upload and delete files. Shoebox adds what it doesn't have: folders, moving and renaming, uploads that never overwrite, thumbnails, and rotate and crop that keep the picture's quality. On top of that, a *rotation* turns a set of pictures into an image that changes, for dashboards, phones and small displays.
@@ -16,7 +17,7 @@ Home Assistant's media browser can upload and delete files. Shoebox adds what it
 - **Upload from your phone straight into the right folder.** An existing file is never overwritten. [How](docs/use-cases.md#upload-from-your-phone)
 - **Fix sideways photos and crop them** without re-encoding: the turn and the crop are stored in the photo's own metadata. [How](docs/use-cases.md#fix-sideways-photos-and-crop)
 - **Run a slideshow on a dashboard**, on a tablet, TV or browser. [How](docs/use-cases.md#slideshow-on-a-dashboard)
-- **Build a digital photo frame** with an ESPHome e-ink or LCD display. [How](docs/use-cases.md#esphome-photo-frame)
+- **Build a digital photo frame** with an ESPHome e-ink or LCD display, with the picture prepared for its size and colours. [How](docs/use-cases.md#esphome-photo-frame)
 - **Show different pictures by time of day or season**, switched by automations. [How](docs/use-cases.md#pictures-by-time-of-day-or-season)
 - **Send a photo of the day** in a notification. [How](docs/use-cases.md#photo-of-the-day)
 - **Put the kids' artwork on the wall**, uploaded from the phone. [How](docs/use-cases.md#kids-artwork-wall)

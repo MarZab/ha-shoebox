@@ -40,6 +40,13 @@ _LOGGER = logging.getLogger(__name__)
 _CHUNK = 1024 * 1024
 
 
+LOOK_HELP = (
+    "colors: a palette (" + ", ".join(imaging.PALETTES) + ") or 2 to 256 hex colours;"
+    " dither floyd or none; format jpeg, png or bmp;"
+    f" contrast, saturation, brightness 0..{imaging.MAX_ENHANCE:g}"
+)
+
+
 def parse_size(size: str, fit: str) -> tuple[int, int, imaging.Fit]:
     """Width and height from "WxH", and the fit; ValueError when out of range."""
     width, height = (int(v) for v in size.split("x"))
@@ -64,7 +71,9 @@ class RenderView(HomeAssistantView):
     """A picture in the chosen media folders, prepared at a size, for the panel's images.
 
     The panel reaches it with signed URLs (an <img> cannot send the Authorization header).
-    Query: path, size=WxH, fit=cover|contain, crop=0 to ignore the crop.
+    Query: path, size=WxH, fit=cover|contain, crop=0 to ignore the crop, and the display options
+    of the device URL (colors, dither, format, contrast, saturation, brightness), which the
+    panel's display preview tries out. cache=0 prepares the picture without keeping it.
     """
 
     url = RENDER_URL
@@ -80,12 +89,24 @@ class RenderView(HomeAssistantView):
         except ValueError:
             return self.json_message(f"size is WxH (1..{MAX_SIDE}), fit cover or contain", 400)
         try:
+            look = imaging.parse_look(q)
+        except ValueError:
+            return self.json_message(LOOK_HELP, 400)
+        try:
             variant = await loaded_shoebox(hass).picture(
-                q.get("path", ""), width, height, fit, use_crop=q.get("crop") != "0"
+                q.get("path", ""),
+                width,
+                height,
+                fit,
+                use_crop=q.get("crop") != "0",
+                look=look,
+                store=q.get("cache") != "0",
             )
         except HomeAssistantError as err:
             return self.json_message(str(err), 404)
-        return jpeg(variant.data, variant.key, 3600)
+        response = jpeg(variant.data, variant.key, 3600)
+        response.content_type = look.mime
+        return response
 
 
 class DeviceImageView(HomeAssistantView):
@@ -119,12 +140,7 @@ class DeviceImageView(HomeAssistantView):
         try:
             look = imaging.parse_look(q)
         except ValueError:
-            return self.json_message(
-                "colors: a palette (" + ", ".join(imaging.PALETTES) + ") or 2 to 256 hex colours;"
-                " dither floyd or none; format jpeg, png or bmp;"
-                f" contrast, saturation, brightness 0..{imaging.MAX_ENHANCE:g}",
-                400,
-            )
+            return self.json_message(LOOK_HELP, 400)
         try:
             shoebox = loaded_shoebox(hass)
             state = shoebox.rotations.state(rotation_id)

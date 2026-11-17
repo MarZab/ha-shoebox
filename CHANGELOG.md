@@ -4,6 +4,7 @@ All notable changes to Shoebox are listed here. Versions follow [Semantic Versio
 
 ## Unreleased
 
+- **Preview** in the picture viewer and a picture's menu: every device URL option on one picture, with a live preview and the parameters to copy.
 - The device URL can prepare pictures for e-paper and other limited displays: palettes (black and white, greys, 6 and 7 colour e-paper, or your own colours), dithering, PNG or BMP, and contrast, saturation and brightness.
 
 ## 0.2.1

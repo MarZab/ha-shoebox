@@ -64,10 +64,16 @@ class VariantCache:
         fit: str,
         make: Callable[[], bytes],
         extra: str = "",
+        *,
+        store: bool = True,
     ) -> Variant:
-        """The prepared picture, from the cache or made now (and stored when the cache is on)."""
+        """The prepared picture, from the cache or made now (and stored when the cache is on).
+
+        store=False makes it now and keeps it out of the cache: for one-off pictures, such as
+        trying display options, which would only push useful pictures out.
+        """
         key = self.key(source, width, height, fit, extra)
-        if not self.enabled:
+        if not self.enabled or not store:
             return Variant(make(), key, hit=False)
         target = self.directory / f"{key}.jpg"
         try:

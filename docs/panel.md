@@ -41,6 +41,12 @@ The menu (⋮) in the top bar has the same choices as Home Assistant's media bro
 - **Auto**, **Grid** or **List**. The grid shows thumbnails; the list shows a small thumbnail, the name, size and date. *Auto* shows a grid where a folder has pictures and a list where it has none. The choice is remembered in this browser.
 - **Search** shows a search field. Searching looks in the current folder and every folder below it, for files and folders whose name contains the text, ignoring case, as Home Assistant's media search does: hidden names are skipped, and the first 100 results are shown. At the top level it searches every media folder. Each result shows where it is, and opens, downloads, renames, moves and deletes like any other item. Clearing the field, or going to another folder, shows the folder again.
 
+## Preview a picture for a display
+
+**Preview** (the screen icon next to **Edit** in the picture viewer, or in a picture tile's menu ⋮) prepares it the way a rotation's [device URL](displays.md#devices) can, with a knob for every option: a preset for common screens and e-paper panels, width and height, fit, colours (full colour, black and white, greys, 6 or 7 colour e-paper, or your own), dithering, file format, contrast, saturation and brightness. The preview shows the picture as the device would get it, with its file type and size, and below it the parameters to add to the rotation's device URL, ready to copy. Trying options does not fill the cache.
+
+![Trying a picture on a 6-colour e-paper panel](images/display-try.jpg)
+
 ## Keyboard
 
 - **Tab** reaches folders, files, the path at the top and every button; **Enter** or **Space** opens what has focus.

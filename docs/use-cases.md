@@ -80,9 +80,10 @@ Only JPEG pictures can be edited; see [editing](editing.md) for how the turn and
 ## ESPHome photo frame
 
 1. Add a rotation, for example *Living room*.
-2. Build the ESPHome device from the [ESPHome example](displays.md#esphome), with the rotation's entity and the display's size. It reads the image entity's token and state over the ESPHome API, and downloads a new picture whenever the rotation moves on.
-3. Add the device to Home Assistant (Settings → Devices & services → ESPHome).
-4. Move the rotation on as in the [slideshow](#slideshow-on-a-dashboard), or with its own schedule.
+2. Find the picture settings for the display: open a picture of the rotation in the Shoebox panel and choose [Preview](panel.md#preview-a-picture-for-a-display) (the screen icon next to **Edit**). Pick the display, or set its size and, for e-paper, its colours; adjust contrast and saturation until the preview looks right; then **Copy** the parameters.
+3. Build the ESPHome device from the [ESPHome example](displays.md#esphome), with the rotation's entity and the copied parameters in the URL of its `set_url`. For e-paper, set `format` and `type` as in [e-paper and other limited displays](displays.md#e-paper-and-other-limited-displays). The device reads the image entity's token and state over the ESPHome API, and downloads a new picture whenever the rotation moves on.
+4. Add the device to Home Assistant (Settings → Devices & services → ESPHome).
+5. Move the rotation on as in the [slideshow](#slideshow-on-a-dashboard), or with its own schedule.
 
 ## Pictures by time of day or season
 

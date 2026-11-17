@@ -55,11 +55,14 @@ def test_get_makes_once_then_reads_the_cache(cache: VariantCache, source: Path) 
     assert cache.usage() == (1, 4)
 
 
-def test_size_zero_stores_nothing(tmp_path: Path, source: Path) -> None:
-    cache = VariantCache(tmp_path / "cache", limit_bytes=0)
-    assert not cache.enabled
+@pytest.mark.parametrize(
+    ("limit", "store"),
+    [(0, True), (1 << 20, False)],  # the cache off, or a one-off picture such as a display trial
+)
+def test_nothing_is_stored(tmp_path: Path, source: Path, limit: int, store: bool) -> None:
+    cache = VariantCache(tmp_path / "cache", limit_bytes=limit)
     for _ in range(2):
-        variant = cache.get(source, 10, 10, "cover", lambda: b"jpeg")
+        variant = cache.get(source, 10, 10, "cover", lambda: b"jpeg", store=store)
         assert (variant.data, variant.hit) == (b"jpeg", False)
     assert not cache.directory.exists()
 

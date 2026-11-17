@@ -6,6 +6,7 @@
 // the panel after an HA update.
 import { translator } from "./i18n.js";
 import "./crop.js";
+import { openDisplayPreview } from "./display.js";
 
 const DOMAIN = "shoebox";
 const UPLOAD_URL = "/api/shoebox/upload";
@@ -109,6 +110,19 @@ const STYLE = `
   .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--divider-color); overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; background: var(--primary-color); transition: width 0.2s; }
   .up .err { grid-column: 1 / -1; color: var(--error-color, #db4437); }
+  /* try on a display */
+  .display { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 1.6fr); gap: var(--ha-space-6, 24px); align-items: start; }
+  :host([narrow]) .display { grid-template-columns: 1fr; }
+  .display-out { position: sticky; top: 0; }
+  :host([narrow]) .display-out { position: static; }
+  .display-preview { display: flex; align-items: center; justify-content: center; min-height: 200px; border-radius: var(--ha-border-radius-md, 8px);
+    background: var(--secondary-background-color); overflow: hidden; }
+  .display-preview img { display: block; max-width: 100%; max-height: 60vh; image-rendering: pixelated; }
+  .display-meta { margin: var(--ha-space-2, 8px) 0 var(--ha-space-4, 16px); color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); }
+  .display-params-label { font-weight: var(--ha-font-weight-medium, 500); margin-bottom: var(--ha-space-1, 4px); }
+  .display-params { display: flex; align-items: center; gap: var(--ha-space-2, 8px); }
+  .display-params code { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 6px 8px; border-radius: var(--ha-border-radius-sm, 4px);
+    background: var(--secondary-background-color); font-family: var(--ha-font-family-code, monospace); font-size: 0.9em; user-select: all; }
   /* dialogs */
   .dlg-text { margin: 0; color: var(--primary-text-color); }
   .folders { max-height: 50vh; overflow: auto; margin-top: var(--ha-space-2, 8px); }
@@ -351,6 +365,7 @@ class ShoeboxPanel extends HTMLElement {
     const v = e.detail?.item?.value;
     if (v === "open") item.type === "folder" ? this._navigate(item.path) : item.type === "image" ? this._openViewer(item) : this._openText(item);
     else if (v === "download") this._download(item);
+    else if (v === "display") openDisplayPreview(this, item);
     else if (v === "rename") this._rename(item);
     else if (v === "move") this._move(item);
     else if (v === "delete") this._delete(item);
@@ -502,6 +517,7 @@ class ShoeboxPanel extends HTMLElement {
     return `<ha-dropdown data-i="${i}" placement="bottom-end">
               ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
               ${it.type !== "file" || previewable(it) ? `<ha-dropdown-item value="open">${icon(it.type === "folder" ? "mdi:folder-open-outline" : it.type === "image" ? "mdi:image-outline" : "mdi:text-box-outline", "icon")}${esc(t("open"))}</ha-dropdown-item>` : ""}
+              ${it.type === "image" ? `<ha-dropdown-item value="display">${icon("mdi:monitor-eye", "icon")}${esc(t("display_try"))}</ha-dropdown-item>` : ""}
               ${it.type !== "folder" ? `<ha-dropdown-item value="download">${icon("mdi:download-outline", "icon")}${esc(t("download"))}</ha-dropdown-item>` : ""}
               <ha-dropdown-item value="rename">${icon("mdi:rename-outline", "icon")}${esc(t("rename"))}</ha-dropdown-item>
               <ha-dropdown-item value="move">${icon("mdi:folder-move-outline", "icon")}${esc(t("move"))}</ha-dropdown-item>
@@ -665,6 +681,7 @@ class ShoeboxPanel extends HTMLElement {
     let cropMode = false;
     let aspect = null;
     const header = `
+      ${iconButton("mdi:monitor-eye", t("display_try"), 'slot="headerActionItems" data-v="display"')}
       ${iconButton("mdi:image-edit-outline", t("edit"), 'slot="headerActionItems" data-v="edit" class="ed"')}
       <ha-dropdown slot="headerActionItems" placement="bottom-end" id="more">
         ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
@@ -774,6 +791,7 @@ class ShoeboxPanel extends HTMLElement {
       const list = images();
       const idx = list.findIndex((i) => i.path === current.path);
       if (v === "edit") showCrop();
+      else if (v === "display") openDisplayPreview(this, { ...current, type: "image" });
       else if (v === "turn-left" || v === "turn-right") {
         busy = true;
         try { await body.querySelector("shoebox-crop").rotate(v === "turn-left" ? -90 : 90); } finally { busy = false; }

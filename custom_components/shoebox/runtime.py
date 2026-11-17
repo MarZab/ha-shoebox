@@ -78,13 +78,16 @@ class Shoebox:
         *,
         use_crop: bool = True,
         look: imaging.Look = imaging.Look(),  # noqa: B008  # frozen
+        store: bool = True,
     ) -> Variant:
-        """A picture in a media folder prepared at a size and look, through the cache."""
+        """A picture in a media folder prepared at a size and look, through the cache; with
+        store=False it is prepared the same way but not kept."""
         source = await self.run(self.library.resolve_file, path)
         make = partial(imaging.render, source, width, height, fit, use_crop, look)
         extra = ("" if use_crop else "nocrop") + look.key
+        get = partial(self.cache.get, store=store)
         async with self._renders:
-            return await self.run(self.cache.get, source, width, height, fit, make, extra)
+            return await self.run(get, source, width, height, fit, make, extra)
 
     def _shown(self, filename: object) -> str:
         """A path for messages: prefixed below a media folder, else only its name; never the

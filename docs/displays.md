@@ -194,6 +194,8 @@ actions:
 
 ### E-paper and other limited displays
 
+To try the options on a picture before setting up a device, open it in the [panel](panel.md#preview-a-picture-for-a-display) and choose **Preview**.
+
 E-paper panels show a few colours, and a photo needs dithering to look right on them. Shoebox does it before the device downloads the picture, so the device only draws pixels:
 
 ![One photo, plain and for three kinds of panel](images/display-looks.png)
