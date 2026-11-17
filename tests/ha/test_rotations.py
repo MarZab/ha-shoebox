@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.util import dt as dt_util
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.shoebox import config_flow
 from custom_components.shoebox.const import DOMAIN, SUBENTRY_ROTATION
@@ -214,3 +216,16 @@ async def test_shuffle_takes_in_new_pictures_and_path_order_continues(
     files = sorted(f"local/{p.relative_to(root).as_posix()}" for p in (root / "evening").iterdir())
     after = files[(files.index(seen[-1]) + 1) % len(files)]  # type: ignore[arg-type]
     assert (await rotations.async_advance(rid, ["local/evening/*"])).file == after
+
+
+async def test_removing_shoebox_leaves_no_state_behind(
+    hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree, hass_storage: dict[str, Any]
+) -> None:
+    tree("evening/a.jpg")
+    await with_rotation.runtime_data.rotations.async_advance(
+        rotation_id(with_rotation), ["local/evening/*"]
+    )  # its save is still waiting
+    assert await hass.config_entries.async_remove(with_rotation.entry_id)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=1))
+    await hass.async_block_till_done()
+    assert "shoebox.rotations" not in hass_storage

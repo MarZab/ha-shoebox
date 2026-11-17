@@ -70,4 +70,5 @@ The rotation remembers its current picture, also across restarts.
 - New pictures join in their place in path order; in shuffle they join the current round.
 - If the current picture is deleted, moved or renamed, path order continues with the picture that sorts after it, so it does not start over; shuffle simply leaves it out.
 - Changing the order keeps the current picture: switching to path order continues from it.
+- Moving or renaming the current picture, or its folder, with Shoebox keeps it as the current picture under its new path. Deleting it leaves the rotation without a picture until the next **Next**.
 - If the patterns select nothing, the rotation shows no picture until they do.

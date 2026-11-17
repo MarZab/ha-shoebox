@@ -149,6 +149,15 @@ def test_edit_turns_then_crops_as_shown(tmp_path: Path) -> None:
     assert (info["orientation"], info["crop"]) == (3, None)
 
 
+def test_a_failed_edit_leaves_the_file_as_it_was(tmp_path: Path) -> None:
+    path = tmp_path / "a.jpg"
+    Image.new("RGB", (20, 10)).save(path, "JPEG", xmp=b"<x:xmpmeta>no description</x:xmpmeta>")
+    before = path.read_bytes()
+    with pytest.raises(ImageError, match="no rdf:Description"):
+        imaging.edit(path, 90, (0.0, 0.0, 0.5, 0.5))
+    assert path.read_bytes() == before
+
+
 # ---------------------------------------------------------------- refusals
 
 
@@ -171,6 +180,12 @@ def _bytes(data: bytes) -> Callable[[Path], Path]:
     return make
 
 
+def _truncated(tmp_path: Path) -> Path:
+    path = write_image(tmp_path / "a.png")
+    path.write_bytes(path.read_bytes()[:-40])  # the header reads, the data does not
+    return path
+
+
 def _jpeg(tmp_path: Path) -> Path:
     return write_image(tmp_path / "a.jpg")
 
@@ -189,13 +204,15 @@ def _jpeg(tmp_path: Path) -> Path:
         (_bytes(b"\xff\xd8\x00\x00"), lambda p: imaging.set_orientation(p, 6), "Damaged JPEG"),
         (_bytes(b"\xff\xd8\xff"), lambda p: imaging.set_orientation(p, 6), "Damaged JPEG"),
         (_bytes(b"not a picture"), lambda p: imaging.render(p, 10, 10), "cannot read"),
+        (_truncated, lambda p: imaging.render(p, 10, 10), "cannot read"),
     ],
 )
 def test_refusals(
     tmp_path: Path, make: Callable[[Path], Path], call: Callable[[Path], object], message: str
 ) -> None:
-    with pytest.raises(ImageError, match=message):
+    with pytest.raises(ImageError, match=message) as err:
         call(make(tmp_path))
+    assert str(tmp_path) not in str(err.value)  # users see names, not where files live
 
 
 # ---------------------------------------------------------------- preparing

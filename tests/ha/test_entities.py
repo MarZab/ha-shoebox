@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
@@ -89,3 +92,28 @@ async def test_editing_the_current_picture_updates_the_image(
     )
     await hass.async_block_till_done()
     assert hass.states.get(IMAGE).state > first  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    ("action", "data", "file"),
+    [
+        ("rename", {"path": "local/evening/a.jpg", "name": "c.jpg"}, "local/evening/c.jpg"),
+        ("move", {"path": "local/evening", "to": "local/other"}, "local/other/evening/a.jpg"),
+        ("delete", {"path": "local/evening/a.jpg"}, None),
+    ],
+)
+async def test_the_rotation_follows_its_picture(
+    hass: HomeAssistant,
+    with_rotation: MockConfigEntry,
+    tree: Tree,
+    action: str,
+    data: dict[str, Any],
+    file: str | None,
+) -> None:
+    tree("evening/a.jpg", "evening/b.jpg", "other/")
+    await press(hass)
+    await hass.services.async_call(DOMAIN, action, data, blocking=True, return_response=True)
+    await hass.async_block_till_done()
+    state = hass.states.get(IMAGE)
+    assert state is not None
+    assert state.attributes["file"] == file

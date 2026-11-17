@@ -354,7 +354,7 @@ def set_crop(path: Path, box: Box | None) -> None:
     data = _require_jpeg(path)
     segs, start = _jpeg_segments(data)
     k = next((k for k, seg in enumerate(segs) if _is_xmp(seg)), None)
-    xmp = segs[k][1][len(XMP_HEADER) :].decode("utf-8") if k is not None else None
+    xmp = segs[k][1][len(XMP_HEADER) :].decode("utf-8", "replace") if k is not None else None
     attrs = ""
     if box is not None:
         values = dict(zip(CROP_FIELDS, box, strict=True))
@@ -427,7 +427,7 @@ def info(path: Path) -> ImageInfo:
             huge = fmt != "JPEG" and w * h > MAX_PIXELS
             o = 1 if huge else _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
     except Exception as err:  # Pillow raises several kinds for unreadable files
-        raise ImageError("unreadable", name=path.name, error=err) from err
+        raise _unreadable(path, err) from err
     if o >= 5:
         w, h = h, w
     crop = crop_as_shown(path)
@@ -446,19 +446,29 @@ def edit(
 ) -> ImageInfo:
     """One editor save: turn by `rotate_by` degrees clockwise (or set `orientation`), then set the
     crop in fractions of the picture as shown after that turn, or remove it (None)."""
-    _require_jpeg(path)
+    original = _require_jpeg(path)
     if box is not None:
         _check_box(box)
-    if orientation is not None:
-        if orientation != get_orientation(path):
-            set_orientation(path, orientation)
-    elif rotate_by % 360:
-        rotate(path, rotate_by)
-    crop_shown(path, box)
+    try:
+        if orientation is not None:
+            if orientation != get_orientation(path):
+                set_orientation(path, orientation)
+        elif rotate_by % 360:
+            rotate(path, rotate_by)
+        crop_shown(path, box)
+    except Exception:
+        if path.read_bytes() != original:  # the turn was written: a failed crop takes it back
+            _write_atomic(path, original)
+        raise
     return info(path)
 
 
 # ---------------------------------------------------------------- preparing
+
+
+def _unreadable(path: Path, err: Exception) -> ImageError:
+    """Pillow's messages name the full path; users see only the file's name."""
+    return ImageError("unreadable", name=path.name, error=str(err).replace(str(path), path.name))
 
 
 def _check_pixels(im: Image.Image, path: Path) -> None:
@@ -488,7 +498,18 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
     try:
         im = Image.open(path)
     except Exception as err:  # Pillow raises several kinds for unreadable files
-        raise ImageError("unreadable", name=path.name, error=err) from err
+        raise _unreadable(path, err) from err
+    try:
+        return _render(im, path, crop, width, height, fit)
+    except ImageError:
+        raise
+    except Exception as err:  # decoding happens here, and Pillow raises several kinds
+        raise _unreadable(path, err) from err
+
+
+def _render(
+    im: Image.Image, path: Path, crop: Box | None, width: int, height: int, fit: Fit
+) -> bytes:
     with im:
         if im.format != "JPEG":  # JPEG is checked after reduced decoding; PNG's EXIF decodes it all
             _check_pixels(im, path)

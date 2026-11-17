@@ -16,8 +16,9 @@ A media folder itself cannot be created, renamed, moved or deleted. Listings ski
 ## Nothing is overwritten by accident
 
 - Uploads stream into a hidden temporary file in the target folder, then take the first free name (`photo.jpg`, `photo-1.jpg`, ...). The name is claimed with `O_CREAT | O_EXCL`, so two uploads never get the same name and an existing file is never replaced.
-- Move and rename refuse an existing target.
-- Turning and cropping rewrite the file through a temporary file and an atomic replace, keeping its permissions; a crash leaves the old file.
+- Move and rename refuse an existing target. The target name is claimed first, with an empty file or folder created exclusively, and the move replaces only that; something arriving under the same name at the same moment is never replaced.
+- Turning and cropping rewrite the file through a temporary file and an atomic replace, keeping its permissions; a crash leaves the old file. When one editor save turns and crops and the crop fails, the turn is taken back.
+- Error messages name files by their path in the media folders, never by where they are on the host.
 
 Delete is final; the panel asks first.
 

@@ -10,6 +10,8 @@ from __future__ import annotations
 import bisect
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+import errno
+import logging
 import os
 from pathlib import Path
 import random
@@ -92,6 +94,25 @@ class Entry:
         return {"path": self.path, "type": self.type, "size": self.size, "modified": self.modified}
 
 
+_LOGGER = logging.getLogger(__name__)
+_reported: set[str] = set()
+
+
+def _shown_name(dirpath: str, name: str) -> bool:
+    """Whether a name is listed: not hidden, and valid UTF-8 (JSON and URLs need that)."""
+    if name.startswith("."):
+        return False
+    try:
+        name.encode("utf-8")
+    except UnicodeEncodeError:
+        full = os.path.join(dirpath, name)
+        if full not in _reported:
+            _reported.add(full)
+            _LOGGER.warning("Skipping %r: the name is not valid UTF-8; rename it", full)
+        return False
+    return True
+
+
 def _entry(rel: str, full: str, is_dir: bool) -> Entry | None:
     try:
         st = os.stat(full)
@@ -110,12 +131,12 @@ def walk(root: Path) -> list[Entry]:
         dirnames[:] = sorted(
             d
             for d in dirnames
-            if not d.startswith(".") and not os.path.islink(os.path.join(dirpath, d))
+            if _shown_name(dirpath, d) and not os.path.islink(os.path.join(dirpath, d))
         )
         rel_dir = os.path.relpath(dirpath, root_real).replace(os.sep, "/")
         for name, is_dir in [(d, True) for d in dirnames] + [(f, False) for f in filenames]:
             full = os.path.join(dirpath, name)
-            if name.startswith(".") or (not is_dir and os.path.islink(full)):
+            if not _shown_name(dirpath, name) or (not is_dir and os.path.islink(full)):
                 continue
             rel = name if rel_dir == "." else f"{rel_dir}/{name}"
             if entry := _entry(rel, full, is_dir):
@@ -294,10 +315,36 @@ def move_resolved(
     if src.is_dir() and (dest_dir == src or src in dest_dir.parents):
         raise MediaError("move_into_itself", path=path)
     target = dest_dir / src.name
-    if target.exists() or target.is_symlink():
-        raise MediaError("already_exists", path=show(target))
-    shutil.move(src, target)
+    _move_to_free(src, target, show)
     return target
+
+
+def _move_to_free(src: Path, target: Path, show: Callable[[Path], str]) -> None:
+    """Move src to target only if nothing is there, also when something arrives meanwhile.
+
+    The name is claimed first with an empty file or folder (creating one fails if the name is
+    taken), then the move replaces that placeholder and nothing else.
+    """
+    is_dir = src.is_dir()
+    try:
+        if is_dir:
+            os.mkdir(target)
+        else:
+            os.close(os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+    except FileExistsError as err:
+        raise MediaError("already_exists", path=show(target)) from err
+    try:
+        os.rename(src, target)
+    except OSError as err:
+        if err.errno != errno.EXDEV:  # not another file system: give the name back
+            (os.rmdir if is_dir else os.unlink)(target)
+            raise
+        if is_dir:  # another file system: copy into the placeholder, then remove the original
+            shutil.copytree(src, target, symlinks=True, dirs_exist_ok=True)
+            shutil.rmtree(src)
+        else:
+            shutil.copy2(src, target)
+            src.unlink()
 
 
 def rename(root: Path, path: str, name: str) -> str:
@@ -306,9 +353,7 @@ def rename(root: Path, path: str, name: str) -> str:
         raise MediaError("not_found", path=path)
     target = src.parent / _check_name(name)
     resolve(root, str(target))
-    if target.exists() or target.is_symlink():
-        raise MediaError("already_exists", path=relative(root, target))
-    src.rename(target)
+    _move_to_free(src, target, lambda p: relative(root, p))
     return relative(root, target)
 
 
@@ -337,7 +382,7 @@ def list_folder(root: Path, path: str = "") -> tuple[str, list[Entry]]:
     found: list[Entry] = []
     with os.scandir(folder) as it:
         for d in it:
-            if d.name.startswith(".") or d.is_symlink():
+            if not _shown_name(str(folder), d.name) or d.is_symlink():
                 continue
             rel = f"{rel_dir}/{d.name}" if rel_dir else d.name
             if entry := _entry(rel, d.path, d.is_dir()):

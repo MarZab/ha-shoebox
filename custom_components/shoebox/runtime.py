@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Mapping
 from functools import partial
+import os
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +24,7 @@ from .const import (
     DEFAULT_FOLDERS,
     DOMAIN,
 )
-from .errors import ShoeboxError
+from .errors import MediaError, ShoeboxError
 from .library import Library
 from .rotations import Rotations
 
@@ -65,6 +66,17 @@ class Shoebox:
                 self.cache.get, source, width, height, fit, make, "" if use_crop else "nocrop"
             )
 
+    def _shown(self, filename: object) -> str:
+        """A path for messages: prefixed below a media folder, else only its name; never the
+        host's layout, which non-admin users of the device and media views would see."""
+        if not filename:
+            return ""
+        path = Path(os.fsdecode(filename))  # type: ignore[arg-type]  # str, bytes or PathLike
+        try:
+            return self.library.relative(path)
+        except MediaError:
+            return path.name
+
     async def run[T](self, func: Callable[..., T], *args: Any) -> T:
         """Run file or picture work in the executor; its errors become translated HA errors."""
         try:
@@ -81,6 +93,6 @@ class Shoebox:
                 translation_key="file_error",
                 translation_placeholders={
                     "error": err.strerror or str(err),
-                    "path": str(err.filename or ""),
+                    "path": self._shown(err.filename),
                 },
             ) from err

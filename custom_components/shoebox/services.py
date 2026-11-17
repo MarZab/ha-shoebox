@@ -79,19 +79,32 @@ async def _create_folder(call: ServiceCall) -> ServiceResponse:
     return {"path": await box.run(box.library.create_folder, call.data["path"])}
 
 
+async def _canonical(box: Shoebox, path: str) -> str:
+    """The path as rotations store it, whatever form the caller used."""
+    return box.library.relative(await box.run(box.library.resolve, path))
+
+
 async def _move(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"path": await box.run(box.library.move, call.data["path"], call.data["to"])}
+    old = await _canonical(box, call.data["path"])
+    new = await box.run(box.library.move, call.data["path"], call.data["to"])
+    box.rotations.async_paths_moved(old, new)
+    return {"path": new}
 
 
 async def _rename(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"path": await box.run(box.library.rename, call.data["path"], call.data["name"])}
+    old = await _canonical(box, call.data["path"])
+    new = await box.run(box.library.rename, call.data["path"], call.data["name"])
+    box.rotations.async_paths_moved(old, new)
+    return {"path": new}
 
 
 async def _delete(call: ServiceCall) -> ServiceResponse:
     box = _shoebox(call)
-    return {"deleted": await box.run(box.library.delete, call.data["path"])}
+    deleted = await box.run(box.library.delete, call.data["path"])
+    box.rotations.async_paths_moved(deleted, None)
+    return {"deleted": deleted}
 
 
 async def _rotate(call: ServiceCall) -> ServiceResponse:

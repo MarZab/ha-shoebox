@@ -71,6 +71,16 @@ def test_walk_lists_everything_sorted_without_hidden_or_links(tree: Tree) -> Non
     ]
 
 
+def test_names_that_are_not_utf8_are_skipped(tree: Tree) -> None:
+    root = tree("x/a.jpg")
+    for name in (b"x/bad\xff.jpg", b"bad\xfe/b.jpg"):
+        path = os.fsencode(root) + b"/" + name
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, "wb").close()  # a bytes path, which Path cannot hold
+    assert [e.path for e in media.walk(root)] == ["x", "x/a.jpg"]
+    assert [e.name for e in media.list_folder(root, "x")[1]] == ["a.jpg"]
+
+
 def test_list_folder_shows_folders_first_then_files_by_name(tree: Tree) -> None:
     root = tree("x/B.jpg", "x/a.txt", "x/z/", "x/.h.jpg")
     rel, entries = media.list_folder(root, "x")

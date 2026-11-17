@@ -50,6 +50,7 @@ class Rotations:
         self._store = RotationStore(hass, STORAGE_VERSION, STORAGE_KEY)
         self._states: dict[str, RotationState] = {}
         self._lock = asyncio.Lock()
+        self._closed = False
 
     async def async_load(self, ids: Iterable[str]) -> None:
         """Load the state of these rotations; state of rotations that are gone is dropped."""
@@ -78,6 +79,8 @@ class Rotations:
     ) -> RotationState:
         """Move a rotation to its next picture: in path order, wrapping around, or shuffled."""
         async with self._lock:
+            if self._closed:  # unloading: the next instance owns the state now
+                return self.state(rotation_id)
             current = self.state(rotation_id)
             state: RotationState = await self._run(self._next, current, list(patterns), order)
             self._states[rotation_id] = state
@@ -103,11 +106,40 @@ class Rotations:
             shown=shown,
         )
 
+    async def async_close(self) -> None:
+        """Wait for a running Next press, then write the state; later changes are ignored."""
+        async with self._lock:
+            self._closed = True
+            await self._store.async_save(self._data())  # also cancels a delayed save
+
+    def async_paths_moved(self, old: str, new: str | None) -> None:
+        """A file or folder was moved or renamed to `new`, or deleted (None)."""
+
+        def moved(path: str) -> str | None:
+            if path == old:
+                return new
+            if path.startswith(old + "/"):
+                return None if new is None else new + path[len(old) :]
+            return path
+
+        for rotation_id, state in self._states.items():
+            file = moved(state.file) if state.file else None
+            shown = [p for p in (moved(p) for p in state.shown) if p]
+            if file == state.file and shown == state.shown:
+                continue
+            state.file, state.shown = file, shown
+            state.updated = dt_util.utcnow().isoformat()
+            self._changed(rotation_id)
+
+    def _changed(self, rotation_id: str) -> None:
+        if not self._closed:
+            self._store.async_delay_save(self._data, 1)
+            async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))
+
     def async_file_changed(self, path: str) -> None:
         """A file was edited in place: rotations showing it now count as updated."""
         now = dt_util.utcnow().isoformat()
         for rotation_id, state in self._states.items():
             if state.file == path:
                 state.updated = now
-                self._store.async_delay_save(self._data, 1)
-                async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))
+                self._changed(rotation_id)

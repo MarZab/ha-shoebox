@@ -18,7 +18,8 @@ import unicodedata
 from .errors import MediaError
 from .media import resolve
 
-MAX_NAME: Final = 200
+# In bytes, as file systems count: 255 for a name, less room for "-9999" from free_name
+MAX_NAME: Final = 255 - len("-9999")
 MEDIA_TYPES: Final = ("image/", "video/", "audio/")
 
 
@@ -26,16 +27,20 @@ def safe_name(filename: str) -> str:
     """The file name to store.
 
     The last part of what the browser sent (also after "\\"), without control characters, leading
-    dots or surrounding spaces, shortened to MAX_NAME keeping the suffix.
+    dots or surrounding spaces, shortened to MAX_NAME bytes keeping the suffix.
     """
     name = unicodedata.normalize("NFC", str(filename or ""))
     name = name.replace("\\", "/").rsplit("/", 1)[-1]
     name = "".join(c for c in name if unicodedata.category(c)[0] != "C").strip().lstrip(".").strip()
     if not name:
         raise MediaError("invalid_file_name", name=filename)
-    if len(name) > MAX_NAME:
+    if len(name.encode()) > MAX_NAME:
         stem, suffix = os.path.splitext(name)
-        name = stem[: MAX_NAME - len(suffix)].rstrip() + suffix
+        if len(suffix.encode()) > 16:  # not a real suffix
+            stem, suffix = name, ""
+        while stem and len((stem + suffix).encode()) > MAX_NAME:
+            stem = stem[:-1]
+        name = stem.rstrip() + suffix
     return name
 
 

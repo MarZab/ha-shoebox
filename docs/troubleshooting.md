@@ -9,6 +9,7 @@ A media folder chosen for Shoebox does not exist, or was removed from `media_dir
 - Before its first **Next**, a rotation has no picture: press its Next button once.
 - Its patterns may select no pictures. The rotation's `count` attribute is 0; check the patterns with the preview in **Settings → Devices & services → Shoebox Media Manager → the rotation's gear**. See [patterns](rotations.md#patterns).
 - Only pictures count, by their extension. A video or a file without a picture extension is never shown.
+- Files and folders whose names are not valid UTF-8 (often from old Windows or camera software) are skipped everywhere, with a warning in the log naming them. Rename them, for example over Samba.
 
 ## A picture shows sideways or uncropped elsewhere
 

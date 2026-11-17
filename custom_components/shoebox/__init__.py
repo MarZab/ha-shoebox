@@ -65,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
 
 async def async_unload_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await entry.runtime_data.rotations.async_save()
+    await entry.runtime_data.rotations.async_close()
     return unloaded
 
 

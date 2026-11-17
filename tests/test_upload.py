@@ -26,10 +26,11 @@ def test_safe_name(sent: str, stored: str) -> None:
     assert upload.safe_name(sent) == stored
 
 
-def test_safe_name_shortens_keeping_the_suffix() -> None:
-    name = upload.safe_name("x" * 300 + ".jpeg")
-    assert len(name) == upload.MAX_NAME
-    assert name.endswith("x.jpeg")
+@pytest.mark.parametrize("char", ["x", "ž", "😀"])  # 1, 2 and 4 bytes
+def test_safe_name_shortens_to_bytes_keeping_the_suffix(char: str) -> None:
+    name = upload.safe_name(char * 300 + ".jpeg")
+    assert upload.MAX_NAME - 4 < len(name.encode()) <= upload.MAX_NAME
+    assert name.endswith(char + ".jpeg")
 
 
 @pytest.mark.parametrize("sent", ["", "..", "a/", "...", "\x00"])
