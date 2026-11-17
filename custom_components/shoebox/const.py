@@ -29,3 +29,10 @@ MAX_SIDE: Final = 4096
 MAX_UPLOAD_BYTES: Final = 200 * 1024 * 1024
 # Pictures prepared at the same time; more requests wait, so thumbnails cannot exhaust a small host
 CONCURRENT_RENDERS: Final = 2
+
+SUBENTRY_ROTATION: Final = "rotation"
+CONF_PATTERNS: Final = "patterns"
+STORAGE_KEY: Final = DOMAIN + ".rotations"
+STORAGE_VERSION: Final = 1
+# Dispatcher signal sent when a rotation changes; format with the subentry id
+SIGNAL_ROTATION: Final = DOMAIN + "_rotation_{}"

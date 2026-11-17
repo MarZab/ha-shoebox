@@ -8,7 +8,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.hass_dict import HassKey
 
-from .const import DOMAIN
+from .const import DOMAIN, SUBENTRY_ROTATION
 from .panel import async_register_panel, async_remove_panel, async_serve_frontend
 from .runtime import Shoebox
 from .services import async_setup_services
@@ -34,7 +34,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
     shoebox = Shoebox(hass, entry.options)
     await hass.async_add_executor_job(shoebox.cache.evict)
+    await shoebox.rotations.async_load(
+        sub.subentry_id
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_ROTATION
+    )
     entry.runtime_data = shoebox
+    entry.async_on_unload(entry.add_update_listener(_async_reload))
     if shoebox.show_in_sidebar:
         await async_register_panel(hass, hass.data[DATA_FRONTEND_VERSION])
         entry.async_on_unload(lambda: async_remove_panel(hass))
@@ -42,4 +48,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
+    await entry.runtime_data.rotations.async_save()
     return True
+
+
+async def _async_reload(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> None:
+    """Options or rotations changed."""
+    await hass.config_entries.async_reload(entry.entry_id)

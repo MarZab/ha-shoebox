@@ -252,5 +252,36 @@
     "crop_sides": {
       "message": "Give left, top, right and bottom, or clear the crop."
     }
+  },
+  "config_subentries": {
+    "rotation": {
+      "entry_type": "Rotation",
+      "initiate_flow": {
+        "user": "Add rotation",
+        "reconfigure": "Change rotation"
+      },
+      "step": {
+        "user": {
+          "title": "Rotation",
+          "description": "A rotation shows the pictures its patterns select, one at a time, in path order.",
+          "data": {
+            "name": "Name",
+            "patterns": "Patterns"
+          },
+          "data_description": {
+            "name": "Shown as the rotation's device and entity name.",
+            "patterns": "Globs over paths below the media folder (\"*\" within a folder, \"**\" at any depth), or \"re:\" followed by a regular expression. When the first selects no pictures, the next is used."
+          }
+        },
+        "preview": {
+          "title": "Preview",
+          "description": "{count} pictures match, using {pattern}. The first are:\n\n{examples}"
+        }
+      },
+      "error": {
+        "no_pattern": "Give at least one pattern.",
+        "invalid_pattern": "A pattern is not valid."
+      }
+    }
   }
 }

@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
 )
 from .errors import ShoeboxError
+from .rotations import Rotations
 
 MB = 1024 * 1024
 
@@ -43,6 +44,7 @@ class Shoebox:
         self.cache = variant_cache(hass, options)
         self.show_in_sidebar = bool(options.get(CONF_SHOW_IN_SIDEBAR, True))
         self._renders = asyncio.Semaphore(CONCURRENT_RENDERS)
+        self.rotations = Rotations(hass, self.root, self.run)
 
     async def picture(
         self, path: str, width: int, height: int, fit: imaging.Fit, *, use_crop: bool = True
