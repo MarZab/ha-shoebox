@@ -107,7 +107,13 @@ def test_matches(pattern: str, path: str, expected: bool) -> None:
 
 @pytest.mark.parametrize(
     ("pattern", "message"),
-    [(" ", "empty"), ("re:(", "Invalid pattern"), ("!", "empty"), ("!re:(", "Invalid pattern")],
+    [
+        (" ", "empty"),
+        ("re:(", "Invalid pattern"),
+        ("!", "empty"),
+        ("!re:(", "Invalid pattern"),
+        ("**a**a**a**b", 'at most 3 "\\*\\*"'),  # matching it takes seconds per path
+    ],
 )
 def test_bad_patterns(pattern: str, message: str) -> None:
     with pytest.raises(MediaError, match=message):

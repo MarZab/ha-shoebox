@@ -212,8 +212,7 @@ class RotationSubentryFlow(ConfigSubentryFlow):
                 )
             return self.async_create_entry(title=self._name, data=data)
         library = Library(media_folders(self.hass, self._get_entry().options))
-        entries = await self.hass.async_add_executor_job(library.walk)
-        files = media.select_pictures(entries, self._patterns)
+        files = await self.hass.async_add_executor_job(library.pictures, self._patterns)
         return self.async_show_form(
             step_id="preview",
             data_schema=vol.Schema({}),

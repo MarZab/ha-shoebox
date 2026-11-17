@@ -78,27 +78,30 @@ class Rotations:
     ) -> RotationState:
         """Move a rotation to its next picture: in path order, wrapping around, or shuffled."""
         async with self._lock:
-            entries = await self._run(self.library.walk)
-            files = await self._run(media.select_pictures, entries, list(patterns))
             current = self.state(rotation_id)
-            shown: list[str] = []
-            if order == ORDER_SHUFFLE:
-                file, shown = media.shuffle_next(files, current.shown, current.file)
-                position = len(shown)
-            else:
-                index = media.advance(files, current.file)
-                file, position = (files[index] if files else None), index + 1
-            state = RotationState(
-                file=file,
-                position=position,
-                count=len(files),
-                updated=dt_util.utcnow().isoformat(),
-                shown=shown,
-            )
+            state: RotationState = await self._run(self._next, current, list(patterns), order)
             self._states[rotation_id] = state
             self._store.async_delay_save(self._data, 1)
         async_dispatcher_send(self.hass, SIGNAL_ROTATION.format(rotation_id))
         return state
+
+    def _next(self, current: RotationState, patterns: list[str], order: str) -> RotationState:
+        """Walk, select and choose: one job in the executor."""
+        files = self.library.pictures(patterns)
+        shown: list[str] = []
+        if order == ORDER_SHUFFLE:
+            file, shown = media.shuffle_next(files, current.shown, current.file)
+            position = len(shown)
+        else:
+            index = media.advance(files, current.file)
+            file, position = (files[index] if files else None), index + 1
+        return RotationState(
+            file=file,
+            position=position,
+            count=len(files),
+            updated=dt_util.utcnow().isoformat(),
+            shown=shown,
+        )
 
     def async_file_changed(self, path: str) -> None:
         """A file was edited in place: rotations showing it now count as updated."""

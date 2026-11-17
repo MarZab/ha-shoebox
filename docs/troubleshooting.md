@@ -14,6 +14,10 @@ A media folder chosen for Shoebox does not exist, or was removed from `media_dir
 
 Shoebox stores turns and crops in the picture's metadata. Most apps honor the turn; only Shoebox and Adobe's apps show the crop. See [editing](editing.md).
 
+## A picture is refused as too large
+
+Pictures are prepared at the size shown, but a PNG, HEIC or other non-JPEG must first be decoded in full. Above 50 megapixels Shoebox refuses that, because a small file can claim a huge picture and take gigabytes of memory. Large JPEGs are decoded at a reduced size and are not affected. The file itself can still be downloaded, moved and renamed.
+
 ## Turning or cropping is refused
 
 Only JPEG pictures can be edited. HEIC (iPhone), PNG and other formats are shown, but their metadata cannot be changed in place.

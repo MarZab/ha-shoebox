@@ -19,6 +19,7 @@ MESSAGES: Final = {
     "invalid_name": '"{name}" is not a valid name.',
     "empty_pattern": "The pattern is empty.",
     "invalid_pattern": 'Invalid pattern "{pattern}": {error}.',
+    "too_many_globstars": '"{pattern}": at most {limit} "**" in a pattern.',
     "invalid_type": "The type must be one of {types}.",
     "exists_not_folder": '"{path}" exists and is not a folder.',
     "not_found": '"{path}" does not exist.',
@@ -40,6 +41,9 @@ MESSAGES: Final = {
     "xmp_unsupported": "{name}: the XMP data has no rdf:Description, not changed.",
     "unreadable": "{name}: cannot read the image ({error}).",
     "invalid_fit": "The fit must be cover or contain.",
+    "too_large": (
+        "{name}: the picture is too large to prepare ({megapixels} megapixels, at most {limit})."
+    ),
 }
 
 

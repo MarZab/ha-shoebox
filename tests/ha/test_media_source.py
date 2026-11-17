@@ -60,7 +60,15 @@ async def test_play_a_picture(
 
 
 @pytest.mark.parametrize(
-    "path", ["local/other/c.jpg", "local/evening/missing.jpg", "../etc/passwd"]
+    "path",
+    [
+        "local/other/c.jpg",
+        "local/evening/missing.jpg",
+        "../etc/passwd",
+        "local/evening/.hidden.jpg",  # walks skip hidden names, so the rotation never shows it
+        "local/evening/link.jpg",  # nor links
+        "local/evening/notes.txt",
+    ],
 )
 async def test_only_pictures_of_the_rotation_are_served(
     hass: HomeAssistant,
@@ -69,7 +77,8 @@ async def test_only_pictures_of_the_rotation_are_served(
     hass_client: ClientSessionGenerator,
     path: str,
 ) -> None:
-    tree("evening/a.jpg", "other/c.jpg")
+    root = tree("evening/a.jpg", "evening/.hidden.jpg", "evening/notes.txt", "other/c.jpg")
+    (root / "evening/link.jpg").symlink_to(root / "other/c.jpg")
     client = await hass_client()
     response = await client.get(f"/api/shoebox/media/{rotation_id(with_rotation)}/{path}")
     assert response.status in (400, 404)

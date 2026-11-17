@@ -28,8 +28,8 @@ Patterns match paths, which start with the name of the media folder: `local/Fami
 | `re:summer` | paths that contain `summer` (a regular expression) |
 | `re:^local/Phone/IMG_\d+\.jpe?g$` | a regular expression matched against the whole path |
 
-- A glob (`*`, `**`, `?`, `[...]`) must match the whole path. `*` and `?` stay within one folder; `**` crosses folders; `**/` also matches no folder at all. A leading `/` is ignored.
-- `re:` followed by a [regular expression](https://docs.python.org/3/library/re.html) matches anywhere in the path; use `^` and `$` to match the whole path.
+- A glob (`*`, `**`, `?`, `[...]`) must match the whole path. `*` and `?` stay within one folder; `**` crosses folders; `**/` also matches no folder at all. A leading `/` is ignored. A pattern may have at most three `**`: each one multiplies the work of matching every path.
+- `re:` followed by a [regular expression](https://docs.python.org/3/library/re.html) matches anywhere in the path; use `^` and `$` to match the whole path. Every walk matches every path against it, so keep it simple: an expression such as `(a+)+$` can take seconds per path.
 - Matching is case-sensitive.
 
 Only pictures count: `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`, `.avif`, `.gif`, `.bmp`, `.tif` and `.tiff`. Hidden files and folders (names starting with `.`) and symbolic links are skipped.

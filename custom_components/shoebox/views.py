@@ -19,8 +19,9 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from . import imaging, media, upload
+from . import imaging, upload
 from .const import (
+    CONF_PATTERNS,
     DEVICE_IMAGE_URL,
     DOMAIN,
     DOWNLOAD_URL,
@@ -154,9 +155,8 @@ class MediaView(HomeAssistantView):
             rotation = entry.subentries.get(rotation_id)
             if rotation is None:
                 return self.json_message("no such rotation", 404)
-            entries = await shoebox.run(shoebox.library.walk)
-            files = media.select_pictures(entries, rotation.data.get("patterns", []))
-            if path not in files:
+            patterns = rotation.data.get(CONF_PATTERNS, [])
+            if not await shoebox.run(shoebox.library.selects, path, patterns):
                 return self.json_message("not a picture of this rotation", 404)
             if thumb:
                 variant = await shoebox.picture(path, 320, 320, "cover")

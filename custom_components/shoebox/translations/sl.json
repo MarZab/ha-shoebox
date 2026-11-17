@@ -320,6 +320,12 @@
     },
     "media_folder_missing": {
       "message": "Mapa z mediji \"{folder}\" manjka ali ni več nastavljena."
+    },
+    "too_large": {
+      "message": "{name}: slika je prevelika za pripravo ({megapixels} milijonov pik, največ {limit})."
+    },
+    "too_many_globstars": {
+      "message": "\"{pattern}\": vzorec ima lahko največ {limit} \"**\"."
     }
   }
 }

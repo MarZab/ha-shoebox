@@ -16,7 +16,6 @@ from homeassistant.components.media_source import (
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 
-from . import media
 from .const import CONF_PATTERNS, DOMAIN, SUBENTRY_ROTATION, TITLE
 from .runtime import Shoebox
 
@@ -51,8 +50,8 @@ class ShoeboxMediaSource(MediaSource):
         return entries[0].runtime_data, rotations
 
     async def _pictures(self, shoebox: Shoebox, rotation: ConfigSubentry) -> list[str]:
-        entries = await self.hass.async_add_executor_job(shoebox.library.walk)
-        return media.select_pictures(entries, rotation.data.get(CONF_PATTERNS, []))
+        patterns = rotation.data.get(CONF_PATTERNS, [])
+        return await self.hass.async_add_executor_job(shoebox.library.pictures, patterns)
 
     @override
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:

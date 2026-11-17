@@ -320,6 +320,12 @@
     },
     "media_folder_missing": {
       "message": "The media folder \"{folder}\" is missing or no longer configured."
+    },
+    "too_large": {
+      "message": "{name}: the picture is too large to prepare ({megapixels} megapixels, at most {limit})."
+    },
+    "too_many_globstars": {
+      "message": "\"{pattern}\": at most {limit} \"**\" in a pattern."
     }
   }
 }

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 import io
 from pathlib import Path
+import struct
+import zlib
 
 from PIL import Image, ImageOps
 import pytest
@@ -87,7 +89,14 @@ def test_crop_keeps_other_xmp_fields(tmp_path: Path) -> None:
             "<c:CropRight>0.7</c:CropRight><c:CropBottom>0.8</c:CropBottom>",
             (0.1, 0.2, 0.7, 0.8),
         ),
+        (
+            "<c:HasCrop> True </c:HasCrop><c:CropLeft>\n 0.1 </c:CropLeft>"
+            "<c:CropTop>0.2</c:CropTop><c:CropRight>0.7</c:CropRight><c:CropBottom>0.8</c:CropBottom>",
+            (0.1, 0.2, 0.7, 0.8),
+        ),
         ("<c:HasCrop>False</c:HasCrop><c:CropLeft>0.1</c:CropLeft>", None),
+        # a crafted file: once this took hours of backtracking with Home Assistant stalled
+        ("<c:HasCrop>True</c:HasCrop><c:CropLeft>" + " " * 60_000, None),
         ("<c:HasCrop>True</c:HasCrop><c:CropLeft>x</c:CropLeft>", None),
         (  # right of left is not a crop
             "<c:HasCrop>True</c:HasCrop><c:CropLeft>0.5</c:CropLeft><c:CropTop>0</c:CropTop>"
@@ -99,6 +108,21 @@ def test_crop_keeps_other_xmp_fields(tmp_path: Path) -> None:
 def test_reads_crops_written_by_other_apps(xmp: str, expected: tuple[float, ...] | None) -> None:
     crop = imaging.parse_crop(f'<d xmlns:c="{imaging.CRS_NS}">{xmp}</d>')
     assert crop == (pytest.approx(expected) if expected else None)
+
+
+def test_crop_replaces_crafted_xmp_quickly(tmp_path: Path) -> None:
+    path = tmp_path / "a.jpg"
+    xmp = (
+        '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF>'
+        f'<rdf:Description xmlns:crs="{imaging.CRS_NS}"'
+        + " " * 30_000
+        + 'crs:HasCrop="True"><crs:CropLeft>'
+        + " " * 30_000
+        + "</rdf:Description></rdf:RDF></x:xmpmeta>"
+    )
+    Image.new("RGB", (20, 10)).save(path, "JPEG", xmp=xmp.encode())
+    imaging.set_crop(path, (0.0, 0.0, 0.5, 0.5))
+    assert imaging.get_crop(path) == pytest.approx((0.0, 0.0, 0.5, 0.5))
 
 
 # ---------------------------------------------------------------- the editor
@@ -209,6 +233,25 @@ def test_render_applies_crop_unless_told_not_to(tmp_path: Path) -> None:
         "blue",
         "white",
     ]
+
+
+def test_render_refuses_huge_pictures_before_decoding(tmp_path: Path) -> None:
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        )
+
+    # A tiny file that claims 8000 x 8000 pixels; its data is never decoded
+    header = struct.pack(">IIBBBBB", 8000, 8000, 8, 6, 0, 0, 0)
+    path = tmp_path / "bomb.png"
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(b""))
+        + chunk(b"IEND", b"")
+    )
+    with pytest.raises(ImageError, match="too large"):
+        imaging.render(path, 320, 320)
 
 
 def test_render_png_with_transparency(tmp_path: Path) -> None:

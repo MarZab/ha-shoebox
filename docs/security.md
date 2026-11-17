@@ -44,6 +44,10 @@ The device and media source views serve only pictures of rotations, prepared: ne
 
 Only files the browser declares as pictures, video or audio are accepted, up to 200 MB. File names are reduced to their last part, without control characters or leading dots.
 
+## Pictures from elsewhere
+
+A picture in a media folder may come from anywhere: an upload, a network share, a phone backup. Preparing one is bounded: pictures above 50 megapixels (after JPEG's reduced decoding) are refused before they are decoded, metadata is read only from the start of a JPEG, XMP above 256 KB is ignored, and the crop is parsed without patterns that backtrack. The media view checks the one picture asked for against the rotation instead of walking the folders.
+
 ## The cache
 
 The cache folder holds only files Shoebox made. Eviction and clearing remove only names that match its own pattern (64 hex digits and `.jpg`, or its temporary files).

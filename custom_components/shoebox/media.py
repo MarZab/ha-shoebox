@@ -124,6 +124,11 @@ def walk(root: Path) -> list[Entry]:
     return out
 
 
+# Each "**" multiplies the work of matching a path that almost matches: 4 take a millisecond on a
+# long path, 5 take seconds, and every walk matches every path.
+MAX_GLOBSTARS = 3
+
+
 def _glob_to_regex(pattern: str) -> str:
     out: list[str] = []
     i, n = 0, len(pattern)
@@ -165,6 +170,8 @@ def compile_pattern(pattern: str) -> re.Pattern[str]:
     """
     if not isinstance(pattern, str) or not pattern.strip():
         raise MediaError("empty_pattern")
+    if not pattern.startswith("re:") and len(re.findall(r"\*\*+", pattern)) > MAX_GLOBSTARS:
+        raise MediaError("too_many_globstars", pattern=pattern, limit=MAX_GLOBSTARS)
     try:
         if pattern.startswith("re:"):
             return re.compile(pattern[3:])
@@ -239,8 +246,10 @@ def shuffle_next(
     """
     if not files:
         return None, []
-    seen = [f for f in shown if f in set(files)]
-    left = [f for f in files if f not in set(seen)]
+    present = set(files)
+    seen = [f for f in shown if f in present]
+    seen_set = set(seen)
+    left = [f for f in files if f not in seen_set]
     if not left:
         seen = []
         left = [f for f in files if f != current] or list(files)

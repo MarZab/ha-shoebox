@@ -9,7 +9,7 @@ Assistant.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 import os
 from pathlib import Path
@@ -92,6 +92,22 @@ class Library:
                 out += [_prefixed(name, e) for e in media.walk(folder)]
         out.sort(key=lambda e: e.path)
         return out
+
+    def pictures(self, patterns: Sequence[str]) -> list[str]:
+        """The pictures these patterns select, sorted by path. Walks every folder: run it once."""
+        return media.select_pictures(self.walk(), patterns)
+
+    def selects(self, path: str, patterns: Sequence[str]) -> bool:
+        """Whether pictures(patterns) would include this path, without walking the folders."""
+        try:
+            real = self.resolve_file(path)
+        except MediaError:
+            return False
+        # as walk: no hidden names, no links on the way (the real path is the one given)
+        if self.relative(real) != path or any(p.startswith(".") for p in path.split("/")):
+            return False
+        entry = Entry(path, "image" if media.is_image(path) else "file", 0, 0)
+        return bool(media.select_pictures([entry], patterns))
 
     def list_folder(self, path: str = "") -> tuple[str, list[Entry]]:
         """One folder's folders and files; "" lists the media folders themselves."""

@@ -33,6 +33,13 @@ XMP_HEADER: Final = b"http://ns.adobe.com/xap/1.0/\x00"
 CRS_NS: Final = "http://ns.adobe.com/camera-raw-settings/1.0/"
 CROP_FIELDS: Final = ("CropLeft", "CropTop", "CropRight", "CropBottom")
 JPEG_QUALITY: Final = 85
+# Decoding is refused above this many pixels (after JPEG's reduced decoding): a small file can
+# claim a huge picture, and decoding one at full size takes gigabytes of memory.
+MAX_PIXELS: Final = 50_000_000
+# The metadata of a JPEG is read from the start of the file only, and XMP larger than this is
+# ignored: neither ever needs more, and both bound the work a crafted file can cause.
+HEAD_BYTES: Final = 1 << 20
+MAX_XMP: Final = 256 * 1024
 
 type Box = tuple[float, float, float, float]
 type Fit = Literal["cover", "contain"]
@@ -253,12 +260,14 @@ def rotate(path: Path, degrees: int) -> int:
 
 def _xmp_prefix(xmp: str) -> str | None:
     m = re.search(r'xmlns:([\w.-]+)\s*=\s*["\']' + re.escape(CRS_NS) + "[\"']", xmp)
-    return m.group(1) if m else None
+    return re.escape(m.group(1)) if m else None
 
 
 def parse_crop(xmp: str | bytes | None) -> Box | None:
     """(left, top, right, bottom) in fractions of the stored image, or None without a crop."""
     if not xmp:
+        return None
+    if len(xmp) > MAX_XMP:
         return None
     if isinstance(xmp, bytes):
         xmp = xmp.decode("utf-8", "replace")
@@ -268,10 +277,12 @@ def parse_crop(xmp: str | bytes | None) -> Box | None:
     text = xmp
 
     def field(name: str) -> str | None:
+        # The value is stripped here, not in the pattern: lazy and greedy whitespace around it
+        # backtracks for hours on a long run of spaces.
         m = re.search(rf'{p}:{name}\s*=\s*["\']([^"\']*)["\']', text) or re.search(
-            rf"<{p}:{name}>\s*([^<]*?)\s*</{p}:{name}>", text
+            rf"<{p}:{name}>([^<]*)</{p}:{name}>", text
         )
-        return m.group(1) if m else None
+        return m.group(1).strip() if m else None
 
     if (field("HasCrop") or "").lower() != "true":
         return None
@@ -279,16 +290,19 @@ def parse_crop(xmp: str | bytes | None) -> Box | None:
         left, top, right, bottom = (float(field(n) or "nan") for n in CROP_FIELDS)
     except ValueError:
         return None
+    if any(math.isnan(v) for v in (left, top, right, bottom)):  # before clamping: max(0, nan) is 0
+        return None
     box = (max(0.0, left), max(0.0, top), min(1.0, right), min(1.0, bottom))
-    if any(math.isnan(v) for v in box) or box[2] <= box[0] or box[3] <= box[1]:
+    if box[2] <= box[0] or box[3] <= box[1]:
         return None
     return box
 
 
 def _xmp_without_crop(xmp: str, p: str) -> str:
     for name in ("HasCrop", *CROP_FIELDS):
-        xmp = re.sub(rf'\s+{p}:{name}\s*=\s*(["\'])[^"\']*\1', "", xmp)
-        xmp = re.sub(rf"\s*<{p}:{name}>[^<]*</{p}:{name}>", "", xmp)
+        # (?<!\s): try each run of whitespace once from its start, not from every space in it
+        xmp = re.sub(rf'(?<!\s)\s+{p}:{name}\s*=\s*(["\'])[^"\']*\1', "", xmp)
+        xmp = re.sub(rf"(?<!\s)\s*<{p}:{name}>[^<]*</{p}:{name}>", "", xmp)
     return xmp
 
 
@@ -305,14 +319,18 @@ def _xmp_packet(attrs: str) -> str:
 
 
 def read_xmp(path: Path) -> str | None:
-    data = path.read_bytes()
+    with path.open("rb") as f:
+        data = f.read(HEAD_BYTES)
     if data[:2] != b"\xff\xd8":
         with Image.open(path) as im:
             raw = im.info.get("xmp")
         if isinstance(raw, bytes):
             return raw.decode("utf-8", "replace")
         return raw if isinstance(raw, str) else None
-    segs, _ = _jpeg_segments(data)
+    try:
+        segs, _ = _jpeg_segments(data)
+    except ImageError:  # metadata longer than the head: no crop is read
+        return None
     for seg in segs:
         if _is_xmp(seg):
             return seg[1][len(XMP_HEADER) :].decode("utf-8", "replace")
@@ -405,7 +423,9 @@ def info(path: Path) -> ImageInfo:
         with Image.open(path) as im:
             w, h = im.size
             fmt = im.format
-            o = _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
+            # Reading a PNG's EXIF decodes the whole picture: not for huge ones
+            huge = fmt != "JPEG" and w * h > MAX_PIXELS
+            o = 1 if huge else _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
     except Exception as err:  # Pillow raises several kinds for unreadable files
         raise ImageError("unreadable", name=path.name, error=err) from err
     if o >= 5:
@@ -441,6 +461,16 @@ def edit(
 # ---------------------------------------------------------------- preparing
 
 
+def _check_pixels(im: Image.Image, path: Path) -> None:
+    if im.width * im.height > MAX_PIXELS:
+        raise ImageError(
+            "too_large",
+            name=path.name,
+            megapixels=round(im.width * im.height / 1e6),
+            limit=MAX_PIXELS // 10**6,
+        )
+
+
 def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bool = True) -> bytes:
     """The picture as a baseline JPEG: crop, orientation, then cover or contain.
 
@@ -460,6 +490,8 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
     except Exception as err:  # Pillow raises several kinds for unreadable files
         raise ImageError("unreadable", name=path.name, error=err) from err
     with im:
+        if im.format != "JPEG":  # JPEG is checked after reduced decoding; PNG's EXIF decodes it all
+            _check_pixels(im, path)
         orientation = _valid_orientation(im.getexif().get(ORIENTATION_TAG, 1))
         sw, sh = im.size
         left, top, right, bottom = crop or (0.0, 0.0, 1.0, 1.0)
@@ -468,6 +500,7 @@ def render(path: Path, width: int, height: int, fit: Fit = "cover", use_crop: bo
         scale = (max if fit == "cover" else min)(width / dw, height / dh)
         if im.format == "JPEG" and scale < 1:  # decode at a reduced size where that is enough
             im.draft("RGB", (math.ceil(sw * scale), math.ceil(sh * scale)))
+        _check_pixels(im, path)
         out_im = im if im.mode in ("RGB", "L") else im.convert("RGB")
         if crop:
             w, h = out_im.size
