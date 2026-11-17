@@ -33,6 +33,13 @@ For JPEG pictures, the top bar turns the picture left or right, and **Crop** ope
 - **Aspect ratio** keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
 - **Save** stores the crop; **Reset** removes it.
 
+## Text files and downloads
+
+- Click a text file (notes, logs, `.csv`, `.json`, `.yaml`, subtitles, ...) to read it. Markdown files are shown formatted. Files are shown read-only; to edit them, use an editor such as the File editor app.
+- Files over 256 KB show their first 256 KB, with a note.
+- A file that is not text says so instead of showing garbage.
+- **Download** in the menu (⋮) of a file, or in the picture viewer, saves the original file to your computer or phone.
+
 ## Rotations
 
 The image button in the top bar switches to the rotations: each with its current picture, patterns, position and entity. **Next** moves a rotation on; the entity opens its details. **Manage rotations** goes to the integration's page in Settings, where rotations are added, changed and deleted (see [rotations](rotations.md)).

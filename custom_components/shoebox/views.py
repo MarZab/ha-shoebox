@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import BinaryIO
+from urllib.parse import quote
 
 from aiohttp import BodyPartReader, hdrs, web
 from homeassistant.components.http import (
@@ -22,6 +23,7 @@ from . import imaging, media, upload
 from .const import (
     DEVICE_IMAGE_URL,
     DOMAIN,
+    DOWNLOAD_URL,
     ENTITY_SIZE,
     MAX_SIDE,
     MAX_UPLOAD_BYTES,
@@ -163,6 +165,29 @@ class MediaView(HomeAssistantView):
         except HomeAssistantError as err:
             return self.json_message(str(err), 404)
         return jpeg(variant.data, variant.key, 3600)
+
+
+class DownloadView(HomeAssistantView):
+    """A file from the chosen media folders, as it is: ?path=<path>. Admins only, like the panel.
+
+    The panel saves files through a signed URL, and reads the start of text files with a Range
+    request through fetchWithAuth.
+    """
+
+    url = DOWNLOAD_URL
+    name = "api:shoebox:download"
+    requires_auth = True
+
+    @require_admin
+    async def get(self, request: web.Request) -> web.StreamResponse:
+        hass = request.app[KEY_HASS]
+        try:
+            shoebox = loaded_shoebox(hass)
+            real = await shoebox.run(shoebox.library.resolve_file, request.query.get("path", ""))
+        except HomeAssistantError as err:
+            return self.json_message(str(err), 404)
+        disposition = f"attachment; filename*=UTF-8''{quote(real.name)}"
+        return web.FileResponse(real, headers={hdrs.CONTENT_DISPOSITION: disposition})
 
 
 class _TooLarge(Exception):

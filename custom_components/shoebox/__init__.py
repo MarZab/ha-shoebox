@@ -15,7 +15,7 @@ from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION, SUBENTRY_ROTATION
 from .panel import async_register_panel, async_remove_panel, async_serve_frontend
 from .runtime import Shoebox, chosen_folders, variant_cache
 from .services import async_setup_services
-from .views import DeviceImageView, MediaView, RenderView, UploadView
+from .views import DeviceImageView, DownloadView, MediaView, RenderView, UploadView
 from .websocket import async_setup_websocket
 
 DATA_FRONTEND_VERSION: HassKey[str] = HassKey(f"{DOMAIN}_frontend_version")
@@ -33,6 +33,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.http.register_view(UploadView())
     hass.http.register_view(DeviceImageView())
     hass.http.register_view(MediaView())
+    hass.http.register_view(DownloadView())
     hass.data[DATA_FRONTEND_VERSION] = await async_serve_frontend(hass)
     return True
 

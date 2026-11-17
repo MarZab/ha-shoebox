@@ -29,6 +29,7 @@ Delete is final; the panel asks first.
 | Panel and its WebSocket commands | administrators |
 | Render view (panel pictures) | administrators, also through signed URLs |
 | Upload view | administrators |
+| Download view (original files) | administrators, also through signed URLs |
 | Device view (`/api/shoebox/image/<entity_id>`) | any logged-in user or long-lived token |
 | Media source view (`/api/shoebox/media/...`) | any logged-in user, also through URLs Home Assistant signs for media players |
 

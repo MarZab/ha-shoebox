@@ -24,6 +24,7 @@ PANEL_ELEMENT: Final = "shoebox-panel"
 STATIC_URL: Final = "/shoebox_static"
 RENDER_URL: Final = "/api/shoebox/render"
 UPLOAD_URL: Final = "/api/shoebox/upload"
+DOWNLOAD_URL: Final = "/api/shoebox/download"
 # How long the panel's picture URLs work; it asks for new ones whenever it lists a folder again
 PANEL_URL_LIFETIME_S: Final = 3600
 MAX_SIDE: Final = 4096

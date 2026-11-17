@@ -16,6 +16,7 @@ from custom_components.shoebox.const import (
     CONF_CACHE_SIZE,
     CONF_CLEAR_CACHE,
     CONF_SHOW_IN_SIDEBAR,
+    DOWNLOAD_URL,
     RENDER_URL,
     UPLOAD_URL,
 )
@@ -221,6 +222,22 @@ async def test_everything_is_admin_only(
         await client.get(RENDER_URL, params={"path": "local/a.jpg", "size": "10x10"})
     ).status == 401
     assert (await client.post(UPLOAD_URL, params={"folder": "local"}, data=form())).status == 401
+    assert (await client.get(DOWNLOAD_URL, params={"path": "local/a.jpg"})).status == 401
     ws = await hass_ws_client(access_token=hass_read_only_access_token)
     await ws.send_json_auto_id({"type": "shoebox/folders"})
     assert (await ws.receive_json())["error"]["code"] == "unauthorized"
+
+
+async def test_download_gives_the_original_file(client: TestClient, media_root: Path) -> None:
+    (media_root / "Notes").mkdir()
+    (media_root / "Notes/a b.txt").write_bytes(b"original")
+    response = await client.get(DOWNLOAD_URL, params={"path": "local/Notes/a b.txt"})
+    assert response.status == 200
+    assert await response.read() == b"original"
+    assert response.headers["Content-Disposition"] == "attachment; filename*=UTF-8''a%20b.txt"
+    start = await client.get(  # how the panel reads the start of a text file
+        DOWNLOAD_URL, params={"path": "local/Notes/a b.txt"}, headers={"Range": "bytes=0-3"}
+    )
+    assert (start.status, await start.read()) == (206, b"orig")
+    assert start.headers["Content-Range"] == "bytes 0-3/8"
+    assert (await client.get(DOWNLOAD_URL, params={"path": "local/missing.txt"})).status == 404

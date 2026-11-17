@@ -19,6 +19,9 @@ const ASPECTS = [
   ["free", null], ["original", "original"], ["1:1", 1], ["4:3", 4 / 3], ["3:4", 3 / 4], ["16:9", 16 / 9],
   ["9:16", 9 / 16], ["640×800", 640 / 800],
 ];
+const DOWNLOAD_URL = "/api/shoebox/download";
+const TEXT_LIMIT = 256 * 1024;
+const MARKDOWN = /\.(md|markdown)$/i;
 const VIDEO = /\.(mp4|m4v|mov|webm|mkv)$/i;
 const AUDIO = /\.(mp3|m4a|aac|flac|ogg|oga|opus|wav)$/i;
 
@@ -28,6 +31,8 @@ const parent = (p) => (String(p).includes("/") ? String(p).slice(0, String(p).la
 const icon = (name, slot = "") => `<ha-icon ${slot ? `slot="${slot}"` : ""} icon="${name}"></ha-icon>`;
 const iconButton = (name, label, attrs = "") =>
   `<ha-icon-button label="${esc(label)}" ${attrs}>${icon(name)}</ha-icon-button>`;
+// other files open as text; the server refuses binary ones with a message
+const previewable = (it) => it.type === "file" && !VIDEO.test(it.name) && !AUDIO.test(it.name);
 const sizeText = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} kB` : `${(n / 1048576).toFixed(1)} MB`);
 
 const STYLE = `
@@ -112,6 +117,9 @@ const STYLE = `
   .previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin-top: var(--ha-space-2, 8px); }
   .previews img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--ha-border-radius-sm, 4px); background: var(--secondary-background-color); }
   ha-input { display: block; }
+  pre.text { margin: 0; padding: var(--ha-space-3, 12px); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 70vh; overflow: auto;
+    font-family: var(--ha-font-family-code, monospace); font-size: var(--ha-font-size-s, 12px); background: var(--secondary-background-color);
+    border-radius: var(--ha-border-radius-sm, 4px); }
   [hidden] { display: none !important; }
 `;
 
@@ -270,12 +278,14 @@ class ShoeboxPanel extends HTMLElement {
       const item = this._items[Number(tile.dataset.i)];
       if (item.type === "folder") this._navigate("files", item.path);
       else if (item.type === "image") this._openViewer(item);
+      else if (previewable(item)) this._openText(item);
     }
   }
 
   _menu(e, item) {
     const v = e.detail?.item?.value;
-    if (v === "open") item.type === "folder" ? this._navigate("files", item.path) : this._openViewer(item);
+    if (v === "open") item.type === "folder" ? this._navigate("files", item.path) : item.type === "image" ? this._openViewer(item) : this._openText(item);
+    else if (v === "download") this._download(item);
     else if (v === "rename") this._rename(item);
     else if (v === "move") this._move(item);
     else if (v === "delete") this._delete(item);
@@ -317,7 +327,8 @@ class ShoeboxPanel extends HTMLElement {
           <div class="label"><span class="name">${esc(it.name)}</span>
             ${top ? "" : `<ha-dropdown data-i="${i}" placement="bottom-end">
               ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
-              ${it.type !== "file" ? `<ha-dropdown-item value="open">${icon(it.type === "folder" ? "mdi:folder-open-outline" : "mdi:image-outline", "icon")}${esc(t("open"))}</ha-dropdown-item>` : ""}
+              ${it.type !== "file" || previewable(it) ? `<ha-dropdown-item value="open">${icon(it.type === "folder" ? "mdi:folder-open-outline" : it.type === "image" ? "mdi:image-outline" : "mdi:text-box-outline", "icon")}${esc(t("open"))}</ha-dropdown-item>` : ""}
+              ${it.type !== "folder" ? `<ha-dropdown-item value="download">${icon("mdi:download-outline", "icon")}${esc(t("download"))}</ha-dropdown-item>` : ""}
               <ha-dropdown-item value="rename">${icon("mdi:rename-outline", "icon")}${esc(t("rename"))}</ha-dropdown-item>
               <ha-dropdown-item value="move">${icon("mdi:folder-move-outline", "icon")}${esc(t("move"))}</ha-dropdown-item>
               <ha-dropdown-item value="delete" variant="danger">${icon("mdi:delete-outline", "icon")}${esc(t("delete"))}</ha-dropdown-item>
@@ -489,6 +500,7 @@ class ShoeboxPanel extends HTMLElement {
       ${iconButton("mdi:crop", t("crop"), 'slot="headerActionItems" data-v="crop" class="ed"')}
       <ha-dropdown slot="headerActionItems" placement="bottom-end" id="more">
         ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
+        <ha-dropdown-item value="download">${icon("mdi:download-outline", "icon")}${esc(t("download"))}</ha-dropdown-item>
         <ha-dropdown-item value="rename">${icon("mdi:rename-outline", "icon")}${esc(t("rename"))}</ha-dropdown-item>
         <ha-dropdown-item value="move">${icon("mdi:folder-move-outline", "icon")}${esc(t("move"))}</ha-dropdown-item>
         <ha-dropdown-item value="delete" variant="danger">${icon("mdi:delete-outline", "icon")}${esc(t("delete"))}</ha-dropdown-item>
@@ -588,11 +600,79 @@ class ShoeboxPanel extends HTMLElement {
     dlg.querySelector("#more").addEventListener("wa-select", (e) => {
       const v = e.detail?.item?.value;
       const it = { ...current, type: "image" };
-      if (v === "rename") this._rename(it, (p) => p && load({ ...current, path: p, name: base(p) }));
+      if (v === "download") this._download(it);
+      else if (v === "rename") this._rename(it, (p) => p && load({ ...current, path: p, name: base(p) }));
       else if (v === "move") this._move(it, () => dlg.close());
       else if (v === "delete") this._delete(it, () => dlg.close());
     });
     load(item);
+  }
+
+  // ------------------------------------------------------------------ text files and downloads
+
+  async _openText(item) {
+    const t = this.t;
+    const header = iconButton("mdi:download-outline", t("download"), 'slot="headerActionItems" data-v="download"');
+    const dlg = this._dialog({ title: item.name, width: "large", header, body: `<div id="body"><div class="center"><ha-spinner></ha-spinner></div></div>`, footer: false });
+    dlg.querySelector('[data-v="download"]').addEventListener("click", () => this._download(item));
+    const body = dlg.querySelector("#body");
+    try {
+      const { text, size, shown } = await this._readText(item);
+      body.innerHTML = shown < size
+        ? `<ha-alert alert-type="info">${esc(t("text_truncated", { shown: sizeText(shown), size: sizeText(size) }))}</ha-alert>`
+        : "";
+      if (MARKDOWN.test(item.name) && customElements.get("ha-markdown")) {
+        const md = document.createElement("ha-markdown");
+        md.content = text;
+        md.breaks = true;
+        body.append(md);
+      } else {
+        const pre = document.createElement("pre");
+        pre.className = "text";
+        pre.textContent = text;
+        body.append(pre);
+      }
+    } catch (err) {
+      body.innerHTML = `<ha-alert alert-type="warning">${esc(err.message || err)}</ha-alert>`;
+    }
+  }
+
+  // The start of a file through the download view, as Home Assistant's frontend reads files:
+  // fetchWithAuth, with a Range request so large files cost no more than TEXT_LIMIT.
+  async _readText(item) {
+    const r = await this._hass.fetchWithAuth(`${DOWNLOAD_URL}?path=${encodeURIComponent(item.path)}`, {
+      headers: { Range: `bytes=0-${TEXT_LIMIT - 1}` },
+    });
+    if (r.status === 416) return { text: "", size: 0, shown: 0 }; // an empty file has no range
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || r.statusText);
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    const size = Number((r.headers.get("Content-Range") || "").split("/")[1]) || bytes.length;
+    if (bytes.includes(0)) throw new Error(this.t("not_text"));
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    // a character cut at the end of the range is dropped, not taken for binary data
+    for (let cut = 0; cut <= (size > bytes.length ? 3 : 0); cut++) {
+      try {
+        return { text: decoder.decode(bytes.subarray(0, bytes.length - cut)), size, shown: bytes.length };
+      } catch {
+        // try one byte shorter
+      }
+    }
+    throw new Error(this.t("not_text"));
+  }
+
+  async _download(item) {
+    try {
+      const url = `${DOWNLOAD_URL}?path=${encodeURIComponent(item.path)}`;
+      const signed = await this._hass.callWS({ type: "auth/sign_path", path: url, expires: 60 });
+      const a = document.createElement("a");
+      a.href = signed.path;
+      a.download = item.name;
+      document.body.append(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      this._error(err);
+    }
   }
 
   _refreshThumb(path) {
