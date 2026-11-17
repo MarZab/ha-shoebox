@@ -15,7 +15,7 @@ services:
       - TZ=Europe/Ljubljana
     volumes:
       - ./ha-config:/config
-      - ../custom_components/shoebox:/config/custom_components/shoebox:ro
+      - ../../custom_components/shoebox:/config/custom_components/shoebox:ro
       - ./media:/media
     ports:
       - "8123:8123"

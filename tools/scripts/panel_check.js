@@ -5,7 +5,7 @@ const { chromium } = require("playwright");
 const fs = require("fs");
 
 const BASE = process.env.HA_URL || "http://localhost:8123";
-const OUT = process.argv[2] || "docker/screenshots";
+const OUT = process.argv[2] || "tools/docker/screenshots";
 const PANEL = fs.readFileSync("custom_components/shoebox/frontend/shoebox-panel.js", "utf8");
 const ELEMENTS = [...new Set(PANEL.match(/"(ha-[a-z-]+)"/g).map((s) => s.slice(1, -1)))];
 const RUNS = [

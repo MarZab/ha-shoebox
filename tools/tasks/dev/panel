@@ -5,4 +5,4 @@ mise run dev:token >/dev/null  # onboards the dev Home Assistant as dev/dev on f
 if [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ -d /opt/ms-playwright ]; then
   export PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 fi
-NODE_PATH="$(npm root -g)" exec node tools/scripts/panel_check.js docker/screenshots "$@"
+NODE_PATH="$(npm root -g)" exec node tools/scripts/panel_check.js tools/docker/screenshots "$@"

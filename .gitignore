@@ -10,9 +10,9 @@ htmlcov/
 .cache/
 
 # Docker dev stack
-docker/ha-config/
-docker/media/
-docker/screenshots/
+tools/docker/ha-config/
+tools/docker/media/
+tools/docker/screenshots/
 
 # Local
 .env

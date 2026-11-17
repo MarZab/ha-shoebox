@@ -40,14 +40,14 @@ Tasks are scripts in `tools/tasks/`; `mise tasks` lists them. Arguments after `-
 mise run dev:up       # http://localhost:8123
 ```
 
-- Docker runs the official Home Assistant image at the pinned version, with the configuration in `docker/ha-config/`.
+- Docker runs the official Home Assistant image at the pinned version, with the configuration in `tools/docker/ha-config/`.
 - The integration is mounted read-only; `mise run dev:restart` loads your changes.
-- `docker/media/` is mounted as the media folder `local` (My media). `tools/scripts/sample_media.py` fills it on the first start: JPEGs with EXIF orientations (one sideways, one upside down), a PNG, a HEIC, a text file and nested folders. Every picture shows its name and an arrow to its top. Delete the folder to get fresh samples.
+- `tools/docker/media/` is mounted as the media folder `local` (My media). `tools/scripts/sample_media.py` fills it on the first start: JPEGs with EXIF orientations (one sideways, one upside down), a PNG, a HEIC, a text file and nested folders. Every picture shows its name and an arrow to its top. Delete the folder to get fresh samples.
 - `mise run dev:token` onboards a fresh Home Assistant with the owner **dev** / **dev** and prints an access token, for `curl` and scripts.
 
 ## Checking the panel
 
-`mise run dev:panel` logs in as dev, opens the panel in light and dark themes and at phone width, fails on a missing Home Assistant element or a console error, and saves screenshots to `docker/screenshots/`. It needs Node.js with Playwright and Chromium.
+`mise run dev:panel` logs in as dev, opens the panel in light and dark themes and at phone width, fails on a missing Home Assistant element or a console error, and saves screenshots to `tools/docker/screenshots/`. It needs Node.js with Playwright and Chromium.
 
 After changing the panel, also walk these by hand (or with Playwright):
 
@@ -65,7 +65,7 @@ After changing the panel, also walk these by hand (or with Playwright):
 
 ## Screenshots
 
-The panel screenshot in the README shows real photos: `uv run python tools/scripts/screenshot_photos.py docker/media` downloads them (Unsplash photos through picsum.photos, free to use) into *Photos/Summer 2025*. Take the panel and editor screenshots at 960 × 760 with the sidebar docked (871 to 975 px keeps it docked with three thumbnails a row) and twice the pixel density, and save them as JPEG. The quick start's two screenshots show the add-rotation dialog filled in (*Living room*, `local/Photos/**`) and a dashboard with a picture entity card and a tile for its Next button.
+The panel screenshot in the README shows real photos: `uv run python tools/scripts/screenshot_photos.py tools/docker/media` downloads them (Unsplash photos through picsum.photos, free to use) into *Photos/Summer 2025*. Take the panel and editor screenshots at 960 × 760 with the sidebar docked (871 to 975 px keeps it docked with three thumbnails a row) and twice the pixel density, and save them as JPEG. The quick start's two screenshots show the add-rotation dialog filled in (*Living room*, `local/Photos/**`) and a dashboard with a picture entity card and a tile for its Next button.
 
 ## Repository
 
@@ -74,7 +74,7 @@ The panel screenshot in the README shows real photos: `uv run python tools/scrip
 | `custom_components/shoebox/` | the integration (see [architecture](architecture.md)) |
 | `tests/` | pytest (see [testing](testing.md)) |
 | `docs/` | user and developer documentation |
-| `docker/` | the local Home Assistant |
+| `tools/docker/` | the local Home Assistant: compose file, and its configuration, media and screenshots (not in Git) |
 | `tools/tasks/` | mise tasks |
 | `tools/scripts/` | sample media, screenshot photos, brand icon, dev token, panel check, release |
 | `backlog/` | tasks and milestones ([Backlog.md](https://github.com/MrLesk/Backlog.md)) |
