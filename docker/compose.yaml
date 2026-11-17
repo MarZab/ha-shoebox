@@ -1,0 +1,21 @@
+# Local Home Assistant for trying Shoebox by hand. Start it with `mise run dev:up`,
+# which sets HA_VERSION to the Home Assistant the tests run on.
+#
+# http://localhost:8123 - on first start, create the owner account.
+# The integration is mounted read-only; `mise run dev:restart` picks up edits.
+
+name: shoebox-dev
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION:?start through mise run dev:up}
+    container_name: shoebox-ha
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Ljubljana
+    volumes:
+      - ./ha-config:/config
+      - ../custom_components/shoebox:/config/custom_components/shoebox:ro
+      - ./media:/media
+    ports:
+      - "8123:8123"

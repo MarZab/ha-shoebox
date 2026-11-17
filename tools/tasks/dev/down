@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Stop the dev Home Assistant"
+set -euo pipefail
+source "$(dirname "$0")/_env"
+compose down "$@"

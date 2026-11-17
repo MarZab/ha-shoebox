@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Pull the Home Assistant image the tests run on"
+set -euo pipefail
+source "$(dirname "$0")/_env"
+compose pull "$@"

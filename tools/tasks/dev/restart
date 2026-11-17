@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Restart Home Assistant to pick up integration edits"
+set -euo pipefail
+source "$(dirname "$0")/_env"
+compose restart homeassistant "$@"

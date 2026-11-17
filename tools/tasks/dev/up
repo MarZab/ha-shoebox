@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Start Home Assistant on :8123 with Shoebox and sample media"
+set -euo pipefail
+source "$(dirname "$0")/_env"
+compose up -d "$@"

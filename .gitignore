@@ -10,6 +10,7 @@ htmlcov/
 
 # Docker dev stack
 docker/ha-config/
+docker/media/
 
 # Local
 .env

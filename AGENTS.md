@@ -55,6 +55,7 @@ mise run format       # ruff fix + format
 mise run dev:up       # Home Assistant in Docker at http://localhost:8123
 mise run dev:restart  # pick up integration edits
 mise run dev:logs     # tail HA logs
+mise run dev:down     # stop it
 ```
 
 Without mise: `uv run pytest`, `uv run ruff check .`, `uv run mypy`.

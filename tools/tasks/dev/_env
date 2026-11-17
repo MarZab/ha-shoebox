@@ -1,0 +1,5 @@
+# Sourced by the dev tasks: the Home Assistant version the tests run on, and sample media.
+HA_VERSION=$(uv run --quiet python -c "from homeassistant.const import __version__; print(__version__)")
+export HA_VERSION
+[ -d docker/media ] || uv run --quiet python tools/scripts/sample_media.py docker/media
+compose() { docker compose -f docker/compose.yaml "$@"; }
