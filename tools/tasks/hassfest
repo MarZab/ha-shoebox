@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
-#MISE description="Validate the integration with Home Assistant's hassfest, as CI does"
+#MISE description="Validate the integration with hassfest of the latest Home Assistant, as CI does"
 set -euo pipefail
 repo=$PWD
-version=$(uv run --quiet python -c "from homeassistant.const import __version__; print(__version__)")
+# The latest stable Home Assistant, as CI runs hassfest on a current one: the manifest may use
+# keys (such as categories) newer than the version the tests are pinned to. HASSFEST_VERSION
+# picks another release.
+version=${HASSFEST_VERSION:-$(git ls-remote --tags --refs https://github.com/home-assistant/core.git 'refs/tags/20*' \
+  | sed 's#.*refs/tags/##' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)}
 core="$repo/.cache/hassfest/core-$version"
-venv="$repo/.cache/hassfest/venv"
+venv="$repo/.cache/hassfest/venv-$version"
 if [ ! -d "$core" ]; then
   git clone --quiet --depth 1 --branch "$version" https://github.com/home-assistant/core.git "$core"
 fi
 if [ ! -d "$venv" ]; then
-  # hassfest runs on the Home Assistant installed in .venv, plus what only hassfest needs
+  # hassfest runs on that release of Home Assistant, plus what only hassfest needs
   uv venv --quiet --python 3.14 "$venv"
-  echo "$repo/.venv/lib/python3.14/site-packages" > "$venv/lib/python3.14/site-packages/shoebox-dev.pth"
-  VIRTUAL_ENV="$venv" uv pip install --quiet infrared_protocols pipdeptree tqdm
+  VIRTUAL_ENV="$venv" uv pip install --quiet "homeassistant==$version" infrared_protocols pipdeptree tqdm
+  # since 2026.11 hassfest is a package of its own, inside core
+  if [ -d "$core/packages/hassfest" ]; then
+    VIRTUAL_ENV="$venv" uv pip install --quiet "$core/packages/hassfest"
+  fi
 fi
 cd "$core"
 PATH="$venv/bin:$repo/.venv/bin:$PATH" "$venv/bin/python" -m script.hassfest \

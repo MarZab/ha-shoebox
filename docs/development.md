@@ -32,7 +32,7 @@ Tasks are scripts in `tools/tasks/`; `mise tasks` lists them. Arguments after `-
 | `dev:token` | an access token for scripted checks |
 | `dev:panel` | the panel in a headless browser, with screenshots |
 
-`hassfest` keeps a checkout of Home Assistant's source at the pinned version in `.cache/hassfest/`.
+`hassfest` runs Home Assistant's validation of the latest stable release, as CI runs a current one: the manifest may use keys newer than the version the tests are pinned to, such as `categories`. It keeps that release's source and an environment with it in `.cache/hassfest/`; `HASSFEST_VERSION=2026.11.2 mise run hassfest` picks a release.
 
 ## Local Home Assistant
 

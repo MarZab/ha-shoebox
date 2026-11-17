@@ -1,6 +1,10 @@
 {
   "domain": "shoebox",
   "name": "Shoebox Media Manager",
+  "categories": [
+    "productivity_information.documents_photos",
+    "media_entertainment"
+  ],
   "codeowners": [
     "@MarZab"
   ],
