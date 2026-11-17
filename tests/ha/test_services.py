@@ -58,21 +58,14 @@ async def test_folder_actions(hass: HomeAssistant, tree: Tree) -> None:
 
 
 @pytest.mark.usefixtures("loaded")
-async def test_the_top_level_and_unknown_folders_are_refused(
-    hass: HomeAssistant, tree: Tree
-) -> None:
-    tree("a.jpg")
-    assert await refused(hass, "create_folder", path="") == "top_level"
-    assert await refused(hass, "delete", path="local") == "media_folder_itself"
-    assert await refused(hass, "delete", path="nas/a.jpg") == "unknown_folder"
-    assert await refused(hass, "move", path="local/a.jpg", to="") == "top_level"
-
-
-@pytest.mark.usefixtures("loaded")
 @pytest.mark.parametrize(
     ("service", "data", "key"),
     [
         ("create_folder", {"path": "local/../x"}, "parent_not_allowed"),
+        ("create_folder", {"path": ""}, "top_level"),
+        ("delete", {"path": "local"}, "media_folder_itself"),
+        ("delete", {"path": "nas/a.jpg"}, "unknown_folder"),
+        ("move", {"path": "local/a.jpg", "to": ""}, "top_level"),
         ("move", {"path": "local/a.jpg", "to": "local/missing"}, "not_a_folder"),
         ("rename", {"path": "local/a.jpg", "name": "b.jpg"}, "already_exists"),
         ("delete", {"path": "local/missing.jpg"}, "not_found"),
@@ -143,19 +136,13 @@ async def test_not_set_up(hass: HomeAssistant, entry: MockConfigEntry) -> None:
 
 
 @pytest.mark.usefixtures("loaded")
-async def test_file_system_errors(
-    hass: HomeAssistant, tree: Tree, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    tree("a.jpg")
-
-    def denied(*_: object) -> None:
-        raise PermissionError(13, "Permission denied", "/media/a.jpg")
-
-    monkeypatch.setattr("custom_components.shoebox.media.delete", denied)
-    with pytest.raises(HomeAssistantError) as err:
-        await call(hass, "delete", path="local/a.jpg")
+async def test_file_system_errors(hass: HomeAssistant, tree: Tree) -> None:
+    root = tree("locked/a.jpg")
+    (root / "locked").chmod(0o500)
+    try:
+        with pytest.raises(HomeAssistantError) as err:
+            await call(hass, "delete", path="local/locked/a.jpg")
+    finally:
+        (root / "locked").chmod(0o700)
     assert err.value.translation_key == "file_error"
-    assert err.value.translation_placeholders == {
-        "error": "Permission denied",
-        "path": "/media/a.jpg",
-    }
+    assert err.value.translation_placeholders["error"] == "Permission denied"

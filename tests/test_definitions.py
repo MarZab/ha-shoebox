@@ -65,7 +65,7 @@ def panel_texts() -> dict[str, dict[str, str]]:
     }
 
 
-def test_panel_languages_have_the_same_texts() -> None:
+def test_panel_texts_exist_in_both_languages() -> None:
     texts = panel_texts()
     assert set(texts) == {"en", "sl"}
     assert texts["en"].keys() == texts["sl"].keys()
@@ -73,9 +73,5 @@ def test_panel_languages_have_the_same_texts() -> None:
         assert set(re.findall(r"\{(\w+)\}", english)) == set(
             re.findall(r"\{(\w+)\}", texts["sl"][key])
         ), key
-
-
-def test_panel_uses_only_known_texts() -> None:
     code = "".join((PACKAGE / f"frontend/{n}").read_text() for n in ("shoebox-panel.js", "crop.js"))
-    used = set(re.findall(r"""\bt\(\s*["'](\w+)["']""", code))
-    assert used <= panel_texts()["en"].keys()
+    assert set(re.findall(r"""\bt\(\s*["'](\w+)["']""", code)) <= texts["en"].keys()

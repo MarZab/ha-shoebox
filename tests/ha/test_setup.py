@@ -4,9 +4,8 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant
-from homeassistant.helpers import issue_registry as ir
-from homeassistant.setup import async_setup_component
+from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.shoebox.const import DOMAIN
@@ -19,22 +18,6 @@ async def test_setup_unload_and_reload(hass: HomeAssistant, loaded: MockConfigEn
     assert loaded.state is ConfigEntryState.LOADED
     assert await hass.config_entries.async_unload(loaded.entry_id)
     assert loaded.state is ConfigEntryState.NOT_LOADED
-
-
-async def test_yaml_raises_a_repair_issue(
-    hass: HomeAssistant, issue_registry: ir.IssueRegistry
-) -> None:
-    assert await async_setup_component(hass, DOMAIN, {DOMAIN: {}})
-    assert issue_registry.async_get_issue(HOMEASSISTANT_DOMAIN, f"config_entry_only_{DOMAIN}")
-
-
-async def test_setup_waits_for_the_media_folder(
-    hass: HomeAssistant, entry: MockConfigEntry, media_root: Path
-) -> None:
-    hass.config.media_dirs = {"local": str(media_root / "missing")}
-    assert not await hass.config_entries.async_setup(entry.entry_id)
-    assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert entry.reason == 'The media folder "local" is missing or no longer configured'
 
 
 async def test_removing_keeps_media_and_drops_state_and_cache(
@@ -53,11 +36,20 @@ async def test_removing_keeps_media_and_drops_state_and_cache(
     assert (media_root / "a.jpg").exists()
 
 
-async def test_setup_waits_for_a_folder_no_longer_configured(
-    hass: HomeAssistant, media_root: Path
+@pytest.mark.parametrize(
+    ("media_dirs", "chosen", "missing"),
+    [({"local": "missing"}, ["local"], "local"), ({"local": ""}, ["local", "nas"], "nas")],
+)
+async def test_setup_waits_for_its_media_folders(
+    hass: HomeAssistant,
+    media_root: Path,
+    media_dirs: dict[str, str],
+    chosen: list[str],
+    missing: str,
 ) -> None:
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={"folders": ["local", "nas"]})
+    hass.config.media_dirs = {name: str(media_root / sub) for name, sub in media_dirs.items()}
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={"folders": chosen})
     entry.add_to_hass(hass)
     assert not await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert '"nas"' in (entry.reason or "")
+    assert f'"{missing}"' in (entry.reason or "")

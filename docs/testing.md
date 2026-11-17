@@ -31,8 +31,4 @@ Quadrant pictures are red, green, blue and white in their four corners, so a tes
 
 ## Writing tests
 
-- One behaviour per test, named after the behaviour; parametrize instead of copying.
-- Most coverage comes from the modules without Home Assistant. Home Assistant tests check the wiring: one happy path and one refusal per action, view or command.
-- No network and no sleeping.
-- A bug fix starts with a test that fails.
-- The panel's JavaScript has no unit tests; check it with `mise run dev:panel` and the [checklist](development.md#checking-the-panel).
+Follow the [testing policy](../AGENTS.md#tests): behaviour at public boundaries, table-driven, a few cases per feature, no mocks of our own code, no tests only for coverage.

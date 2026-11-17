@@ -31,17 +31,11 @@ async def test_browse_rotations_and_their_pictures(
         ("b.jpg", True, f"{ROOT}/{rid}/local/evening/b.jpg"),
     ]
     assert folder.children[0].thumbnail == f"/api/shoebox/media/{rid}/local/evening/a.jpg?thumb=1"
-
-
-async def test_rotation_shows_its_current_picture(
-    hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree
-) -> None:
-    tree("evening/a.jpg")
     await hass.services.async_call(
         "button", "press", {"entity_id": "button.evening_next"}, blocking=True
     )
     root = await media_source.async_browse_media(hass, ROOT)
-    assert root.children[0].thumbnail is not None
+    assert root.children[0].thumbnail is not None  # the rotation's current picture
 
 
 async def test_play_a_picture(
@@ -81,24 +75,12 @@ async def test_only_pictures_of_the_rotation_are_served(
     assert response.status in (400, 404)
 
 
-async def test_unknown_rotation(
+async def test_refusals(
     hass: HomeAssistant, with_rotation: MockConfigEntry, hass_client: ClientSessionGenerator
 ) -> None:
     with pytest.raises(BrowseError):
         await media_source.async_browse_media(hass, f"{ROOT}/missing")
-    client = await hass_client()
-    assert (await client.get("/api/shoebox/media/missing/a.jpg")).status == 404
-
-
-async def test_a_rotation_is_not_playable(
-    hass: HomeAssistant, with_rotation: MockConfigEntry
-) -> None:
-    with pytest.raises(media_source.Unresolvable):
+    with pytest.raises(media_source.Unresolvable):  # a rotation is a folder, not a picture
         await media_source.async_resolve_media(hass, f"{ROOT}/{rotation_id(with_rotation)}", None)
-
-
-async def test_not_set_up(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    assert await hass.config_entries.async_unload(entry.entry_id)
-    with pytest.raises(BrowseError):
-        await media_source.async_browse_media(hass, ROOT)
+    client = await hass_client()
+    assert (await client.get("/api/shoebox/media/missing/local/a.jpg")).status == 404

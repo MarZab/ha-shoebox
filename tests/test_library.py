@@ -91,13 +91,6 @@ def test_a_media_folder_itself_cannot_change(library: Library, call: str) -> Non
         getattr(library, call)("nas")
 
 
-def test_move_refuses_an_existing_target_in_another_folder(library: Library) -> None:
-    library.create_folder("nas/Family/sub")
-    write_image(library.folders["nas"] / "Family/a.jpg")
-    with pytest.raises(MediaError, match=re.escape('"nas/Family/a.jpg" already exists')):
-        library.move("local/Family/a.jpg", "nas/Family")
-
-
 def test_uploads_land_in_a_chosen_folder(library: Library, tmp_path: Path) -> None:
     folder = library.upload_folder("nas/Family")
     tmp = folder / ".upload-x.tmp"

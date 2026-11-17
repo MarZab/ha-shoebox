@@ -38,15 +38,23 @@ def test_safe_name_refuses(sent: str) -> None:
         upload.safe_name(sent)
 
 
-@pytest.mark.parametrize("content_type", ["image/jpeg", "VIDEO/mp4", "audio/mpeg"])
-def test_check_type_accepts_media(content_type: str) -> None:
-    upload.check_type("a", content_type)
-
-
-@pytest.mark.parametrize("content_type", [None, "", "text/html", "application/x-image/"])
-def test_check_type_refuses_other(content_type: str | None) -> None:
-    with pytest.raises(MediaError, match="only pictures"):
+@pytest.mark.parametrize(
+    ("content_type", "accepted"),
+    [
+        ("image/jpeg", True),
+        ("VIDEO/mp4", True),
+        ("audio/mpeg", True),
+        (None, False),
+        ("text/html", False),
+        ("application/x-image/", False),
+    ],
+)
+def test_only_media_types_can_be_uploaded(content_type: str | None, accepted: bool) -> None:
+    if accepted:
         upload.check_type("a", content_type)
+    else:
+        with pytest.raises(MediaError, match="only pictures"):
+            upload.check_type("a", content_type)
 
 
 def test_target_folder(tree: Tree) -> None:

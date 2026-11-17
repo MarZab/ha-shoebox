@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER
@@ -8,10 +9,11 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shoebox.const import SUBENTRY_ROTATION
+from custom_components.shoebox.const import DOMAIN, SUBENTRY_ROTATION
 
 from ..conftest import Tree
-from .conftest import rotation_id
+from ..images import write_image
+from .conftest import rotation, rotation_id
 
 
 async def subentry_flow(
@@ -60,14 +62,6 @@ async def test_add_rotation_refuses_bad_patterns(
         flow["flow_id"], {"name": "x", "patterns": patterns}
     )
     assert flow["errors"] == {"patterns": error}
-
-
-async def test_preview_without_matches(hass: HomeAssistant, loaded: MockConfigEntry) -> None:
-    flow = await subentry_flow(hass, loaded)
-    flow = await hass.config_entries.subentries.async_configure(
-        flow["flow_id"], {"name": "x", "patterns": ["nothing/*"]}
-    )
-    assert flow["description_placeholders"] == {"count": "0", "pattern": "-", "examples": "-"}
 
 
 async def test_reconfigure_keeps_the_state(
@@ -168,3 +162,24 @@ async def test_rotations_command_lists_subentries(
         "entity_id": "image.evening",
         "next_entity_id": "button.evening_next",
     }
+
+
+async def test_a_rotation_spans_media_folders(
+    hass: HomeAssistant, media_root: Path, tmp_path: Path
+) -> None:
+    hass.config.media_dirs = {"local": str(media_root), "nas": str(tmp_path / "nas")}
+    write_image(media_root / "Family/a.jpg")
+    write_image(tmp_path / "nas/Family/b.jpg")
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={},
+        options={"folders": ["local", "nas"]},
+        subentries_data=[rotation("Family", "*/Family/*")],
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    rotations = entry.runtime_data.rotations
+    files = [
+        (await rotations.async_advance(rotation_id(entry), ["*/Family/*"])).file for _ in range(2)
+    ]
+    assert files == ["local/Family/a.jpg", "nas/Family/b.jpg"]

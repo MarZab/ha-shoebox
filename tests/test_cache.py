@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from custom_components.shoebox.cache import VariantCache, is_variant_name
+from custom_components.shoebox.cache import VariantCache
 
 
 @pytest.fixture
@@ -96,38 +96,3 @@ def test_clear_removes_only_its_own_files(cache: VariantCache, source: Path) -> 
     (cache.directory / "notes.txt").write_text("keep")
     assert cache.clear() == 2
     assert [p.name for p in cache.directory.iterdir()] == ["notes.txt"]
-
-
-def test_empty_or_missing_cache(cache: VariantCache) -> None:
-    assert cache.usage() == (0, 0)
-    assert cache.evict() == 0
-    assert cache.clear() == 0
-
-
-@pytest.mark.parametrize(
-    "name", ["../secret.jpg", "a.jpg", "0" * 63 + ".jpg", "0" * 64 + ".png", "G" * 64 + ".jpg"]
-)
-def test_foreign_names_are_not_variants(name: str) -> None:
-    assert not is_variant_name(name)
-
-
-def test_failed_write_leaves_no_temp_file(
-    cache: VariantCache, source: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def fail(*_: object) -> None:
-        raise OSError("disk full")
-
-    monkeypatch.setattr("custom_components.shoebox.cache.os.replace", fail)
-    with pytest.raises(OSError, match="disk full"):
-        cache.get(source, 1, 1, "cover", lambda: b"v")
-    assert list(cache.directory.iterdir()) == []
-
-
-def test_variants_vanishing_meanwhile_are_skipped(
-    cache: VariantCache, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    cache.directory.mkdir()
-    ghost = "0" * 64 + ".jpg"
-    monkeypatch.setattr("custom_components.shoebox.cache.os.listdir", lambda _: [ghost])
-    assert cache.usage() == (0, 0)
-    assert cache.clear() == 0

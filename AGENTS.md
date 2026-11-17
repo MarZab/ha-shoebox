@@ -57,10 +57,18 @@ Follow what core integrations do. When unsure, look at a current core integratio
 
 ## Tests
 
-- Most coverage comes from direct tests of the modules without Home Assistant; Home Assistant tests check the wiring with one happy path and one refusal each.
-- Small tests, one behaviour each, named after it; parametrize instead of copying.
-- No network, no sleeping. A bug fix starts with a failing test.
-- The panel has no unit tests: `mise run dev:panel` and the checklist in docs/development.md.
+Testing policy:
+
+- Test behaviour at public boundaries (actions, views, WebSocket commands, entities, flows, and the exported functions of the modules without Home Assistant), not internals.
+- No tests for: trivial getters/setters, type-only code, constants, simple pass-through wrappers, framework behaviour (what Home Assistant itself guarantees).
+- Prefer one table-driven test (`pytest.mark.parametrize`) over N near-identical tests.
+- Max ~3-5 new test cases per feature unless the human asks for more. Happy path + the edge cases that actually bite.
+- Extend existing test files; don't create new ones per function.
+- Don't mock what you own. Mock only external I/O (network, clock); files are real, on `tmp_path`.
+- Never add tests just to raise coverage.
+- If unsure whether a test is worth it, leave it out and mention it in the summary.
+
+Also: no network and no sleeping; a bug fix starts with a failing test. The panel has no unit tests: `mise run dev:panel` and the checklist in docs/development.md.
 
 ## Backlog
 

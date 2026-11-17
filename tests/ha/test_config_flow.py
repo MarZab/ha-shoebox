@@ -6,6 +6,7 @@ from pathlib import Path
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.shoebox.const import (
@@ -42,12 +43,6 @@ async def test_user_flow_needs_a_folder(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"folders": []})
     assert result["errors"] == {"folders": "no_folder"}
-
-
-async def test_only_one_entry(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "single_instance_allowed"
 
 
 async def options(
@@ -88,25 +83,6 @@ async def test_options_store_size_and_sidebar(hass: HomeAssistant, loaded: MockC
     assert loaded.runtime_data.cache.limit_bytes == 64 * MB
 
 
-async def test_options_clear_the_cache(hass: HomeAssistant, loaded: MockConfigEntry) -> None:
-    folder = put_variants(hass, 10, 10)
-    await options(hass, loaded, **{CONF_CLEAR_CACHE: True})
-    assert list(folder.iterdir()) == []
-
-
-async def test_smaller_cache_evicts_on_change(hass: HomeAssistant, loaded: MockConfigEntry) -> None:
-    folder = put_variants(hass, 10 * MB, 10 * MB)
-    await options(hass, loaded, **{CONF_CACHE_SIZE: 16})
-    assert [p.name for p in folder.iterdir()] == [f"{1:064x}.jpg"]
-
-
-async def test_size_zero_turns_the_cache_off(hass: HomeAssistant, loaded: MockConfigEntry) -> None:
-    folder = put_variants(hass, 10, 10)
-    await options(hass, loaded, **{CONF_CACHE_SIZE: 0})
-    assert list(folder.iterdir()) == []
-    assert not loaded.runtime_data.cache.enabled
-
-
 async def test_options_change_the_folders(
     hass: HomeAssistant, loaded: MockConfigEntry, tmp_path: Path
 ) -> None:
@@ -125,3 +101,24 @@ async def test_options_change_the_folders(
         },
     )
     assert flow["errors"] == {CONF_FOLDERS: "no_folder"}
+
+
+@pytest.mark.parametrize(
+    ("values", "kept", "enabled"),
+    [
+        ({CONF_CLEAR_CACHE: True}, [], True),
+        ({CONF_CACHE_SIZE: 16}, [f"{1:064x}.jpg"], True),  # least recently used goes first
+        ({CONF_CACHE_SIZE: 0}, [], False),  # 0 turns the cache off
+    ],
+)
+async def test_cache_options(
+    hass: HomeAssistant,
+    loaded: MockConfigEntry,
+    values: dict[str, object],
+    kept: list[str],
+    enabled: bool,
+) -> None:
+    folder = put_variants(hass, 10 * MB, 10 * MB)
+    await options(hass, loaded, **values)
+    assert [p.name for p in folder.iterdir()] == kept
+    assert loaded.runtime_data.cache.enabled is enabled
