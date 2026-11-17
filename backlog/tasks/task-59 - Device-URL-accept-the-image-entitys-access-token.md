@@ -1,9 +1,11 @@
 ---
 id: TASK-59
 title: 'Device URL: accept the image entity''s access token'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T14:59:00Z'
+updated_date: '2026-11-17T15:11:00Z'
 labels:
   - integration
   - security
@@ -34,13 +36,13 @@ Changes how a URL devices use is authenticated: agreed by the user (this ticket 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 GET /api/shoebox/image/image.<rotation>?token=<current entity token>&width=640&height=800&fit=cover returns the prepared picture without an Authorization header
-- [ ] #2 The previous token also works until HA drops it (HA keeps the last two); an older or made-up token is refused, and so is a token that belongs to a different image entity
-- [ ] #3 Bearer tokens and logged-in users keep working as before
-- [ ] #4 Refusals follow HA's ImageView: unknown entity 404 when authenticated, 401 otherwise; a failed request with an Authorization header 401 (counted by the ban middleware), without one 403 (not counted)
-- [ ] #5 The token never appears in Shoebox's logs
-- [ ] #6 Tests cover the cases above (unit, and against a real HA where the repo runs those)
-- [ ] #7 docs/displays.md and docs/security.md: the token first for devices that talk to HA (ESPHome), the long-lived token as the fallback for devices that cannot read entity attributes. ESPHome example: a homeassistant text sensor with attribute: entity_picture, take the token= value, set_url on the online_image with ?token=…&width=…&height=…&fit=cover, then update; and a note to keep the homeassistant and online_image loggers at level INFO so the token is not written to the device log
+- [x] #1 GET /api/shoebox/image/image.<rotation>?token=<current entity token>&width=640&height=800&fit=cover returns the prepared picture without an Authorization header
+- [x] #2 The previous token also works until HA drops it (HA keeps the last two); an older or made-up token is refused, and so is a token that belongs to a different image entity
+- [x] #3 Bearer tokens and logged-in users keep working as before
+- [x] #4 Refusals follow HA's ImageView: unknown entity 404 when authenticated, 401 otherwise; a failed request with an Authorization header 401 (counted by the ban middleware), without one 403 (not counted)
+- [x] #5 The token never appears in Shoebox's logs
+- [x] #6 Tests cover the cases above (unit, and against a real HA where the repo runs those)
+- [x] #7 docs/displays.md and docs/security.md: the token first for devices that talk to HA (ESPHome), the long-lived token as the fallback for devices that cannot read entity attributes. ESPHome example: a homeassistant text sensor with attribute: entity_picture, take the token= value, set_url on the online_image with ?token=…&width=…&height=…&fit=cover, then update; and a note to keep the homeassistant and online_image loggers at level INFO so the token is not written to the device log
 <!-- AC:END -->
 
 ## Definition of Done
@@ -49,3 +51,9 @@ Changes how a URL devices use is authenticated: agreed by the user (this ticket 
 - [ ] #2 New or changed behaviour is covered by tests
 - [ ] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+DeviceImageView: requires_auth False, authenticated as ImageView (2026.10.4 and 2026.11.1 alike): the entity from the image component, ours by its registry entry; logged in, or ?token= in its access_tokens. Unknown or not ours: 404 logged in, else 401. Refused with an Authorization header 401 (ban counting), without 403. No logging in the view. Tests: token with size and fit, previous token after one rotation, refused after two, made-up, missing, another rotation's token, wrong Bearer, unknown entity; no Shoebox log line holds the token; Bearer tests unchanged except no-credentials is now 403 as in HA. Dev HA (2026.10.4): token 200 at 640x800, made-up 403, none 403, Bearer 200, unknown 401. HA's ban middleware logs the URL of a 401 (unknown entity with a token), as for its image proxy: documented in security.md. Docs: displays.md token first with a full ESPHome config (homeassistant text sensors for entity_picture and the state, set_url + update, logger INFO for homeassistant, text_sensor, online_image, http_request), long-lived variant kept; quick-start, use-cases, security, architecture, troubleshooting (403). The ESPHome config passes esphome config 2026.10.2; not compiled or run on hardware.
+<!-- SECTION:NOTES:END -->

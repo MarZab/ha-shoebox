@@ -59,9 +59,16 @@ http://<home assistant>:8123/api/shoebox/image/image.living_room?width=800&heigh
 - Each response has an `ETag`. A device that sends it back in `If-None-Match` gets `304 Not Modified` while the picture is unchanged.
 - Before the rotation's first Next, the URL answers `404`.
 
+The URL needs one of two keys:
+
+- **The image entity's own token**, for devices that talk to Home Assistant, such as ESPHome. Every image entity carries a short-lived access token in its `entity_picture` attribute (`/api/image_proxy/image.living_room?token=…`), which Home Assistant changes every 5 minutes; Shoebox's URL accepts it as `?token=…`, as Home Assistant's own image proxy does. The device reads the attribute over its Home Assistant connection, so it needs no user, no long-lived token and no secret. A token opens only its own rotation. See the [ESPHome example](#esphome).
+- **A long-lived access token** in an `Authorization: Bearer …` header, for any other device: see [a user for devices](#a-user-for-devices).
+
+A wrong or expired `token` gets `403`; a wrong `Authorization` header gets `401` and counts as a failed login, as everywhere in Home Assistant.
+
 ### A user for devices
 
-The URL needs an access token, sent as `Authorization: Bearer <token>`. A token carries all the rights of its user, so give devices their own user:
+For devices that cannot read Home Assistant's entities. The URL then needs an access token, sent as `Authorization: Bearer <token>`. A token carries all the rights of its user, so give devices their own user:
 
 1. **Settings → People → Users → Add user**: name it *Displays*, and leave **Administrator** off.
 2. Log in as that user once, open its profile, **Security → Long-lived access tokens → Create token**.
@@ -69,7 +76,7 @@ The URL needs an access token, sent as `Authorization: Bearer <token>`. A token 
 
 ### ESPHome
 
-[ESPHome](https://esphome.io/)'s [online image](https://esphome.io/components/image/online_image/) downloads the picture and a display draws it. This photo frame downloads only when Home Assistant tells it the rotation moved on.
+[ESPHome](https://esphome.io/)'s [online image](https://esphome.io/components/image/online_image/) downloads the picture and a display draws it. This photo frame reads the rotation's image entity over the ESPHome API: its token from `entity_picture`, and its state, which changes whenever the rotation moves on. It downloads the picture then, at its own size, with the token. No long-lived token, no secret and no automation in Home Assistant.
 
 ESPHome configuration (`photo-frame.yaml`):
 
@@ -77,24 +84,65 @@ ESPHome configuration (`photo-frame.yaml`):
 esphome:
   name: photo-frame
 
+api:
+
 http_request:
+
+logger:
+  logs:  # at debug level these log the picture URL, which holds the token
+    homeassistant: INFO
+    text_sensor: INFO
+    online_image: INFO
+    http_request: INFO
+
+globals:
+  - id: token
+    type: std::string
+
+text_sensor:
+  # the image entity's picture URL holds its access token, which changes every 5 minutes
+  - platform: homeassistant
+    id: picture
+    entity_id: image.living_room
+    attribute: entity_picture
+    internal: true
+    on_value:
+      - lambda: |-
+          auto at = x.find("token=");
+          if (at == std::string::npos) return;
+          bool first = id(token).empty();
+          id(token) = x.substr(at + 6);
+          if (first) id(show).execute();
+  # the image entity's state changes when the rotation moves on
+  - platform: homeassistant
+    id: shown
+    entity_id: image.living_room
+    internal: true
+    on_value:
+      - script.execute: show
+
+script:
+  - id: show
+    then:
+      - if:
+          condition:
+            lambda: return !id(token).empty();
+          then:
+            - online_image.set_url:
+                id: photo
+                url: !lambda |-
+                  return "http://homeassistant.local:8123/api/shoebox/image/image.living_room"
+                         "?width=800&height=480&fit=cover&token=" + id(token);
+            - component.update: photo
 
 online_image:
   - id: photo
-    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room?width=800&height=480&fit=cover
+    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room  # set before each download
     format: JPEG
     type: RGB565
     update_interval: never
-    request_headers:
-      Authorization: !secret shoebox_authorization
     on_download_finished:
       - component.update: frame
-
-api:
-  actions:
-    - action: show_next_photo
-      then:
-        - component.update: photo
 
 display:
   - platform: ...  # your display
@@ -104,13 +152,32 @@ display:
       it.image(0, 0, id(photo));
 ```
 
-`secrets.yaml`:
+- Add the device to Home Assistant as usual (Settings → Devices & services → ESPHome); Home Assistant then sends it the entity's state and attributes.
+- The `logger` lines keep the token out of the device's log: at debug level, ESPHome logs the attribute and the URL.
+- Match `width` and `height` to the display. For e-paper, use `fit: cover` and the image `type` your display supports, such as `BINARY` or `GRAYSCALE`.
+
+#### With a long-lived token
+
+A device without the ESPHome API, or one that should not depend on it, uses a [long-lived token](#a-user-for-devices) in a header and lets Home Assistant tell it when to download:
 
 ```yaml
-shoebox_authorization: "Bearer <long-lived token of the Displays user>"
-```
+online_image:
+  - id: photo
+    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room?width=800&height=480&fit=cover
+    format: JPEG
+    type: RGB565
+    update_interval: never
+    request_headers:
+      Authorization: !secret shoebox_authorization  # "Bearer <long-lived token of the Displays user>"
+    on_download_finished:
+      - component.update: frame
 
-Home Assistant automation that refreshes the frame:
+api:
+  actions:
+    - action: show_next_photo
+      then:
+        - component.update: photo
+```
 
 ```yaml
 alias: Photo frame follows the living room
@@ -121,10 +188,9 @@ actions:
   - action: esphome.photo_frame_show_next_photo
 ```
 
-Match `width` and `height` to the display. For e-paper, use `fit: cover` and the image `type` your display supports, such as `BINARY` or `GRAYSCALE`.
-
 ## URL lifetime
 
-- The device URL does not expire; it works as long as its token does.
-- The image entity's picture URL (`entity_picture`) carries an access token that Home Assistant changes every 5 minutes, so it is no good for devices. Home Assistant's `/api/image_proxy/<entity_id>` with an `Authorization` header does not change, but it is always the entity's size; the device URL takes yours.
+- The device URL itself does not change. With a long-lived token it works as long as the token does.
+- The image entity's token changes every 5 minutes; Home Assistant accepts the current one and the one before, so a device that reads the attribute always has a working one.
+- Home Assistant's `/api/image_proxy/<entity_id>` serves the same picture, but always at the entity's size; the device URL takes yours.
 - Thumbnails and pictures in the [panel](panel.md) use signed links that work for one hour; the panel asks for new ones before that.

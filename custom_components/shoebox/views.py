@@ -10,13 +10,14 @@ from urllib.parse import quote
 
 from aiohttp import BodyPartReader, hdrs, web
 from homeassistant.components.http import (
+    KEY_AUTHENTICATED,
     KEY_HASS,
     KEY_HASS_USER,
     HomeAssistantView,
     require_admin,
 )
+from homeassistant.components.image.const import DATA_COMPONENT as IMAGE_COMPONENT
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from . import imaging, upload
@@ -90,30 +91,34 @@ class RenderView(HomeAssistantView):
 class DeviceImageView(HomeAssistantView):
     """The current picture of a rotation, for devices outside Home Assistant.
 
-    The URL stays the same while the rotation advances. Any user may fetch it, so a device can
-    use a long-lived token of a user without admin rights. Query: width, height (default the
-    entity size), fit=cover|contain (default contain). ETag and Last-Modified let a device skip
-    a picture it already has.
+    The URL stays the same while the rotation advances. Query: width, height (default the entity
+    size), fit=cover|contain (default contain). ETag and Last-Modified let a device skip a picture
+    it already has.
+
+    A device authenticates as Home Assistant's own image view allows: any logged-in user or
+    long-lived token, or ?token= with the image entity's current access token (the one in its
+    entity_picture, which Home Assistant changes every 5 minutes and keeps the last two of). A
+    device that talks to Home Assistant, such as ESPHome, reads that token and needs no long-lived
+    token of its own. The token opens only its own entity. The request URL holds the token: this
+    view logs no URLs.
     """
 
     url = DEVICE_IMAGE_URL
     name = "api:shoebox:image"
-    requires_auth = True
+    requires_auth = False  # authenticated below, as homeassistant.components.image.ImageView
 
     async def get(self, request: web.Request, entity_id: str) -> web.StreamResponse:
         hass = request.app[KEY_HASS]
         q = request.query
+        rotation_id = self._authenticate(request, entity_id)
         try:
             size = f"{q.get('width', ENTITY_SIZE[0])}x{q.get('height', ENTITY_SIZE[1])}"
             width, height, fit = parse_size(size, q.get("fit", "contain"))
         except ValueError:
             return self.json_message(f"width and height 1..{MAX_SIDE}, fit cover or contain", 400)
-        entry = er.async_get(hass).async_get(entity_id)
-        if entry is None or entry.platform != DOMAIN or entry.domain != "image":
-            return self.json_message("no such rotation", 404)
         try:
             shoebox = loaded_shoebox(hass)
-            state = shoebox.rotations.state(entry.config_subentry_id or "")
+            state = shoebox.rotations.state(rotation_id)
             if state.file is None:
                 return self.json_message("the rotation shows no picture yet", 404)
             # a device that has the picture already gets 304 before anything is prepared
@@ -128,6 +133,28 @@ class DeviceImageView(HomeAssistantView):
             return self.json_message(str(err), 404)
         headers[hdrs.ETAG] = f'"{variant.key}"'
         return web.Response(body=variant.data, content_type="image/jpeg", headers=headers)
+
+    @staticmethod
+    def _authenticate(request: web.Request, entity_id: str) -> str:
+        """The rotation (subentry id) of the image entity, if the request may see it; refusals
+        as ImageView's."""
+        authenticated: bool = request[KEY_AUTHENTICATED]
+        component = request.app[KEY_HASS].data.get(IMAGE_COMPONENT)
+        image = component.get_entity(entity_id) if component else None
+        entry = image.registry_entry if image else None
+        if (
+            image is None
+            or entry is None
+            or entry.platform != DOMAIN
+            or not entry.config_subentry_id
+        ):
+            # not ours or not there: only a logged-in caller learns which
+            raise web.HTTPNotFound if authenticated else web.HTTPUnauthorized
+        if authenticated or request.query.get("token") in image.access_tokens:
+            return entry.config_subentry_id
+        if hdrs.AUTHORIZATION in request.headers:
+            raise web.HTTPUnauthorized  # a wrong login: the ban middleware counts it
+        raise web.HTTPForbidden  # an expired or wrong token: not a login attempt
 
 
 class MediaView(HomeAssistantView):

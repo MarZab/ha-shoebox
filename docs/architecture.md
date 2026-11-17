@@ -75,7 +75,7 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 **Edits are metadata.** EXIF orientation and the Adobe XMP crop keep the picture data untouched and the edits reversible, and other apps understand them. The cost: only JPEG can be edited, and most viewers ignore the crop.
 
-**Devices get a stable URL with a token.** Devices such as ESPHome need a URL that does not change, their own size and baseline JPEG; they authenticate with a long-lived token in a header, the standard for Home Assistant's API. The device and media source views accept any user, so a device can use a user without admin rights; they serve only pictures of rotations: the current one, and through the media browser every picture a rotation's patterns select. Choose patterns with that in mind; folders no rotation selects stay admin-only.
+**Devices get a stable URL with a token.** Devices such as ESPHome need a URL that does not change, their own size and baseline JPEG; they authenticate as Home Assistant's image view allows: with the image entity's own short-lived access token, which a device that talks to Home Assistant reads from `entity_picture`, or with a long-lived token in a header, the standard for Home Assistant's API. The device and media source views accept any user, so a device can use a user without admin rights; they serve only pictures of rotations: the current one, and through the media browser every picture a rotation's patterns select. Choose patterns with that in mind; folders no rotation selects stay admin-only.
 
 **Sized for hundreds of pictures.** Listing walks the chosen media folders on demand, with no index or watcher. That keeps the code small; revisit if real use passes a few thousand files.
 

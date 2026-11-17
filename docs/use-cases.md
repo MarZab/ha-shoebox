@@ -80,10 +80,9 @@ Only JPEG pictures can be edited; see [editing](editing.md) for how the turn and
 ## ESPHome photo frame
 
 1. Add a rotation, for example *Living room*.
-2. Create a user without admin rights for devices and a long-lived token for it: see [a user for devices](displays.md#a-user-for-devices).
-3. Build the ESPHome device with `online_image` pointing at the rotation's URL, sized for the display: see the [ESPHome example](displays.md#esphome).
-4. Add the automation from that example, so the frame downloads a new picture when the rotation moves on.
-5. Move the rotation on as in the [slideshow](#slideshow-on-a-dashboard), or with its own schedule.
+2. Build the ESPHome device from the [ESPHome example](displays.md#esphome), with the rotation's entity and the display's size. It reads the image entity's token and state over the ESPHome API, and downloads a new picture whenever the rotation moves on.
+3. Add the device to Home Assistant (Settings → Devices & services → ESPHome).
+4. Move the rotation on as in the [slideshow](#slideshow-on-a-dashboard), or with its own schedule.
 
 ## Pictures by time of day or season
 

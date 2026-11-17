@@ -13,6 +13,6 @@ The first release.
 - Rotations: rotating pictures from the media folder, with an image entity and a Next button per rotation.
 - A rotation shows the pictures of all its patterns; patterns starting with `!` leave pictures out.
 - Rotations can shuffle: every picture once per round, in random order.
-- A sized picture URL per rotation for devices such as ESPHome displays.
+- A sized picture URL per rotation for devices such as ESPHome displays. ESPHome opens it with the image entity's own access token, without a long-lived token.
 - Rotations in Home Assistant's media browser, for media players and Chromecast.
 - Diagnostics, and English and Slovenian translations of the integration and the panel.

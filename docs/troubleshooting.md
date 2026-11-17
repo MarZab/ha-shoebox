@@ -30,9 +30,10 @@ Only JPEG pictures can be edited. HEIC (iPhone), PNG and other formats are shown
 
 Paths start with the name of a media folder: `local` is My media, so a picture there is `local/Family/beach.jpg`. Shoebox never touches anything outside the media folders chosen in its [options](configuration.md#options).
 
-## A device gets 400, 401 or 404
+## A device gets 400, 401, 403 or 404
 
 - **401**: the `Authorization: Bearer <token>` header is missing or the token was deleted. See [a user for devices](displays.md#a-user-for-devices).
+- **403**: the `token` in the URL is not the image entity's current or previous one, or belongs to another rotation's entity. A device should read it from the entity's `entity_picture` each time it changes: see the [ESPHome example](displays.md#esphome).
 - **404**: the entity ID is not a Shoebox rotation image, or the rotation has no picture yet.
 - **400**: `width` or `height` is outside 1 to 4096, or `fit` is not `cover` or `contain`.
 

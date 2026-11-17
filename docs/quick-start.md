@@ -58,38 +58,6 @@ Any trigger works: the time of day, someone coming home, a motion sensor. More i
 
 ## An ESPHome display
 
-Every rotation has a fixed URL that serves its current picture at the size a device asks for, as a baseline JPEG small displays can decode. Create a [long-lived access token](displays.md#a-user-for-devices) for a user without admin rights, then:
+Every rotation has a fixed URL that serves its current picture at the size a device asks for, as a baseline JPEG small displays can decode. An ESPHome device opens it with the image entity's own access token, which it reads over its Home Assistant connection: no long-lived token or secret is needed. The device downloads whenever the rotation moves on.
 
-```yaml
-http_request:
-
-online_image:
-  - id: photo
-    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room?width=800&height=480&fit=cover
-    format: JPEG
-    type: RGB565
-    update_interval: never
-    request_headers:
-      Authorization: !secret shoebox_authorization  # "Bearer <long-lived token>"
-    on_download_finished:
-      - component.update: frame  # the display's id
-
-api:
-  actions:
-    - action: show_next_photo
-      then:
-        - component.update: photo
-```
-
-Draw it with `it.image(0, 0, id(photo));` and refresh it from Home Assistant whenever the rotation moves on:
-
-```yaml
-alias: Photo frame follows the living room
-triggers:
-  - trigger: state
-    entity_id: image.living_room
-actions:
-  - action: esphome.photo_frame_show_next_photo
-```
-
-The whole setup is in [displays](displays.md#esphome).
+The configuration, with the logger lines that keep the token out of the device's log, is in [displays](displays.md#esphome). Devices that cannot read Home Assistant's entities use a [long-lived token](displays.md#a-user-for-devices) instead.
