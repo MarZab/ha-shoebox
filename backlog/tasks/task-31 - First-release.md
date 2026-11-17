@@ -1,10 +1,10 @@
 ---
 id: TASK-31
 title: First release
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T13:05:00Z'
+updated_date: '2026-11-17T16:02:00Z'
 labels:
   - release
 milestone: m-6
@@ -30,8 +30,8 @@ Release 0.1.0, the version already in manifest.json: mise run release -- 0.1.0 t
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 CHANGELOG has the version's entry
-- [ ] #2 The tag matches manifest.json and release.yaml creates the GitHub release
-- [ ] #3 Installed through HACS on a clean HA: integration, rotations, actions, entities, device URL and panel work
+- [x] #2 The tag matches manifest.json and release.yaml creates the GitHub release
+- [x] #3 Installed through HACS on a clean HA: integration, rotations, actions, entities, device URL and panel work
 <!-- AC:END -->
 
 ## Definition of Done
@@ -40,3 +40,9 @@ Release 0.1.0, the version already in manifest.json: mise run release -- 0.1.0 t
 - [ ] #2 New or changed behaviour is covered by tests
 - [ ] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+v0.1.0 tagged by the user with mise run release; release.yaml succeeded and published a full release. Installed on a clean HA 2026.10.4 from the v0.1.0 tag's custom_components/shoebox (what HACS downloads for a release; the HACS UI itself needs a GitHub login, not available here): integration loaded, rotation with preview, Next, shoebox.list, the device URL with the entity's token, and the panel. The release text is only GitHub's generated changelog link: TASK follow-up.
+<!-- SECTION:NOTES:END -->
