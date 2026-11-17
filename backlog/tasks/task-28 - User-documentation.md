@@ -4,6 +4,7 @@ title: User documentation
 status: To Do
 assignee: []
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T10:35:00Z'
 labels:
   - docs
 milestone: m-5
@@ -32,6 +33,8 @@ One page per topic in docs/, each opening with what the reader can do with it.
 - [ ] #8 panel.md: browsing, upload, move, rename, delete, editor, rotations, Show in sidebar
 - [ ] #9 cache.md: what is cached, where, the size limit, excluded from backups, clearing
 - [ ] #10 troubleshooting.md: common errors and where to look in the logs
+- [ ] #11 docs/configuration.md: adding the integration (no questions asked), every option with what it does, and removing the integration (what stays: media files; what goes: rotations, the cache)
+- [ ] #12 quality_scale.yaml: the docs-* rules marked todo are done
 <!-- AC:END -->
 
 ## Definition of Done

@@ -289,6 +289,9 @@
     },
     "crop_sides": {
       "message": "Navedite levo, zgoraj, desno in spodaj ali odstranite obrez."
+    },
+    "media_folder_missing": {
+      "message": "Mapa z mediji {path} ne obstaja."
     }
   }
 }

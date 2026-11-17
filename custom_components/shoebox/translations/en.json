@@ -289,6 +289,9 @@
     },
     "crop_sides": {
       "message": "Give left, top, right and bottom, or clear the crop."
+    },
+    "media_folder_missing": {
+      "message": "The media folder {path} does not exist."
     }
   }
 }

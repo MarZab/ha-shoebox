@@ -12,6 +12,8 @@ from . import ShoeboxConfigEntry
 from .const import SUBENTRY_ROTATION
 from .entity import RotationEntity
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

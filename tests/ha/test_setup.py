@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant
 from homeassistant.helpers import issue_registry as ir
@@ -23,3 +25,12 @@ async def test_yaml_raises_a_repair_issue(
 ) -> None:
     assert await async_setup_component(hass, DOMAIN, {DOMAIN: {}})
     assert issue_registry.async_get_issue(HOMEASSISTANT_DOMAIN, f"config_entry_only_{DOMAIN}")
+
+
+async def test_setup_waits_for_the_media_folder(
+    hass: HomeAssistant, entry: MockConfigEntry, media_root: Path
+) -> None:
+    hass.config.media_dirs = {"local": str(media_root / "missing")}
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.reason == f"The media folder {media_root / 'missing'} does not exist"
