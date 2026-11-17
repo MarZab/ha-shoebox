@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:40:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - docs
 milestone: m-5
@@ -37,7 +37,7 @@ The entry point users and HACS see. Short and task-oriented, in the words people
 - install through HACS (search "Shoebox", "media manager" or "photo") and add the integration
 - quick starts: a picture entity card with Next pressed by a timed automation; an ESPHome display
 - actions and entities in one table, linking to docs/
-- limits: JPEG-only edits, local media folder, admin-only panel
+- limits: JPEG-only edits, the chosen media folders, admin-only panel
 - a closing keywords line: media manager, picture organizer, photo organizer, photo frame, slideshow, file manager
 <!-- SECTION:DESCRIPTION:END -->
 

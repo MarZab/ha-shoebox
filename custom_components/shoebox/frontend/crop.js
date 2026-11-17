@@ -4,7 +4,6 @@
 // Properties: src (picture URL), box ([left, top, right, bottom] or null), aspect (width / height in pixels,
 // or null for free), turn (degrees clockwise, read-only; rotate(±90) changes it).
 // Slot "controls": shown left of the preview, above the picture.
-// Fires "box-changed" (detail: box) while the rectangle changes.
 // Keyboard, on the focused picture: arrow keys move the rectangle, Shift with arrow keys resizes it
 // (right and bottom edges); a rectangle over the whole picture appears with the first key.
 
@@ -34,7 +33,7 @@ const STYLE = `
   .side { grid-area: side; display: flex; flex-direction: column; gap: var(--ha-space-2, 8px); align-items: center;
     color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); }
   canvas { width: 100%; height: 160px; object-fit: contain; }
-  @media (max-width: 600px) { img { max-height: 50vh; } canvas { height: 120px; } }
+  @media (max-width: 600px) { canvas { height: 120px; } }
 `;
 
 class ShoeboxCrop extends HTMLElement {
@@ -92,7 +91,12 @@ class ShoeboxCrop extends HTMLElement {
     }
     this._value = [l, t, r, b];
     this._draw();
-    this._fire();
+  }
+
+  // the turned picture is an object URL: free it when the editor closes
+  disconnectedCallback() {
+    if (this._url) URL.revokeObjectURL(this._url);
+    this._url = null;
   }
 
   set src(url) {
@@ -125,13 +129,12 @@ class ShoeboxCrop extends HTMLElement {
     if (this._url) URL.revokeObjectURL(this._url);
     this._url = URL.createObjectURL(blob);
     this._img.src = this._url; // its load event re-applies the aspect and draws
-    this._fire();
   }
   set label(text) { this.shadowRoot.querySelector(".label").textContent = text; }
   get box() { return this._value ? [...this._value] : null; }
   set box(b) { this._value = b ? [...b] : null; this._draw(); }
   get natural() { return [this._img.naturalWidth || 1, this._img.naturalHeight || 1]; }
-  set aspect(a) { this._aspect = a || null; this._applyAspect(); this._draw(); this._fire(); }
+  set aspect(a) { this._aspect = a || null; this._applyAspect(); this._draw(); }
 
   // width / height in fractions for the pixel aspect ratio
   _k() {
@@ -196,17 +199,14 @@ class ShoeboxCrop extends HTMLElement {
       this._value = [l, t, l + w, t + h];
     }
     this._draw();
-    this._fire();
   }
 
   _up(e) {
     if (!this._drag) return;
     this._drag = null;
     const v = this._value;
-    if (v && (v[2] - v[0] < MIN || v[3] - v[1] < MIN)) { this._value = null; this._draw(); this._fire(); }
+    if (v && (v[2] - v[0] < MIN || v[3] - v[1] < MIN)) { this._value = null; this._draw(); }
   }
-
-  _fire() { this.dispatchEvent(new CustomEvent("box-changed", { detail: this.box })); }
 
   _draw() {
     const v = this._value;

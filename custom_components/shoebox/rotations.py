@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass, field, fields as dataclass_fields
-from typing import Any, override
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -32,22 +32,12 @@ class RotationState:
     shown: list[str] = field(default_factory=list)  # shuffle: pictures shown in this round
 
 
-class RotationStore(Store[dict[str, Any]]):
-    @override
-    async def _async_migrate_func(
-        self, old_major_version: int, old_minor_version: int, old_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        if old_major_version > STORAGE_VERSION:
-            raise NotImplementedError
-        return old_data
-
-
 class Rotations:
     def __init__(self, hass: HomeAssistant, library: Library, run: Runner) -> None:
         self.hass = hass
         self.library = library
         self._run = run
-        self._store = RotationStore(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._store = Store[dict[str, Any]](hass, STORAGE_VERSION, STORAGE_KEY)
         self._states: dict[str, RotationState] = {}
         self._lock = asyncio.Lock()
         self._closed = False

@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:33:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - panel
 milestone: m-4
@@ -28,7 +28,7 @@ Every panel flow works in the Docker HA with the sample media.
 - [x] #1 Upload by drop and picker, several at once, errors shown
 - [x] #2 Create folder, rename, move, delete with confirmation
 - [x] #3 Rotate and crop with every aspect option; the result matches the rendered picture
-- [x] #4 The rotations view lists rotations with thumbnail and match count and links to Settings to add, reconfigure and delete
+- [x] #4 The ⋮ menu opens Shoebox's page in Settings, where rotations are added, changed and deleted (the panel's rotations view was removed)
 <!-- AC:END -->
 
 ## Definition of Done

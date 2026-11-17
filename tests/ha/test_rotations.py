@@ -54,16 +54,25 @@ async def test_add_rotation_with_preview(
 
 
 @pytest.mark.parametrize(
-    ("patterns", "error"), [(["re:("], "invalid_pattern"), ([" "], "no_pattern")]
+    ("name", "patterns", "errors"),
+    [
+        ("x", ["re:("], {"patterns": "invalid_pattern"}),
+        ("x", [" "], {"patterns": "no_pattern"}),
+        ("  ", ["local/*"], {"name": "no_name"}),
+    ],
 )
-async def test_add_rotation_refuses_bad_patterns(
-    hass: HomeAssistant, loaded: MockConfigEntry, patterns: list[str], error: str
+async def test_add_rotation_refuses_bad_input(
+    hass: HomeAssistant,
+    loaded: MockConfigEntry,
+    name: str,
+    patterns: list[str],
+    errors: dict[str, str],
 ) -> None:
     flow = await subentry_flow(hass, loaded)
     flow = await hass.config_entries.subentries.async_configure(
-        flow["flow_id"], {"name": "x", "patterns": patterns}
+        flow["flow_id"], {"name": name, "patterns": patterns}
     )
-    assert flow["errors"] == {"patterns": error}
+    assert flow["errors"] == errors
 
 
 async def test_add_rotation_refuses_slow_patterns(

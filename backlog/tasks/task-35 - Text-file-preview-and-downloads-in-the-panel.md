@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T11:36:00Z'
-updated_date: '2026-11-17T11:44:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - panel
   - integration
@@ -21,7 +21,7 @@ ordinal: 35000
 <!-- SECTION:DESCRIPTION:BEGIN -->
 Open text files read-only in the panel: plain text, logs and configs in a monospace box, Markdown formatted with Home Assistant's markdown element when it is available. Files over 256 KB show their start with a note. Binary files are refused with a message.
 
-- WebSocket command shoebox/text (admin only) through the library, like every path
+- the download view (admin only) with a Range request through fetchWithAuth, as Home Assistant's frontend reads files; no separate text command
 - the panel opens other files (not pictures, video or audio) in a text viewer
 - English and Slovenian
 <!-- SECTION:DESCRIPTION:END -->

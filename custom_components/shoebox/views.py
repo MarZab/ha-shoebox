@@ -15,8 +15,7 @@ from homeassistant.components.http import (
     HomeAssistantView,
     require_admin,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
@@ -34,17 +33,10 @@ from .const import (
     RENDER_URL,
     UPLOAD_URL,
 )
-from .runtime import Shoebox
+from .runtime import Shoebox, loaded_entry, loaded_shoebox, rotations_of
 
 _LOGGER = logging.getLogger(__name__)
 _CHUNK = 1024 * 1024
-
-
-def loaded_shoebox(hass: HomeAssistant) -> Shoebox:
-    if entries := hass.config_entries.async_loaded_entries(DOMAIN):
-        shoebox: Shoebox = entries[0].runtime_data
-        return shoebox
-    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
 
 
 def parse_size(size: str, fit: str) -> tuple[int, int, imaging.Fit]:
@@ -124,15 +116,17 @@ class DeviceImageView(HomeAssistantView):
             state = shoebox.rotations.state(entry.config_subentry_id or "")
             if state.file is None:
                 return self.json_message("the rotation shows no picture yet", 404)
+            # a device that has the picture already gets 304 before anything is prepared
+            etag = f'"{await shoebox.picture_key(state.file, width, height, fit)}"'
+            headers = {hdrs.ETAG: etag, hdrs.CACHE_CONTROL: "no-cache"}
+            if updated := dt_util.parse_datetime(state.updated or ""):
+                headers[hdrs.LAST_MODIFIED] = updated.strftime("%a, %d %b %Y %H:%M:%S GMT")
+            if etag in request.headers.get(hdrs.IF_NONE_MATCH, ""):
+                return web.Response(status=304, headers=headers)
             variant = await shoebox.picture(state.file, width, height, fit)
         except HomeAssistantError as err:
             return self.json_message(str(err), 404)
-        etag = f'"{variant.key}"'
-        headers = {hdrs.ETAG: etag, hdrs.CACHE_CONTROL: "no-cache"}
-        if updated := dt_util.parse_datetime(state.updated or ""):
-            headers[hdrs.LAST_MODIFIED] = updated.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        if etag in request.headers.get(hdrs.IF_NONE_MATCH, ""):
-            return web.Response(status=304, headers=headers)
+        headers[hdrs.ETAG] = f'"{variant.key}"'
         return web.Response(body=variant.data, content_type="image/jpeg", headers=headers)
 
 
@@ -152,8 +146,8 @@ class MediaView(HomeAssistantView):
         thumb = request.query.get("thumb") == "1"
         try:
             shoebox = loaded_shoebox(hass)
-            entry = hass.config_entries.async_loaded_entries(DOMAIN)[0]
-            rotation = entry.subentries.get(rotation_id)
+            entry = loaded_entry(hass)
+            rotation = rotations_of(entry).get(rotation_id) if entry else None
             if rotation is None:
                 return self.json_message("no such rotation", 404)
             patterns = rotation.data.get(CONF_PATTERNS, [])

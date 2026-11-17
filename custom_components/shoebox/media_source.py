@@ -16,8 +16,8 @@ from homeassistant.components.media_source import (
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_PATTERNS, DOMAIN, SUBENTRY_ROTATION, TITLE
-from .runtime import Shoebox
+from .const import CONF_PATTERNS, DOMAIN, MEDIA_URL, TITLE
+from .runtime import Shoebox, loaded_entry, rotations_of
 
 MIME: str = "image/jpeg"
 
@@ -27,7 +27,7 @@ async def async_get_media_source(hass: HomeAssistant) -> ShoeboxMediaSource:
 
 
 def media_url(rotation_id: str, path: str, *, thumb: bool = False) -> str:
-    url = f"/api/shoebox/media/{rotation_id}/{quote(path)}"
+    url = f"{MEDIA_URL.partition('{')[0]}{rotation_id}/{quote(path)}"  # the route's own prefix
     return url + "?thumb=1" if thumb else url
 
 
@@ -39,15 +39,9 @@ class ShoeboxMediaSource(MediaSource):
         self.hass = hass
 
     def _loaded(self) -> tuple[Shoebox, dict[str, ConfigSubentry]]:
-        entries = self.hass.config_entries.async_loaded_entries(DOMAIN)
-        if not entries:
+        if (entry := loaded_entry(self.hass)) is None:
             raise BrowseError("Shoebox is not set up")
-        rotations = {
-            sub.subentry_id: sub
-            for sub in entries[0].subentries.values()
-            if sub.subentry_type == SUBENTRY_ROTATION
-        }
-        return entries[0].runtime_data, rotations
+        return entry.runtime_data, rotations_of(entry)
 
     async def _pictures(self, shoebox: Shoebox, rotation: ConfigSubentry) -> list[str]:
         patterns = rotation.data.get(CONF_PATTERNS, [])

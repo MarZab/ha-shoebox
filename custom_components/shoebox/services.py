@@ -19,9 +19,9 @@ import probatio as vol
 
 from . import imaging, media
 from .const import DOMAIN
-from .runtime import Shoebox
+from .runtime import Shoebox, loaded_shoebox
 
-_FRACTION: Final = vol.All(vol.Coerce(float), vol.Range(min=0, max=1))
+FRACTION: Final = vol.All(vol.Coerce(float), vol.Range(min=0, max=1))
 _PATH: Final = {vol.Required("path"): cv.string}
 
 LIST_SCHEMA: Final = vol.Schema(
@@ -50,10 +50,10 @@ ROTATE_SCHEMA: Final = vol.All(
 CROP_SCHEMA: Final = vol.Schema(
     {
         **_PATH,
-        vol.Optional("left"): _FRACTION,
-        vol.Optional("top"): _FRACTION,
-        vol.Optional("right"): _FRACTION,
-        vol.Optional("bottom"): _FRACTION,
+        vol.Optional("left"): FRACTION,
+        vol.Optional("top"): FRACTION,
+        vol.Optional("right"): FRACTION,
+        vol.Optional("bottom"): FRACTION,
         vol.Optional("clear", default=False): cv.boolean,
     }
 )
@@ -61,10 +61,7 @@ _SIDES: Final = ("left", "top", "right", "bottom")
 
 
 def _shoebox(call: ServiceCall) -> Shoebox:
-    if entries := call.hass.config_entries.async_loaded_entries(DOMAIN):
-        shoebox: Shoebox = entries[0].runtime_data
-        return shoebox
-    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
+    return loaded_shoebox(call.hass)
 
 
 async def _list(call: ServiceCall) -> ServiceResponse:

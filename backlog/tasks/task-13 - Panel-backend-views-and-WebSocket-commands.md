@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:19:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - integration
   - panel
@@ -20,7 +20,7 @@ ordinal: 13000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-What the panel talks to: the render and upload views and the WebSocket commands browse, folders, info, edit, rotations and match. The panel's picture URLs are signed for its user.
+What the panel talks to: the render and upload views and the WebSocket commands browse, folders, info and edit (a rotations view and its commands were removed later; rotations live in Settings). The panel's picture URLs are signed for its user.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

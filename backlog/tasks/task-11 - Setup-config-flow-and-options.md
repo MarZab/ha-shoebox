@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:07:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - integration
 milestone: m-2
@@ -23,7 +23,7 @@ ordinal: 11000
 - async_setup_entry and async_unload_entry return a bool (required by Home Assistant 2026.10)
 - unload saves rotation state and removes the panel; reload works
 - config flow: single instance, one translated step
-- options flow: cache size, clear cache with current usage shown, and Show in sidebar (on by default; off means no panel for anyone while actions, entities and the device URL keep working). Nothing else: the extras are opt-in by use, not by switches
+- options flow: cache size, clear cache with current usage shown, and Show in sidebar (on by default; off means no panel for anyone while actions, entities and the device URL keep working). Later the media folders were added to the options too. The extras stay opt-in by use, not by switches
 - the loaded entry is found with hass.config_entries.async_loaded_entries
 <!-- SECTION:DESCRIPTION:END -->
 

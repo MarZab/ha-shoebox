@@ -297,13 +297,6 @@ def create_folder(root: Path, path: str) -> str:
     return relative(root, target)
 
 
-def move(root: Path, path: str, to: str) -> str:
-    """Move a file or folder into the folder `to` ("" or "/" is the media folder itself)."""
-    src = resolve(root, path)
-    dest_dir = resolve(root, to or ".", allow_root=True)
-    return relative(root, move_resolved(src, dest_dir, path, to, lambda p: relative(root, p)))
-
-
 def move_resolved(
     src: Path, dest_dir: Path, path: str, to: str, show: Callable[[Path], str]
 ) -> Path:

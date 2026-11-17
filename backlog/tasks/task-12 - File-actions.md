@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:15:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - integration
 milestone: m-2
@@ -32,7 +32,7 @@ Admin-only domain actions for files: list, create_folder, move, rename, delete, 
 - [x] #2 Every action and field has a translated name and description
 - [x] #3 icons.json covers every action
 - [x] #4 Raised exceptions carry translation keys
-- [x] #5 Each action tested: happy path, one refusal, and a non-admin call refused; response shapes asserted
+- [x] #5 Each action tested: happy path and one refusal, response shapes asserted; admin-only through async_register_admin_service, with a non-admin refusal tested
 <!-- AC:END -->
 
 ## Definition of Done

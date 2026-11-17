@@ -1,7 +1,7 @@
-// The admin sidebar panel "Shoebox" of the shoebox component: files and folders below /media
-// (thumbnails, upload by drop or picker, rename, move, delete, rotate, crop, text preview, download).
-// Plain ES modules, no build step. Built from the HA frontend's own elements (ha-top-app-bar-fixed with
-// ha-menu-button, ha-card, ha-icon, ha-icon-button, ha-dropdown, ha-dialog, ha-button, ha-input,
+// The admin sidebar panel "Shoebox" of the shoebox component: files and folders in the chosen media
+// folders (thumbnails, upload by drop or picker, rename, move, delete, rotate, crop, text preview,
+// download). Plain ES modules, no build step. Built from the HA frontend's own elements
+// (ha-top-app-bar-fixed, which brings the sidebar menu button, ha-card, ha-icon, ha-icon-button, ha-dropdown, ha-dialog, ha-button, ha-input,
 // ha-alert, ha-spinner) and HA theme variables only. Those elements are HA internals: check
 // the panel after an HA update.
 import { translator } from "./i18n.js";
@@ -11,7 +11,7 @@ const DOMAIN = "shoebox";
 const UPLOAD_URL = "/api/shoebox/upload";
 const PARALLEL_UPLOADS = 3;
 const ELEMENTS = [
-  "ha-top-app-bar-fixed", "ha-menu-button", "ha-card", "ha-icon", "ha-icon-button", "ha-button", "ha-dialog",
+  "ha-top-app-bar-fixed", "ha-card", "ha-icon", "ha-icon-button", "ha-button", "ha-dialog",
   "ha-dialog-footer", "ha-input", "ha-dropdown", "ha-dropdown-item",
   "ha-alert", "ha-spinner",
 ];
@@ -71,7 +71,6 @@ const STYLE = `
     background: var(--primary-color); color: var(--text-primary-color); font-weight: var(--ha-font-weight-medium, 500); box-shadow: var(--ha-box-shadow-m, 0 2px 6px rgba(0,0,0,.3)); }
   #uploads { position: fixed; z-index: 4; right: var(--ha-space-4, 16px); bottom: calc(var(--ha-space-4, 16px) + var(--safe-area-inset-bottom, 0px)); width: 360px; max-width: calc(100vw - 32px); }
   :host([narrow]) #uploads { right: 8px; left: 8px; width: auto; max-width: none; }
-  #uploads[hidden] { display: none; }
   #uploads ha-card { max-height: 50vh; display: flex; flex-direction: column; }
   .up-head { display: flex; align-items: center; padding: 4px 4px 4px 16px; font-weight: var(--ha-font-weight-medium, 500); border-bottom: 1px solid var(--divider-color); }
   .up-head span { flex: 1; }
@@ -170,7 +169,6 @@ class ShoeboxPanel extends HTMLElement {
     if (this._ready) this._applyRoute();
   }
 
-  set panel(p) { this._panel = p; }
 
   // ------------------------------------------------------------------ start, shell, routing
 

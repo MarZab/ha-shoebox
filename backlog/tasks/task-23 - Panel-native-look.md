@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:30:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - panel
 milestone: m-4
@@ -27,7 +27,7 @@ The panel uses HA frontend elements and theme variables. Every element and attri
 <!-- AC:BEGIN -->
 - [x] #1 Every ha-* element used exists in the pinned HA frontend and renders
 - [x] #2 Light and dark themes, narrow layout and the sidebar toggle work
-- [x] #3 No console errors while browsing, uploading, editing and viewing rotations
+- [x] #3 No console errors while browsing, uploading and editing
 <!-- AC:END -->
 
 ## Definition of Done

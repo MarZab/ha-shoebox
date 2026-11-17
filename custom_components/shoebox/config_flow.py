@@ -180,6 +180,8 @@ class RotationSubentryFlow(ConfigSubentryFlow):
             self._name = str(user_input["name"]).strip()
             self._patterns = [p.strip() for p in user_input[CONF_PATTERNS] if p.strip()]
             self._order = user_input[CONF_ORDER]
+            if not self._name:
+                errors["name"] = "no_name"
             if not self._patterns:
                 errors[CONF_PATTERNS] = "no_pattern"
             else:

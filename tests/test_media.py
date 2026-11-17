@@ -7,6 +7,7 @@ import pytest
 
 from custom_components.shoebox import media
 from custom_components.shoebox.errors import MediaError
+from custom_components.shoebox.library import Library
 
 from .conftest import Tree
 
@@ -168,12 +169,17 @@ def test_advance(files: list[str], current: str | None, expected: int) -> None:
 # ---------------------------------------------------------------- file operations
 
 
+def move(root: Path, path: str, to: str) -> str:
+    """Moves go through the library, which can cross media folders; here within one."""
+    return Library({"local": root}).move(f"local/{path}", f"local/{to}".rstrip("/"))
+
+
 def test_file_operations(tree: Tree) -> None:
     root = tree("a.jpg", "dest/")
     assert media.create_folder(root, "x/y") == "x/y"
-    assert media.move(root, "a.jpg", "dest") == "dest/a.jpg"
+    assert move(root, "a.jpg", "dest") == "local/dest/a.jpg"
     assert media.rename(root, "dest/a.jpg", "b.jpg") == "dest/b.jpg"
-    assert media.move(root, "dest/b.jpg", "") == "b.jpg"
+    assert move(root, "dest/b.jpg", "") == "local/b.jpg"
     assert media.delete(root, "x") == "x"
     assert sorted(p.name for p in root.iterdir()) == ["b.jpg", "dest"]
 
@@ -182,10 +188,10 @@ def test_file_operations(tree: Tree) -> None:
     ("call", "message"),
     [
         (lambda r: media.create_folder(r, "a.jpg"), "not a folder"),
-        (lambda r: media.move(r, "missing.jpg", "dest"), "does not exist"),
-        (lambda r: media.move(r, "a.jpg", "b.jpg"), "not a folder"),
-        (lambda r: media.move(r, "b.jpg", "dest"), "already exists"),
-        (lambda r: media.move(r, "dest", "dest/sub"), "into itself"),
+        (lambda r: move(r, "missing.jpg", "dest"), "does not exist"),
+        (lambda r: move(r, "a.jpg", "b.jpg"), "not a folder"),
+        (lambda r: move(r, "b.jpg", "dest"), "already exists"),
+        (lambda r: move(r, "dest", "dest/sub"), "into itself"),
         (lambda r: media.rename(r, "a.jpg", "b.jpg"), "already exists"),
         (lambda r: media.rename(r, "a.jpg", "s/b.jpg"), "not a valid name"),
         (lambda r: media.rename(r, "a.jpg", " a.jpg"), "not a valid name"),

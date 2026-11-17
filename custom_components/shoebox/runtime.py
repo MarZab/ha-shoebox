@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
@@ -23,6 +24,7 @@ from .const import (
     DEFAULT_CACHE_SIZE_MB,
     DEFAULT_FOLDERS,
     DOMAIN,
+    SUBENTRY_ROTATION,
 )
 from .errors import MediaError, ShoeboxError
 from .library import Library
@@ -54,6 +56,11 @@ class Shoebox:
         self.show_in_sidebar = bool(options.get(CONF_SHOW_IN_SIDEBAR, True))
         self._renders = asyncio.Semaphore(CONCURRENT_RENDERS)
         self.rotations = Rotations(hass, self.library, self.run)
+
+    async def picture_key(self, path: str, width: int, height: int, fit: imaging.Fit) -> str:
+        """The key picture() would give, from the file's metadata only: no preparing."""
+        source = await self.run(self.library.resolve_file, path)
+        return await self.run(self.cache.key, source, width, height, fit)
 
     async def picture(
         self, path: str, width: int, height: int, fit: imaging.Fit, *, use_crop: bool = True
@@ -96,3 +103,24 @@ class Shoebox:
                     "path": self._shown(err.filename),
                 },
             ) from err
+
+
+def loaded_entry(hass: HomeAssistant) -> ConfigEntry[Shoebox] | None:
+    """Shoebox's config entry while it is loaded (there is at most one)."""
+    entries: list[ConfigEntry[Shoebox]] = hass.config_entries.async_loaded_entries(DOMAIN)
+    return entries[0] if entries else None
+
+
+def loaded_shoebox(hass: HomeAssistant) -> Shoebox:
+    if entry := loaded_entry(hass):
+        return entry.runtime_data
+    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
+
+
+def rotations_of(entry: ConfigEntry[Shoebox]) -> dict[str, ConfigSubentry]:
+    """The entry's rotations by subentry id."""
+    return {
+        sub.subentry_id: sub
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_ROTATION
+    }

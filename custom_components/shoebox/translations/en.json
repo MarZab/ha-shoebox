@@ -48,7 +48,8 @@
       "error": {
         "no_pattern": "Give at least one pattern.",
         "invalid_pattern": "A pattern is not valid.",
-        "slow_patterns": "These patterns take more than a second to match the pictures; simplify them (fewer \"**\", simpler re: expressions)."
+        "slow_patterns": "These patterns take more than a second to match the pictures; simplify them (fewer \"**\", simpler re: expressions).",
+        "no_name": "Give the rotation a name."
       },
       "abort": {
         "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"

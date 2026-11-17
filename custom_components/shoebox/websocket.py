@@ -22,14 +22,13 @@ from yarl import URL
 
 from . import imaging, media
 from .const import PANEL_URL_LIFETIME_S, RENDER_URL
-from .runtime import Shoebox
-from .views import loaded_shoebox
+from .runtime import Shoebox, loaded_shoebox
+from .services import FRACTION
 
 THUMB: Final = (320, 320, "cover")
 VIEW: Final = (2048, 2048, "contain")
 BASE: Final = (1600, 1600, "contain")  # the editor draws a new crop on the whole picture
 
-_FRACTION: Final = vol.All(vol.Coerce(float), vol.Range(min=0, max=1))
 
 type _Message = dict[str, Any]
 type _Handler = Callable[[HomeAssistant, websocket_api.ActiveConnection, _Message], Awaitable[None]]
@@ -146,7 +145,7 @@ async def ws_info(
             vol.Coerce(int), vol.In([-270, -180, -90, 0, 90, 180, 270])
         ),
         vol.Optional("orientation"): vol.All(vol.Coerce(int), vol.Range(min=1, max=8)),
-        vol.Required("crop"): vol.Any(None, vol.All([_FRACTION], vol.Length(min=4, max=4))),
+        vol.Required("crop"): vol.Any(None, vol.All([FRACTION], vol.Length(min=4, max=4))),
     }
 )
 async def ws_edit(

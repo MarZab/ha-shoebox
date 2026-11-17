@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T11:51:00Z'
-updated_date: '2026-11-17T11:53:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - integration
 milestone: m-3
@@ -28,7 +28,7 @@ Shuffle works in rounds: every picture once per round in random order; a new rou
 - [x] #1 The rotation flow has Order (path order or shuffle), path order by default; changing it keeps the rotation's state
 - [x] #2 Shuffle shows every picture once per round and never starts a round with the picture just shown
 - [x] #3 Pictures added mid-round join the round; switching to path order continues from the current picture
-- [x] #4 The image entity, diagnostics and the panel show the order; docs describe it
+- [x] #4 The image entity and diagnostics show the order; docs describe it
 <!-- AC:END -->
 
 ## Definition of Done

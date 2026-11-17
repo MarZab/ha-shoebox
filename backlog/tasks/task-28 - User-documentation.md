@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T10:40:00Z'
+updated_date: '2026-11-17T13:10:00Z'
 labels:
   - docs
 milestone: m-5
@@ -26,16 +26,16 @@ One page per topic in docs/, each opening with what the reader can do with it.
 <!-- AC:BEGIN -->
 - [x] #1 docs/README.md indexes every page
 - [x] #2 use-cases.md: a step-by-step recipe with YAML for each README use case
-- [x] #3 rotations.md: patterns (glob, **, re:, fallbacks), order and wrap, changing files
-- [x] #4 actions.md: every action with fields, an example and the full response
-- [x] #5 entities.md: devices, image and Next button entities, attributes, when they update
-- [x] #6 displays.md: picture cards, notifications, media browser; the device URL with sizes, a dedicated non-admin user and token, and a complete ESPHome example refreshed when the rotation advances
-- [x] #7 editing.md: rotate and crop as EXIF and XMP, which apps honour them, JPEG only, HEIC
-- [x] #8 panel.md: browsing, upload, move, rename, delete, editor, rotations, Show in sidebar
-- [x] #9 cache.md: what is cached, where, the size limit, excluded from backups, clearing
-- [x] #10 troubleshooting.md: common errors and where to look in the logs
-- [x] #11 docs/configuration.md: adding the integration (no questions asked), every option with what it does, and removing the integration (what stays: media files; what goes: rotations, the cache)
-- [x] #12 quality_scale.yaml: the docs-* rules marked todo are done
+- [x] #3 actions.md: every action with fields, an example and the full response
+- [x] #4 entities.md: devices, image and Next button entities, attributes, when they update
+- [x] #5 displays.md: picture cards, notifications, media browser; the device URL with sizes, a dedicated non-admin user and token, and a complete ESPHome example refreshed when the rotation advances
+- [x] #6 editing.md: rotate and crop as EXIF and XMP, which apps honour them, JPEG only, HEIC
+- [x] #7 panel.md: browsing, upload, move, rename, delete, editor, rotations, Show in sidebar
+- [x] #8 cache.md: what is cached, where, the size limit, excluded from backups, clearing
+- [x] #9 troubleshooting.md: common errors and where to look in the logs
+- [x] #10 quality_scale.yaml: the docs-* rules marked todo are done
+- [x] #11 rotations.md: patterns (glob, **, re:, ! exclusions, combined), order, changing files
+- [x] #12 docs/configuration.md: adding the integration (choosing media folders), every option with what it does, and removing the integration (what stays: media files; what goes: rotations, the cache)
 <!-- AC:END -->
 
 ## Definition of Done
