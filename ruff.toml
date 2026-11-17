@@ -12,3 +12,5 @@ combine-as-imports = true
 [lint.per-file-ignores]
 # Tests check files directly, also inside async tests
 "tests/**" = ["ASYNC240"]
+# Command-line scripts print their output
+"tools/scripts/**" = ["T20"]

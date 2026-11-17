@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Show the version, or release one: mise run release -- VERSION|patch|minor|major|beta|rc|final [--dry-run]"
+set -euo pipefail
+exec uv run python tools/scripts/release.py "$@"
