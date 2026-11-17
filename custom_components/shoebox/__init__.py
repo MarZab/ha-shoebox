@@ -65,18 +65,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if shoebox.show_in_sidebar:
         await async_register_panel(hass, hass.data[DATA_FRONTEND_VERSION])
-        entry.async_on_unload(lambda: async_remove_panel(hass))
+    else:
+        async_remove_panel(hass)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await entry.runtime_data.rotations.async_close()
+    # A reload keeps the panel (see panel.py); disabling the entry takes it away. Home Assistant
+    # sets disabled_by before it unloads the entry.
+    if entry.disabled_by:
+        async_remove_panel(hass)
     return unloaded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> None:
-    """Removing the integration removes its rotation state and cache; media files stay."""
+    """Removing the integration removes its panel, rotation state and cache; media files stay."""
+    async_remove_panel(hass)
     await Store[dict[str, object]](hass, STORAGE_VERSION, STORAGE_KEY).async_remove()
     await hass.async_add_executor_job(variant_cache(hass, entry.options).clear)
 

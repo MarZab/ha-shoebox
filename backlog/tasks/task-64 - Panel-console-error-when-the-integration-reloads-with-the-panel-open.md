@@ -1,9 +1,11 @@
 ---
 id: TASK-64
 title: 'Panel: console error when the integration reloads with the panel open'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T16:06:00Z'
+updated_date: '2026-11-17T16:29:00Z'
 labels:
   - panel
 milestone: m-4
@@ -21,8 +23,8 @@ Reloading the entry (options or rotation changes) while the Shoebox panel is ope
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Reloading the entry with the panel open logs no page error
-- [ ] #2 Turning Show in sidebar off still removes the panel; removing the integration removes it
+- [x] #1 Reloading the entry with the panel open logs no page error
+- [x] #2 Turning Show in sidebar off still removes the panel; removing the integration removes it
 <!-- AC:END -->
 
 ## Definition of Done
@@ -31,3 +33,9 @@ Reloading the entry (options or rotation changes) while the Shoebox panel is ope
 - [ ] #2 New or changed behaviour is covered by tests
 - [ ] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+panel.py remembers whether it registered the panel; setup registers it once (panel_custom refuses a second registration) or removes it when Show in sidebar is off. Unload removes it only when entry.disabled_by is set (Home Assistant sets it before unloading); async_remove_entry removes it. Test: options toggle, a reload fires no panels_updated event, disable removes, enable restores, removal removes. Browser: reloading the entry with the panel open logs no page error (it did before).
+<!-- SECTION:NOTES:END -->

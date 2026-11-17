@@ -67,6 +67,8 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 **Chosen media folders, paths prefixed with the folder's name.** Shoebox works on the media folders chosen in setup, out of Home Assistant's `media_dirs`, so photos on a network share can be managed too, and folders not chosen (recordings, text-to-speech) stay out of reach. Every path starts with the folder's name, as Home Assistant's own media IDs do (`local/…`), also when only one folder is chosen: adding a folder later never changes existing paths, patterns or automations. `media.py` keeps working on one folder; `library.py` adds and removes the prefix.
 
+**The panel survives a reload.** Options and rotations reload the entry. Taking the sidebar panel away and back on each reload made an open panel's page look it up in between and fail, so the panel stays registered across a reload and goes only when *Show in sidebar* is turned off, the entry is disabled (Home Assistant marks it disabled before unloading it) or Shoebox is removed.
+
 **Configured in the UI only.** Integrations with a config flow do not take YAML; `cv.config_entry_only_config_schema` turns a leftover `shoebox:` into a repair.
 
 **Rotations are config subentries.** They get Settings' own add, change and delete dialogs and a stable identity (the subentry id), so renaming keeps the entity, its area and customizations, and names are free text. The add flow previews what the patterns select.

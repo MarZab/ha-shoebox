@@ -6,10 +6,11 @@ from typing import Any
 
 from aiohttp import FormData
 from aiohttp.test_utils import TestClient
-from homeassistant.components.frontend import DATA_PANELS
+from homeassistant.components.frontend import DATA_PANELS, EVENT_PANELS_UPDATED
+from homeassistant.config_entries import ConfigEntryDisabler
 from homeassistant.core import HomeAssistant
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator, WebSocketGenerator
 
 from custom_components.shoebox import websocket
@@ -58,7 +59,17 @@ async def test_panel_follows_show_in_sidebar(hass: HomeAssistant, loaded: MockCo
         )
         await hass.async_block_till_done()
         assert ("shoebox" in hass.data[DATA_PANELS]) is show
-    assert await hass.config_entries.async_unload(loaded.entry_id)
+    # a reload (options, rotations) keeps it: an open panel fails while it is gone
+    updates = async_capture_events(hass, EVENT_PANELS_UPDATED)
+    assert await hass.config_entries.async_reload(loaded.entry_id)
+    assert "shoebox" in hass.data[DATA_PANELS]
+    assert updates == []
+    # disabling takes it away, enabling brings it back, removing takes it away
+    for disabled_by, shown in ((ConfigEntryDisabler.USER, False), (None, True)):
+        await hass.config_entries.async_set_disabled_by(loaded.entry_id, disabled_by)
+        await hass.async_block_till_done()
+        assert ("shoebox" in hass.data[DATA_PANELS]) is shown
+    assert await hass.config_entries.async_remove(loaded.entry_id)
     assert "shoebox" not in hass.data[DATA_PANELS]
 
 
