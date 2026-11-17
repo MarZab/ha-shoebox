@@ -23,7 +23,6 @@ async def async_get_config_entry_diagnostics(
                 {
                     "patterns": list(sub.data.get(CONF_PATTERNS, [])),
                     "order": sub.data.get(CONF_ORDER, ORDER_PATH),
-                    "pattern": state.pattern,
                     "position": state.position,
                     "count": state.count,
                     "updated": state.updated,

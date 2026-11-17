@@ -30,7 +30,7 @@ The modules that do not import Home Assistant hold the file and picture logic. T
 ### A rotation moves on
 
 1. Pressing **Next** (`button.py`) calls `Rotations.async_advance` with the rotation's patterns.
-2. It lists the chosen media folders (`Library.walk`, in the executor), takes the pictures of the first matching pattern (`media.first_match`) and the one after the current picture (`media.advance`).
+2. It lists the chosen media folders (`Library.walk`, in the executor), takes the pictures its patterns select, minus exclusions (`media.select_pictures`), and the one after the current picture (`media.advance`).
 3. The new state is saved to storage (with a short delay) and sent on the rotation's dispatcher signal.
 4. The image entity writes its state; its `image_last_updated` is the time of the step, so dashboards fetch the new picture.
 

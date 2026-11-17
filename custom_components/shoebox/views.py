@@ -155,7 +155,7 @@ class MediaView(HomeAssistantView):
             if rotation is None:
                 return self.json_message("no such rotation", 404)
             entries = await shoebox.run(shoebox.library.walk)
-            _, files = media.first_match(entries, rotation.data.get("patterns", []))
+            files = media.select_pictures(entries, rotation.data.get("patterns", []))
             if path not in files:
                 return self.json_message("not a picture of this rotation", 404)
             if thumb:

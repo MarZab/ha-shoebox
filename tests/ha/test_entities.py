@@ -70,14 +70,11 @@ async def test_next_shows_the_next_picture(
     await press(hass)
     state = hass.states.get(IMAGE)
     assert state is not None
-    assert {
-        k: state.attributes[k] for k in ("file", "position", "count", "patterns", "pattern")
-    } == {
+    assert {k: state.attributes[k] for k in ("file", "position", "count", "patterns")} == {
         "file": "local/evening/b.jpg",
         "position": 2,
         "count": 2,
         "patterns": ["local/evening/*"],
-        "pattern": "local/evening/*",
     }
 
 

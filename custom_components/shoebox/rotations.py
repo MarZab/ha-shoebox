@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields as dataclass_fields
 from typing import Any, override
 
 from homeassistant.core import HomeAssistant
@@ -28,7 +28,6 @@ class RotationState:
     file: str | None = None  # below the media folder
     position: int = 0  # 1-based; 0 before the first step
     count: int = 0
-    pattern: str | None = None  # the pattern that selected the pictures
     updated: str | None = None  # ISO time of the last step
     shown: list[str] = field(default_factory=list)  # shuffle: pictures shown in this round
 
@@ -56,7 +55,12 @@ class Rotations:
         """Load the state of these rotations; state of rotations that are gone is dropped."""
         stored = (await self._store.async_load() or {}).get("rotations", {})
         known = set(ids)
-        self._states = {i: RotationState(**s) for i, s in stored.items() if i in known}
+        fields = {f.name for f in dataclass_fields(RotationState)}
+        self._states = {
+            i: RotationState(**{k: v for k, v in s.items() if k in fields})
+            for i, s in stored.items()
+            if i in known
+        }
         if set(stored) - known:
             await self.async_save()
 
@@ -75,7 +79,7 @@ class Rotations:
         """Move a rotation to its next picture: in path order, wrapping around, or shuffled."""
         async with self._lock:
             entries = await self._run(self.library.walk)
-            used, files = await self._run(media.first_match, entries, list(patterns))
+            files = await self._run(media.select_pictures, entries, list(patterns))
             current = self.state(rotation_id)
             shown: list[str] = []
             if order == ORDER_SHUFFLE:
@@ -88,7 +92,6 @@ class Rotations:
                 file=file,
                 position=position,
                 count=len(files),
-                pattern=used,
                 updated=dt_util.utcnow().isoformat(),
                 shown=shown,
             )

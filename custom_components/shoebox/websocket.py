@@ -161,7 +161,7 @@ async def ws_rotations(
     entries = await box.run(box.library.walk)
     out = []
     for subentry_id, title, patterns, order in _rotation_patterns(entry):
-        used, files = await box.run(media.first_match, entries, patterns)
+        files = await box.run(media.select_pictures, entries, patterns)
         state = box.rotations.state(subentry_id)
         out.append(
             {
@@ -169,7 +169,6 @@ async def ws_rotations(
                 "title": title,
                 "patterns": patterns,
                 "order": order,
-                "pattern": used,
                 "count": len(files),
                 "position": state.position,
                 "file": state.file,

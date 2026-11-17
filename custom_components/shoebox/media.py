@@ -173,9 +173,13 @@ def compile_pattern(pattern: str) -> re.Pattern[str]:
         raise MediaError("invalid_pattern", pattern=pattern, error=err) from err
 
 
-def matches(pattern: str, path: str) -> bool:
+def _finder(pattern: str) -> Callable[[str], re.Match[str] | None]:
     rx = compile_pattern(pattern)
-    return bool(rx.search(path) if pattern.startswith("re:") else rx.match(path))
+    return rx.search if pattern.startswith("re:") else rx.match
+
+
+def matches(pattern: str, path: str) -> bool:
+    return bool(_finder(pattern)(path))
 
 
 def select(entries: Iterable[Entry], pattern: str, type_: str = "all") -> list[Entry]:
@@ -186,12 +190,25 @@ def select(entries: Iterable[Entry], pattern: str, type_: str = "all") -> list[E
     return [e for e in entries if (type_ in ("all", e.type)) and find(e.path)]
 
 
-def first_match(entries: Sequence[Entry], patterns: Sequence[str]) -> tuple[str | None, list[str]]:
-    """The pictures of the first pattern that selects any, sorted by path, and that pattern."""
-    for pattern in patterns:
-        if files := [e.path for e in select(entries, pattern, "image")]:
-            return pattern, files
-    return None, []
+def select_pictures(entries: Sequence[Entry], patterns: Sequence[str]) -> list[str]:
+    """The pictures any pattern selects, minus those a pattern starting with "!" selects.
+
+    Sorted by path, without duplicates. Only "!" patterns select nothing.
+    """
+    include = [_finder(p) for p in patterns if not p.startswith("!")]
+    exclude = [_finder(p[1:]) for p in patterns if p.startswith("!")]
+    return [
+        e.path
+        for e in entries
+        if e.type == "image"
+        and any(find(e.path) for find in include)
+        and not any(find(e.path) for find in exclude)
+    ]
+
+
+def check_pattern(pattern: str) -> None:
+    """Refuse a pattern that is not valid, also after a leading "!"."""
+    compile_pattern(pattern.removeprefix("!"))
 
 
 def advance(files: Sequence[str], current: str | None) -> int:

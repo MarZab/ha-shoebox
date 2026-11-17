@@ -170,7 +170,7 @@ class RotationSubentryFlow(ConfigSubentryFlow):
             else:
                 try:
                     for pattern in self._patterns:
-                        media.compile_pattern(pattern)
+                        media.check_pattern(pattern)
                 except MediaError:
                     errors[CONF_PATTERNS] = "invalid_pattern"
             if not errors:
@@ -213,13 +213,12 @@ class RotationSubentryFlow(ConfigSubentryFlow):
             return self.async_create_entry(title=self._name, data=data)
         library = Library(media_folders(self.hass, self._get_entry().options))
         entries = await self.hass.async_add_executor_job(library.walk)
-        used, files = media.first_match(entries, self._patterns)
+        files = media.select_pictures(entries, self._patterns)
         return self.async_show_form(
             step_id="preview",
             data_schema=vol.Schema({}),
             description_placeholders={
                 "count": str(len(files)),
-                "pattern": used or "-",
                 "examples": "\n".join(f"- {f}" for f in files[:PREVIEW_COUNT]) or "-",
             },
         )

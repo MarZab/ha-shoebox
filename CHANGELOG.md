@@ -8,5 +8,6 @@ All notable changes to Shoebox are listed here. Versions follow [Semantic Versio
 - Works on one or more of Home Assistant's media folders, chosen at setup; paths start with the folder's name, such as `local/Family/beach.jpg`.
 - Text files open read-only in the panel; any file can be downloaded.
 - Rotations: rotating pictures from the media folder, with an image entity and a Next button per rotation.
+- A rotation shows the pictures of all its patterns; patterns starting with `!` leave pictures out.
 - Rotations can shuffle: every picture once per round, in random order.
 - A sized picture URL per rotation for devices such as ESPHome displays.

@@ -38,7 +38,6 @@ async def test_add_rotation_with_preview(
     assert flow["step_id"] == "preview"
     assert flow["description_placeholders"] == {
         "count": "2",
-        "pattern": "local/evening/*",
         "examples": "- local/evening/a.jpg\n- local/evening/b.jpg",
     }
     flow = await hass.config_entries.subentries.async_configure(flow["flow_id"], {})
@@ -71,7 +70,7 @@ async def test_a_rotation_without_matches_can_still_be_saved(
     flow = await hass.config_entries.subentries.async_configure(
         flow["flow_id"], {"name": "Later", "patterns": ["local/nothing/*"]}
     )
-    assert flow["description_placeholders"] == {"count": "0", "pattern": "-", "examples": "-"}
+    assert flow["description_placeholders"] == {"count": "0", "examples": "-"}
     flow = await hass.config_entries.subentries.async_configure(flow["flow_id"], {})
     assert flow["type"] is FlowResultType.CREATE_ENTRY
 
@@ -110,25 +109,20 @@ async def test_rotation_steps_wraps_and_survives_removed_files(
     (root / "evening/b.jpg").unlink()
     (root / "evening/a.jpg").unlink()
     state = await rotations.async_advance(rid, ["local/evening/*"])
-    assert (state.file, state.position, state.count, state.pattern) == (
-        "local/evening/c.jpg",
-        1,
-        1,
-        "local/evening/*",
-    )
+    assert (state.file, state.position, state.count) == ("local/evening/c.jpg", 1, 1)
 
 
-async def test_rotation_falls_back_and_empties(
+async def test_rotation_combines_patterns_and_empties(
     hass: HomeAssistant, with_rotation: MockConfigEntry, tree: Tree
 ) -> None:
-    tree("night/a.jpg")
+    tree("evening/a.jpg", "night/b.jpg", "night/private/c.jpg")
     rotations = with_rotation.runtime_data.rotations
     rid = rotation_id(with_rotation)
-    assert (
-        await rotations.async_advance(rid, ["local/evening/*", "local/night/*"])
-    ).file == "local/night/a.jpg"
+    patterns = ["local/evening/*", "local/night/**", "!**/private/**"]
+    files = [(await rotations.async_advance(rid, patterns)).file for _ in range(3)]
+    assert files == ["local/evening/a.jpg", "local/night/b.jpg", "local/evening/a.jpg"]
     state = await rotations.async_advance(rid, ["local/morning/*"])
-    assert (state.file, state.position, state.count, state.pattern) == (None, 0, 0, None)
+    assert (state.file, state.position, state.count) == (None, 0, 0)
 
 
 async def test_state_survives_a_reload(
@@ -168,7 +162,6 @@ async def test_rotations_command_lists_subentries(
         "title": "Evening",
         "patterns": ["local/evening/*"],
         "order": "path",
-        "pattern": "local/evening/*",
         "count": 2,
         "position": 1,
         "file": "local/evening/a.jpg",

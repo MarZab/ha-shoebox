@@ -52,8 +52,7 @@ class ShoeboxMediaSource(MediaSource):
 
     async def _pictures(self, shoebox: Shoebox, rotation: ConfigSubentry) -> list[str]:
         entries = await self.hass.async_add_executor_job(shoebox.library.walk)
-        _, files = media.first_match(entries, rotation.data.get(CONF_PATTERNS, []))
-        return files
+        return media.select_pictures(entries, rotation.data.get(CONF_PATTERNS, []))
 
     @override
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:

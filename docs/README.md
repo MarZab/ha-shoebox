@@ -8,7 +8,7 @@ Shoebox manages the pictures in Home Assistant's media folder and shows them as 
 |------|----------------|
 | [Use cases](use-cases.md) | Step-by-step recipes: organizing, uploading, slideshows, photo frames, notifications |
 | [Configuration](configuration.md) | Adding Shoebox, its options, and removing it |
-| [Rotations](rotations.md) | How rotations pick pictures: patterns, order, fallbacks |
+| [Rotations](rotations.md) | How rotations pick pictures: patterns, exclusions, order |
 | [Entities](entities.md) | The image and Next button of each rotation |
 | [Actions](actions.md) | Every action, its fields and its response |
 | [Displays](displays.md) | Dashboards, notifications, the media browser and devices such as ESPHome |

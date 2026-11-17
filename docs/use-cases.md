@@ -107,7 +107,7 @@ Make a rotation per mood and choose between them.
 
    and a second conditional card with `state_not: above_horizon` showing `image.night`.
 
-For seasons, one rotation with [fallback patterns](rotations.md#fallbacks) is enough. Change its patterns in **Settings** when the season turns, or keep the seasons in folders and let an automation move pictures into `local/Seasons/Now` with the [move action](actions.md#move).
+For seasons, keep a folder per season and change the rotation's patterns in **Settings** when the season turns, or keep the seasons in folders and let an automation move pictures into `local/Seasons/Now` with the [move action](actions.md#move).
 
 ## Photo of the day
 

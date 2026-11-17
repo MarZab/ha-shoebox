@@ -17,9 +17,8 @@ Attributes:
 
 | Attribute | Example | Meaning |
 |-----------|---------|---------|
-| `patterns` | `["local/Family/**"]` | The rotation's patterns |
+| `patterns` | `["local/Family/**", "!**/private/**"]` | The rotation's patterns (see [combining and excluding](rotations.md#combining-and-excluding)) |
 | `order` | `shuffle` | `path` or `shuffle` (see [order](rotations.md#order)) |
-| `pattern` | `local/Family/**` | The pattern in use (see [fallbacks](rotations.md#fallbacks)); empty when nothing matches |
 | `file` | `local/Family/2024 Summer/beach.jpg` | The current picture |
 | `position` | `2` | Its place in path order, or how many pictures this shuffle round has shown; 0 before the first Next |
 | `count` | `48` | How many pictures the rotation selects |

@@ -34,16 +34,17 @@ Patterns match paths, which start with the name of the media folder: `local/Fami
 
 Only pictures count: `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`, `.avif`, `.gif`, `.bmp`, `.tif` and `.tiff`. Hidden files and folders (names starting with `.`) and symbolic links are skipped.
 
-### Fallbacks
+### Combining and excluding
 
-A rotation can have several patterns. The first pattern that selects any picture is used, and the others are ignored. That makes fallbacks:
+A rotation shows the pictures of all its patterns together, each picture once. A pattern starting with `!` leaves pictures out:
 
 ```text
-local/Seasons/Winter/**
-local/Wallpapers/**
+local/Family/**
+nas/Holidays/**
+!**/private/**
 ```
 
-shows winter pictures while there are any, and wallpapers otherwise. The rotation's `pattern` attribute tells which one is in use.
+shows every picture below `Family` in My media and below `Holidays` on the NAS, except those in a `private` folder. Exclusions work with every kind of pattern, also `!re:…`.
 
 ## Order
 

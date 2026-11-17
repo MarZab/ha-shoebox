@@ -105,19 +105,33 @@ def test_matches(pattern: str, path: str, expected: bool) -> None:
     assert media.matches(pattern, path) is expected
 
 
-@pytest.mark.parametrize(("pattern", "message"), [(" ", "empty"), ("re:(", "Invalid pattern")])
+@pytest.mark.parametrize(
+    ("pattern", "message"),
+    [(" ", "empty"), ("re:(", "Invalid pattern"), ("!", "empty"), ("!re:(", "Invalid pattern")],
+)
 def test_bad_patterns(pattern: str, message: str) -> None:
     with pytest.raises(MediaError, match=message):
-        media.compile_pattern(pattern)
+        media.check_pattern(pattern)
 
 
-def test_first_match_takes_pictures_of_the_first_pattern_that_has_any(tree: Tree) -> None:
-    entries = media.walk(tree("evening/a.jpg", "evening/b.jpg", "morning/c.txt"))
-    assert media.first_match(entries, ["morning/*", "evening/*"]) == (
-        "evening/*",
-        ["evening/a.jpg", "evening/b.jpg"],
+@pytest.mark.parametrize(
+    ("patterns", "expected"),
+    [
+        (["evening/*"], ["evening/a.jpg"]),
+        (["evening/**", "night/*"], ["evening/a.jpg", "evening/private/b.jpg", "night/c.jpg"]),
+        (["evening/**", "**/a.jpg"], ["evening/a.jpg", "evening/private/b.jpg"]),  # once each
+        (["evening/**", "night/*", "!**/private/**"], ["evening/a.jpg", "night/c.jpg"]),
+        (["**", "!re:^night/"], ["evening/a.jpg", "evening/private/b.jpg"]),
+        (["!night/*"], []),
+    ],
+)
+def test_select_pictures_combines_patterns_and_exclusions(
+    tree: Tree, patterns: list[str], expected: list[str]
+) -> None:
+    entries = media.walk(
+        tree("evening/a.jpg", "evening/private/b.jpg", "night/c.jpg", "night/d.txt")
     )
-    assert media.first_match(entries, ["night/*"]) == (None, [])
+    assert media.select_pictures(entries, patterns) == expected
 
 
 @pytest.mark.parametrize(
