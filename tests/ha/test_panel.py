@@ -204,8 +204,9 @@ async def test_refusals_come_back_as_errors(
     tree("a.png")
     msg = await ws(type_, **data)
     assert not msg["success"]
-    assert msg["error"]["code"] == "invalid"
+    assert msg["error"]["code"] == "home_assistant_error"
     assert msg["error"]["message"]
+    assert msg["error"]["translation_domain"] == "shoebox"  # the panel could translate it
 
 
 async def test_everything_is_admin_only(

@@ -49,6 +49,9 @@
         "no_pattern": "Vnesite vsaj en vzorec.",
         "invalid_pattern": "Vzorec ni veljaven.",
         "slow_patterns": "Ujemanje teh vzorcev s slikami traja več kot sekundo; poenostavite jih (manj \"**\", enostavnejši re: izrazi)."
+      },
+      "abort": {
+        "reconfigure_successful": "Ponovna nastavitev je uspela."
       }
     }
   },
@@ -320,13 +323,16 @@
       "message": "Navedite levo, zgoraj, desno in spodaj ali odstranite obrez."
     },
     "media_folder_missing": {
-      "message": "Mapa z mediji \"{folder}\" manjka ali ni več nastavljena."
+      "message": "Mapa z mediji \"{folder}\" ne obstaja ali ni dosegljiva."
     },
     "too_large": {
       "message": "{name}: slika je prevelika za pripravo ({megapixels} milijonov pik, največ {limit})."
     },
     "too_many_globstars": {
       "message": "\"{pattern}\": vzorec ima lahko največ {limit} \"**\"."
+    },
+    "media_folder_unconfigured": {
+      "message": "Mape z mediji \"{folder}\" ni več med mapami z mediji v Home Assistantu (media_dirs). Dodajte jo nazaj in ponovno zaženite ali v možnostih Shoeboxa izberite druge mape in ga ponovno naložite."
     }
   }
 }

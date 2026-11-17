@@ -1,8 +1,11 @@
 # Troubleshooting
 
-## Shoebox does not start: "The media folder … is missing or no longer configured"
+## Shoebox does not start
 
-A media folder chosen for Shoebox does not exist, or was removed from `media_dirs` in `configuration.yaml`. Create the folder or add it back, and Shoebox retries on its own; or choose other folders in the [options](configuration.md#options). My media (`local`) is `/media` on Home Assistant OS and in the container.
+- **"The media folder … does not exist or cannot be reached"**: the folder is configured but not there, for example a network share that is not mounted yet. Shoebox retries on its own and starts once the folder is there.
+- **"The media folder … is no longer in Home Assistant's media folders"**: the folder was removed from `media_dirs` in `configuration.yaml`. Shoebox does not retry, because only a change to the configuration brings it back. Add it back and restart Home Assistant, or choose other folders in the [options](configuration.md#options) and reload Shoebox.
+
+My media (`local`) is `/media` on Home Assistant OS and in the container.
 
 ## A rotation shows nothing
 

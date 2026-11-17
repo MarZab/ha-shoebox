@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
@@ -42,7 +42,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoeboxConfigEntry) -> b
     shoebox = Shoebox(hass, entry.options)
     for name in chosen_folders(entry.options):
         folder = shoebox.library.folders.get(name)
-        if folder is None or not await hass.async_add_executor_job(folder.is_dir):
+        if folder is None:  # only a change to the configuration and a restart bring it back
+            raise ConfigEntryError(
+                translation_domain=DOMAIN,
+                translation_key="media_folder_unconfigured",
+                translation_placeholders={"folder": name},
+            )
+        if not await hass.async_add_executor_job(folder.is_dir):  # e.g. a share not mounted yet
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,
                 translation_key="media_folder_missing",

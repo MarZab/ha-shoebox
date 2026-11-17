@@ -49,6 +49,9 @@
         "no_pattern": "Give at least one pattern.",
         "invalid_pattern": "A pattern is not valid.",
         "slow_patterns": "These patterns take more than a second to match the pictures; simplify them (fewer \"**\", simpler re: expressions)."
+      },
+      "abort": {
+        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
       }
     }
   },
@@ -320,13 +323,16 @@
       "message": "Give left, top, right and bottom, or clear the crop."
     },
     "media_folder_missing": {
-      "message": "The media folder \"{folder}\" is missing or no longer configured."
+      "message": "The media folder \"{folder}\" does not exist or cannot be reached."
     },
     "too_large": {
       "message": "{name}: the picture is too large to prepare ({megapixels} megapixels, at most {limit})."
     },
     "too_many_globstars": {
       "message": "\"{pattern}\": at most {limit} \"**\" in a pattern."
+    },
+    "media_folder_unconfigured": {
+      "message": "The media folder \"{folder}\" is no longer in Home Assistant's media folders (media_dirs). Add it back and restart, or choose other folders in Shoebox's options and reload Shoebox."
     }
   }
 }

@@ -14,7 +14,6 @@ from typing import Any, Final
 from homeassistant.components import websocket_api
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 import probatio as vol
 from yarl import URL
 
@@ -45,20 +44,12 @@ def picture_url(
 
 
 def _command(schema: dict[Any, Any]) -> Callable[[_Handler], websocket_api.WebSocketCommandHandler]:
-    """An admin-only command; refusals come back as an error with the translated message."""
+    """An admin-only command. Errors go through core's handling, which sends the translated
+    message with its translation key and placeholders."""
 
     def wrap(func: _Handler) -> websocket_api.WebSocketCommandHandler:
-        async def handler(
-            hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: _Message
-        ) -> None:
-            try:
-                await func(hass, connection, msg)
-            except HomeAssistantError as err:
-                connection.send_error(msg["id"], "invalid", str(err))
-
-        handler.__name__ = func.__name__
         return websocket_api.websocket_command(schema)(
-            websocket_api.require_admin(websocket_api.async_response(handler))
+            websocket_api.require_admin(websocket_api.async_response(func))
         )
 
     return wrap

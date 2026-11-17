@@ -36,11 +36,11 @@ rules:
   docs-installation-parameters: done
   entity-unavailable:
     status: exempt
-    comment: The entities show local files; there is no device or service that can become unreachable.
+    comment: The entities show files in the media folders. Setup waits for a folder that is not there (a share not mounted yet), and rotations follow their pictures when Shoebox moves or deletes them; there is no device or service to poll.
   integration-owner: done
   log-when-unavailable:
     status: exempt
-    comment: The entities show local files; there is no device or service that can become unreachable.
+    comment: The entities show files in the media folders. Setup waits for a folder that is not there (a share not mounted yet), and rotations follow their pictures when Shoebox moves or deletes them; there is no device or service to poll.
   parallel-updates: done
   reauthentication-flow:
     status: exempt

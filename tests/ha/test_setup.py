@@ -37,19 +37,23 @@ async def test_removing_keeps_media_and_drops_state_and_cache(
 
 
 @pytest.mark.parametrize(
-    ("media_dirs", "chosen", "missing"),
-    [({"local": "missing"}, ["local"], "local"), ({"local": ""}, ["local", "nas"], "nas")],
+    ("media_dirs", "chosen", "missing", "state"),
+    [
+        ({"local": "missing"}, ["local"], "local", ConfigEntryState.SETUP_RETRY),  # not mounted yet
+        ({"local": ""}, ["local", "nas"], "nas", ConfigEntryState.SETUP_ERROR),  # not configured
+    ],
 )
-async def test_setup_waits_for_its_media_folders(
+async def test_setup_needs_its_media_folders(
     hass: HomeAssistant,
     media_root: Path,
     media_dirs: dict[str, str],
     chosen: list[str],
     missing: str,
+    state: ConfigEntryState,
 ) -> None:
     hass.config.media_dirs = {name: str(media_root / sub) for name, sub in media_dirs.items()}
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={"folders": chosen})
     entry.add_to_hass(hass)
     assert not await hass.config_entries.async_setup(entry.entry_id)
-    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.state is state
     assert f'"{missing}"' in (entry.reason or "")
