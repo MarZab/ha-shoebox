@@ -89,7 +89,7 @@ path: local/Family/2025 Summer/beach.jpg
 
 ## delete
 
-Deletes a file, or a folder with everything in it. **This cannot be undone.**
+Deletes a file, or a folder with everything in it. **This cannot be undone**, as in Home Assistant's media browser: a Home Assistant backup that includes the media folder is the way to get files back.
 
 ```yaml
 action: shoebox.delete

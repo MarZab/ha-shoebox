@@ -81,8 +81,6 @@ The cache key is a SHA-256 of a version number, the file's real path, size and m
 
 **Media players get their own view.** Home Assistant signs media source URLs for its content user, who is not an admin, so the admin-only render view cannot serve them.
 
+**Deletes are final, as in Home Assistant.** Home Assistant's media browser deletes a file at once, after a confirmation, and has no trash; backups that include the media folder are how files come back. Shoebox does the same: the panel asks first, and the delete action says it cannot be undone. Unlike Home Assistant, Shoebox also deletes folders, with everything in them, since it creates them too.
+
 **Home Assistant 2026.10 or newer.** Setup and unload return a bool, which 2026.10 requires and later versions accept from custom integrations.
-
-## Open questions
-
-- **Recoverable delete.** Deletes are final, with a confirmation in the panel; a hidden trash could make them recoverable.
