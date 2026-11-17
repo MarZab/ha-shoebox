@@ -1,9 +1,11 @@
 ---
 id: TASK-6
 title: Test fixtures
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T09:54:00Z'
 labels:
   - tests
 milestone: m-1
@@ -25,13 +27,19 @@ Shared building blocks in tests/conftest.py for the HA-free modules:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Fixtures are small and named after what they give
-- [ ] #2 Images are generated in memory; no binary test assets
+- [x] #1 Fixtures are small and named after what they give
+- [x] #2 Images are generated in memory; no binary test assets
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 `mise run check` passes
-- [ ] #2 New or changed behaviour is covered by tests
-- [ ] #3 README and AGENTS.md match the change
+- [x] #1 `mise run check` passes
+- [x] #2 New or changed behaviour is covered by tests
+- [x] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+tests/images.py: quadrant pictures (JPEG keeps EXIF orientation and XMP crop), colour_at reads the nearest quadrant colour. tests/conftest.py: media_root and tree fixtures.
+<!-- SECTION:NOTES:END -->
