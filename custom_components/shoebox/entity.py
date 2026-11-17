@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -16,10 +18,12 @@ from .runtime import Shoebox
 class RotationEntity(Entity):
     _attr_has_entity_name = True
     _attr_should_poll = False
+    _unique_suffix: ClassVar[str] = ""  # tells apart the entities of one rotation
 
     def __init__(self, shoebox: Shoebox, subentry: ConfigSubentry) -> None:
         self.shoebox = shoebox
         self.rotation_id = subentry.subentry_id
+        self._attr_unique_id = "_".join(filter(None, (subentry.subentry_id, self._unique_suffix)))
         self.patterns: list[str] = list(subentry.data.get(CONF_PATTERNS, []))
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},

@@ -19,7 +19,7 @@ from .websocket import async_setup_websocket
 DATA_FRONTEND_VERSION: HassKey[str] = HassKey(f"{DOMAIN}_frontend_version")
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-PLATFORMS = [Platform.IMAGE]
+PLATFORMS = [Platform.BUTTON, Platform.IMAGE]
 
 type ShoeboxConfigEntry = ConfigEntry[Shoebox]
 

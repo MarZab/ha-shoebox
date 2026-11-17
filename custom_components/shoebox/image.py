@@ -38,7 +38,6 @@ class RotationImage(RotationEntity, ImageEntity):
     def __init__(self, hass: HomeAssistant, shoebox: Shoebox, subentry: ConfigSubentry) -> None:
         ImageEntity.__init__(self, hass)
         RotationEntity.__init__(self, shoebox, subentry)
-        self._attr_unique_id = subentry.subentry_id
 
     @property
     @override

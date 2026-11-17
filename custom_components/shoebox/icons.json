@@ -1,5 +1,10 @@
 {
   "entity": {
+    "button": {
+      "next": {
+        "default": "mdi:skip-next"
+      }
+    },
     "image": {
       "rotation": {
         "default": "mdi:image-album"
