@@ -1,9 +1,11 @@
 ---
 id: TASK-3
 title: CI workflows
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T09:50:00Z'
 labels:
   - tooling
   - release
@@ -26,14 +28,20 @@ GitHub Actions:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 ci.yaml and `mise run check` run the same checks
-- [ ] #2 validate.yaml runs hassfest and hacs/action
-- [ ] #3 release.yaml refuses a tag that does not match manifest.json
+- [x] #1 ci.yaml and `mise run check` run the same checks
+- [x] #2 validate.yaml runs hassfest and hacs/action
+- [x] #3 release.yaml refuses a tag that does not match manifest.json
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 `mise run check` passes
-- [ ] #2 New or changed behaviour is covered by tests
-- [ ] #3 README and AGENTS.md match the change
+- [x] #1 `mise run check` passes
+- [x] #2 New or changed behaviour is covered by tests
+- [x] #3 README and AGENTS.md match the change
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+ci.yaml runs mise run check through mise-action, so CI and local checks are one definition. The tag check lives in tools/scripts/release_channel.sh (tested by hand: stable, beta, mismatch, missing v). actionlint passes. The workflows have not run on GitHub yet: the repository has no remote.
+<!-- SECTION:NOTES:END -->
