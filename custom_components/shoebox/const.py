@@ -39,3 +39,6 @@ SIGNAL_ROTATION: Final = DOMAIN + "_rotation_{}"
 # The image entities serve the current picture fitted inside this box
 ENTITY_SIZE: Final = (1280, 1280)
 DEVICE_IMAGE_URL: Final = "/api/shoebox/image/{entity_id}"
+MEDIA_URL: Final = "/api/shoebox/media/{rotation_id}/{path:.*}"
+# Pictures served to the media browser and media players
+MEDIA_SIZE: Final = (1920, 1080)

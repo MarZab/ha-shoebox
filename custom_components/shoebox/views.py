@@ -18,13 +18,15 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from . import imaging, upload
+from . import imaging, media, upload
 from .const import (
     DEVICE_IMAGE_URL,
     DOMAIN,
     ENTITY_SIZE,
     MAX_SIDE,
     MAX_UPLOAD_BYTES,
+    MEDIA_SIZE,
+    MEDIA_URL,
     RENDER_URL,
     UPLOAD_URL,
 )
@@ -128,6 +130,39 @@ class DeviceImageView(HomeAssistantView):
         if etag in request.headers.get(hdrs.IF_NONE_MATCH, ""):
             return web.Response(status=304, headers=headers)
         return web.Response(body=variant.data, content_type="image/jpeg", headers=headers)
+
+
+class MediaView(HomeAssistantView):
+    """A picture of a rotation, for the media browser and media players.
+
+    Media players fetch it with a URL that Home Assistant signs for its content user, so any user
+    may fetch it; only pictures the rotation selects are served.
+    """
+
+    url = MEDIA_URL
+    name = "api:shoebox:media"
+    requires_auth = True
+
+    async def get(self, request: web.Request, rotation_id: str, path: str) -> web.StreamResponse:
+        hass = request.app[KEY_HASS]
+        thumb = request.query.get("thumb") == "1"
+        try:
+            shoebox = loaded_shoebox(hass)
+            entry = hass.config_entries.async_loaded_entries(DOMAIN)[0]
+            rotation = entry.subentries.get(rotation_id)
+            if rotation is None:
+                return self.json_message("no such rotation", 404)
+            entries = await shoebox.run(media.walk, shoebox.root)
+            _, files = media.first_match(entries, rotation.data.get("patterns", []))
+            if path not in files:
+                return self.json_message("not a picture of this rotation", 404)
+            if thumb:
+                variant = await shoebox.picture(path, 320, 320, "cover")
+            else:
+                variant = await shoebox.picture(path, *MEDIA_SIZE, "contain")
+        except HomeAssistantError as err:
+            return self.json_message(str(err), 404)
+        return jpeg(variant.data, variant.key, 3600)
 
 
 class _TooLarge(Exception):
