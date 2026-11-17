@@ -52,6 +52,7 @@ const STYLE = `
   .crumbs a { display: inline-flex; align-items: center; gap: 4px; color: var(--primary-color); text-decoration: none; cursor: pointer; padding: 4px 6px; border-radius: var(--ha-border-radius-sm, 4px); }
   .crumbs a:hover { background: var(--secondary-background-color); }
   .crumbs .here { color: var(--primary-text-color); padding: 4px 6px; font-weight: var(--ha-font-weight-medium, 500); }
+  .crumbs .here.home { display: inline-flex; align-items: center; gap: 4px; }
   .crumbs ha-icon { --mdc-icon-size: 18px; display: flex; } /* no line box around the glyph: centred on the text */
   .count { margin-inline-start: auto; font-size: var(--ha-font-size-s, 12px); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--mm-tile, 160px), 1fr)); gap: var(--ha-space-4, 16px); }
@@ -276,18 +277,31 @@ class ShoeboxPanel extends HTMLElement {
     } catch {
       folder = ""; // a malformed address: the top level
     }
+    // With one chosen media folder, the top level is that folder, as in Home Assistant's media browser
+    if (!folder && this._single) folder = this._single;
     if (!force && folder === this._folder && this._loadedOnce) return;
     if (folder !== this._folder) this._clearSearch();
-    this._folder = folder;
+    this._setFolder(folder);
     this._loadedOnce = true;
+    this._loadFolder();
+  }
+
+  _setFolder(folder) {
+    this._folder = folder;
     // the top level lists the media folders: uploads and new folders go into one of them
     this.shadowRoot.querySelectorAll(".files-only").forEach((el) => { el.hidden = !folder; });
-    this._loadFolder();
+  }
+
+  // The chosen media folders come with every listing: remember whether there is only one
+  _learnFolders(titles) {
+    const ids = Object.keys(titles || {});
+    this._single = ids.length === 1 ? ids[0] : null;
   }
 
   _navigate(folder = "") {
     const prefix = this._route?.prefix || "/shoebox";
     let path = prefix;
+    if (folder && folder === this._single) folder = ""; // the top level is that folder
     if (folder) path += "/folder/" + folder.split("/").map(encodeURIComponent).join("/");
     history.pushState(null, "", path);
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
@@ -389,6 +403,7 @@ class ShoeboxPanel extends HTMLElement {
       this._loadedAt = Date.now();
       this._items = r.items;
       this._titles = r.titles;
+      this._learnFolders(r.titles);
       this._more = r.more;
       this._shownFolder = null; // the folder itself is not shown
       this._renderFolder();
@@ -405,6 +420,11 @@ class ShoeboxPanel extends HTMLElement {
     try {
       const r = await this._ws("browse", { path: this._folder });
       if (seq !== this._loadSeq) return; // a newer listing was asked for meanwhile
+      this._learnFolders(r.titles);
+      if (!this._folder && this._single) { // only now known: open that folder instead
+        this._setFolder(this._single);
+        return this._loadFolder();
+      }
       this._loadedAt = Date.now();
       this._items = r.items;
       this._titles = r.titles;
@@ -421,14 +441,21 @@ class ShoeboxPanel extends HTMLElement {
   // A path as Home Assistant's media browser names it: the media folder by its directory's name
   _shown(path) {
     const [first, ...rest] = String(path).split("/");
-    return [this._titles?.[first] ?? first, ...rest].join("/");
+    const name = this._single && first === this._single ? this.t("media") : this._titles?.[first] ?? first;
+    return [name, ...rest].join("/");
   }
 
   _renderFolder() {
     const t = this.t;
     const parts = this._folder ? this._folder.split("/") : [];
-    const crumbs = [`<a data-act="crumb" data-path="" tabindex="0" role="link">${icon("mdi:folder-home-outline")}${esc(t("media"))}</a>`];
+    // with one media folder, it is the top: "Media" stands for it, and it gets no step of its own
+    const skip = this._single && parts[0] === this._single ? 1 : 0;
+    const home = `${icon("mdi:folder-home-outline")}${esc(t("media"))}`;
+    const crumbs = [parts.length > skip
+      ? `<a data-act="crumb" data-path="" tabindex="0" role="link">${home}</a>`
+      : `<span class="here home">${home}</span>`];
     parts.forEach((p, i) => {
+      if (i < skip) return;
       const path = parts.slice(0, i + 1).join("/");
       crumbs.push(icon("mdi:chevron-right"));
       const name = i === 0 ? this._shown(p) : p;
@@ -436,7 +463,7 @@ class ShoeboxPanel extends HTMLElement {
     });
     const searching = !!this._query;
     // as Home Assistant's media browser: "Search <the folder>"
-    const here = parts.length ? (parts.length === 1 ? this._shown(parts[0]) : parts[parts.length - 1]) : t("media");
+    const here = parts.length > skip ? (parts.length === 1 ? this._shown(parts[0]) : parts[parts.length - 1]) : t("media");
     const input = this.shadowRoot.getElementById("search-input");
     if (input) input.label = t("search_in", { folder: here });
     // the media folders themselves cannot be renamed, moved or deleted
