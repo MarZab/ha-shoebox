@@ -4,6 +4,7 @@ title: Setup, config flow and options
 status: To Do
 assignee: []
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T09:51:00Z'
 labels:
   - integration
 milestone: m-2
@@ -32,6 +33,7 @@ ordinal: 11000
 - [ ] #3 Options: saves the size, clears the cache when asked, evicts on change
 - [ ] #4 A shoebox: key in configuration.yaml raises HA's repair issue
 - [ ] #5 Show in sidebar defaults on; switching it removes or adds the panel without a restart
+- [ ] #6 Shoebox Media Manager can be added in the Docker HA
 <!-- AC:END -->
 
 ## Definition of Done

@@ -7,6 +7,7 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+.cache/
 
 # Docker dev stack
 docker/ha-config/

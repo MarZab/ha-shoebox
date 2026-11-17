@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#MISE description="Validate the integration with Home Assistant's hassfest, as CI does"
+set -euo pipefail
+repo=$PWD
+version=$(uv run --quiet python -c "from homeassistant.const import __version__; print(__version__)")
+core="$repo/.cache/hassfest/core-$version"
+venv="$repo/.cache/hassfest/venv"
+if [ ! -d "$core" ]; then
+  git clone --quiet --depth 1 --branch "$version" https://github.com/home-assistant/core.git "$core"
+fi
+if [ ! -d "$venv" ]; then
+  # hassfest runs on the Home Assistant installed in .venv, plus what only hassfest needs
+  uv venv --quiet --python 3.14 "$venv"
+  echo "$repo/.venv/lib/python3.14/site-packages" > "$venv/lib/python3.14/site-packages/shoebox-dev.pth"
+  VIRTUAL_ENV="$venv" uv pip install --quiet infrared_protocols pipdeptree tqdm
+fi
+cd "$core"
+PATH="$venv/bin:$repo/.venv/bin:$PATH" "$venv/bin/python" -m script.hassfest \
+  --action validate --integration-path "$repo/custom_components/shoebox"

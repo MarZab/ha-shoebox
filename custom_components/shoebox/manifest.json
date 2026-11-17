@@ -1,0 +1,12 @@
+{
+  "domain": "shoebox",
+  "name": "Shoebox Media Manager",
+  "codeowners": ["@MarZab"],
+  "dependencies": [],
+  "documentation": "https://github.com/MarZab/ha-shoebox",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/MarZab/ha-shoebox/issues",
+  "requirements": ["pillow-heif==1.8.1"],
+  "version": "0.1.0"
+}

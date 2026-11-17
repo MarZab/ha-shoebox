@@ -4,6 +4,7 @@ title: 'Panel backend: views and WebSocket commands'
 status: To Do
 assignee: []
 created_date: '2026-11-17T09:40:00Z'
+updated_date: '2026-11-17T09:51:00Z'
 labels:
   - integration
   - panel
@@ -30,6 +31,7 @@ What the panel talks to: the render and upload views and the WebSocket commands 
 - [ ] #5 Concurrent renders are capped so a folder of thumbnails cannot exhaust CPU or memory
 - [ ] #6 Each WebSocket command: result shape, admin only, refusal returned as an error
 - [ ] #7 The panel is registered for admins only, only while Show in sidebar is on, and removed on unload
+- [ ] #8 The panel opens as Shoebox in the Docker HA sidebar
 <!-- AC:END -->
 
 ## Definition of Done

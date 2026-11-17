@@ -52,6 +52,7 @@ mise run setup        # uv sync
 mise run check        # lint + types + tests (what CI runs)
 mise run test         # pytest (extra args after --)
 mise run format       # ruff fix + format
+mise run hassfest     # Home Assistant's manifest, translation and service checks
 mise run dev:up       # Home Assistant in Docker at http://localhost:8123
 mise run dev:restart  # pick up integration edits
 mise run dev:logs     # tail HA logs
