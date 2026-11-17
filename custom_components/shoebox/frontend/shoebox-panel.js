@@ -10,7 +10,6 @@ import "./crop.js";
 const DOMAIN = "shoebox";
 const UPLOAD_URL = "/api/shoebox/upload";
 const PARALLEL_UPLOADS = 3;
-const NAME_RX = /^[a-z0-9_]+$/;
 const ELEMENTS = [
   "ha-top-app-bar-fixed", "ha-menu-button", "ha-card", "ha-icon", "ha-icon-button", "ha-button", "ha-dialog",
   "ha-dialog-footer", "ha-input", "ha-dropdown", "ha-dropdown-item",
@@ -89,6 +88,7 @@ const STYLE = `
   :host([narrow]) .rot .pic { width: 48px; height: 48px; }
   .rot .nm { font-size: var(--ha-font-size-l, 16px); font-weight: var(--ha-font-weight-medium, 500); }
   .rot .sub { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); overflow-wrap: anywhere; }
+  .rot a.entity { color: var(--primary-color); cursor: pointer; text-decoration: none; }
   code { font-family: var(--ha-font-family-code, monospace); font-size: 0.95em; background: var(--secondary-background-color); padding: 1px 4px; border-radius: 4px; }
   /* dialogs */
   .dlg-text { margin: 0; color: var(--primary-text-color); }
@@ -258,9 +258,9 @@ class ShoeboxPanel extends HTMLElement {
       else if (a === "new-folder") this._newFolder();
       else if (a === "refresh") this._view === "rotations" ? this._loadRotations() : this._loadFolder();
       else if (a === "crumb") this._navigate("files", act.dataset.path);
-      else if (a === "add-rotation") this._editRotation(null);
-      else if (a === "edit-rotation") this._editRotation(this._rotations.find((r) => r.name === act.dataset.name));
-      else if (a === "delete-rotation") this._deleteRotation(act.dataset.name);
+      else if (a === "settings") this._openSettings();
+      else if (a === "next-rotation") this._nextRotation(act.dataset.entity);
+      else if (a === "more-info") this._moreInfo(act.dataset.entity);
       else if (a === "close-uploads") this._closeUploads();
       return;
     }
@@ -745,103 +745,33 @@ class ShoeboxPanel extends HTMLElement {
     }
     const rows = this._rotations.map((r) => `<div class="rot">
         ${r.thumb ? `<img class="pic" alt="" src="${esc(r.thumb)}">` : `<div class="pic">${icon("mdi:image-off-outline")}</div>`}
-        <div class="txt"><div class="nm">${esc(r.name)}</div>
+        <div class="txt"><div class="nm">${esc(r.title)}</div>
           <div class="sub">${r.patterns.map((p) => `<code>${esc(p)}</code>`).join(" → ")}</div>
-          <div class="sub">${esc(r.position ? t("position", { position: r.position, count: r.count }) : t("not_started", { count: r.count }))} · ${esc(t("entity", { entity: `image.${r.name}` }))}</div>
+          <div class="sub">${esc(r.position ? t("position", { position: r.position, count: r.count }) : t("not_started", { count: r.count }))}${
+            r.entity_id ? ` · <a class="entity" data-act="more-info" data-entity="${esc(r.entity_id)}">${esc(r.entity_id)}</a>` : ""}</div>
           ${r.file ? `<div class="sub">${esc(t("current", { file: r.file }))}</div>` : ""}</div>
-        ${iconButton("mdi:pencil", t("edit_rotation"), `data-act="edit-rotation" data-name="${esc(r.name)}"`)}
-        ${iconButton("mdi:delete-outline", t("delete"), `data-act="delete-rotation" data-name="${esc(r.name)}"`)}
+        ${r.next_entity_id ? iconButton("mdi:skip-next", t("next"), `data-act="next-rotation" data-entity="${esc(r.next_entity_id)}"`) : ""}
       </div>`).join("");
-    content.innerHTML = `<div class="actions-row"><ha-button data-act="add-rotation">${icon("mdi:plus", "start")}${esc(t("add_rotation"))}</ha-button></div>
+    content.innerHTML = `<div class="actions-row"><ha-button data-act="settings">${icon("mdi:cog-outline", "start")}${esc(t("manage_rotations"))}</ha-button></div>
       <ha-card outlined>${rows || `<div class="empty">${esc(t("no_rotations"))}</div>`}</ha-card>`;
   }
 
-  _editRotation(rot) {
-    const t = this.t;
-    let patterns = rot ? [...rot.patterns] : [""];
-    const patternRows = () => patterns.map((p, i) => `<div class="prow">
-        <ha-input data-p="${i}" label="${esc(i ? t("fallback") : t("pattern"))}" ${i ? "" : `hint="${esc(t("pattern_hint"))}"`}></ha-input>
-        ${patterns.length > 1 ? iconButton("mdi:close", t("remove_pattern"), `data-rm="${i}"`) : ""}</div>`).join("");
-    const dlg = this._dialog({
-      title: rot ? t("edit_rotation") : t("add_rotation"),
-      body: `<ha-input id="name" label="${esc(t("rotation_name"))}" ${rot ? "" : "autofocus"}></ha-input>
-        <div class="patterns"></div>
-        <div class="actions-row" style="margin:8px 0 0"><ha-button appearance="plain" size="small" data-add>${icon("mdi:plus", "start")}${esc(t("add_pattern"))}</ha-button></div>
-        <div class="match"></div><div class="previews"></div>`,
-      primary: t("save"),
-      onPrimary: async () => {
-        const name = String(dlg.querySelector("#name").value || "").trim();
-        const pats = patterns.map((p) => p.trim()).filter(Boolean);
-        if (!NAME_RX.test(name)) throw new Error(t("invalid_name"));
-        if (!pats.length) return false;
-        if (rot && name !== rot.name) await this._action("rename_rotation", { rotation: rot.name, name });
-        await this._action("set_rotation", { rotation: name, pattern: pats });
-        await this._loadRotations();
-        return true;
-      },
-    });
-    const list = dlg.querySelector(".patterns");
-    const fill = () => {
-      list.innerHTML = patternRows();
-      list.querySelectorAll("ha-input").forEach((inp) => { inp.value = patterns[Number(inp.dataset.p)]; });
-    };
-    fill();
-    dlg.querySelector("#name").value = rot?.name || "";
-    let timer;
-    let seq = 0;
-    const update = () => {
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const my = ++seq;
-        const match = dlg.querySelector(".match"), previews = dlg.querySelector(".previews");
-        const pats = patterns.map((p) => p.trim()).filter(Boolean);
-        if (!pats.length) { match.textContent = ""; previews.innerHTML = ""; return; }
-        try {
-          const r = await this._ws("match", { pattern: pats, limit: 24 });
-          if (my !== seq) return;
-          match.innerHTML = r.count
-            ? esc(pats.length > 1 ? t("matches_with", { count: r.count, pattern: r.pattern }) : t("matches", { count: r.count }))
-            : esc(t("no_matches"));
-          previews.innerHTML = r.items.map((i) => `<img loading="lazy" alt="" title="${esc(i.path)}" src="${esc(i.thumb)}">`).join("");
-        } catch (err) {
-          if (my !== seq) return;
-          match.innerHTML = `<ha-alert alert-type="warning">${esc(err.message)}</ha-alert>`;
-          previews.innerHTML = "";
-        }
-      }, 300);
-    };
-    list.addEventListener("input", (e) => {
-      const inp = e.composedPath().find((n) => n.dataset?.p !== undefined);
-      if (!inp) return;
-      patterns[Number(inp.dataset.p)] = inp.value || "";
-      update();
-    });
-    dlg.addEventListener("click", (e) => {
-      const b = e.composedPath().find((n) => n instanceof Element && (n.dataset?.rm !== undefined || n.hasAttribute?.("data-add")));
-      if (!b) return;
-      if (b.hasAttribute("data-add")) patterns.push("");
-      else patterns.splice(Number(b.dataset.rm), 1);
-      fill();
-      update();
-    });
-    update();
+  async _nextRotation(entityId) {
+    try {
+      await this._hass.callService("button", "press", { entity_id: entityId });
+      await this._loadRotations();
+    } catch (err) {
+      this._error(err);
+    }
   }
 
-  _deleteRotation(name) {
-    const t = this.t;
-    this._dialog({
-      title: t("delete_rotation", { name }),
-      type: "alert",
-      width: "small",
-      body: `<p class="dlg-text">${esc(t("delete_rotation_text"))}</p>`,
-      primary: t("delete"),
-      danger: true,
-      onPrimary: async () => {
-        await this._action("remove_rotation", { rotation: name });
-        await this._loadRotations();
-        return true;
-      },
-    });
+  _moreInfo(entityId) {
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+  }
+
+  _openSettings() {
+    history.pushState(null, "", `/config/integrations/integration/${DOMAIN}`);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 }
 

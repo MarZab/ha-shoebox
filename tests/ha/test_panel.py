@@ -253,17 +253,6 @@ async def test_info_and_edit(ws: Ws, media_root: Path) -> None:
     assert edited["crop"] == pytest.approx([0, 0, 0.5, 1])
 
 
-async def test_match(ws: Ws, tree: Tree) -> None:
-    tree("evening/a.jpg", "evening/b.jpg")
-    result = (await ws("match", pattern=["morning/*", "evening/*"], limit=1))["result"]
-    assert (result["pattern"], result["count"], len(result["items"])) == ("evening/*", 2, 1)
-    assert (await ws("match", pattern=[" "]))["result"] == {
-        "pattern": None,
-        "count": 0,
-        "items": [],
-    }
-
-
 async def test_rotations_without_any(ws: Ws) -> None:
     assert (await ws("rotations"))["result"] == {"rotations": []}
 
@@ -274,7 +263,6 @@ async def test_rotations_without_any(ws: Ws) -> None:
         ("browse", {"path": "../x"}),
         ("info", {"path": "missing.jpg"}),
         ("edit", {"path": "a.png", "crop": None}),
-        ("match", {"pattern": ["re:("]}),
     ],
 )
 async def test_refusals_come_back_as_errors(
