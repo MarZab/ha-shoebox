@@ -8,11 +8,11 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
-from custom_components.shoebox.const import DOMAIN
+from custom_components.shoebox.const import DOMAIN, TITLE
 
 from ..conftest import Tree
 from ..images import colour_at
-from .conftest import rotation_id
+from .conftest import rotation, rotation_id
 
 IMAGE = "image.evening"
 NEXT = "button.evening_next"
@@ -65,7 +65,9 @@ async def test_next_shows_the_next_picture(
 ) -> None:
     tree("evening/a.jpg", "evening/b.jpg")
     client = await hass_client()
-    assert (await client.get(f"/api/image_proxy/{IMAGE}")).status == 500  # nothing shown yet
+    before = hass.states.get(IMAGE)
+    assert before is not None
+    assert before.state == "unknown"  # nothing shown before the first Next
     await press(hass)
     response = await client.get(f"/api/image_proxy/{IMAGE}")
     assert response.status == 200
@@ -117,3 +119,24 @@ async def test_the_rotation_follows_its_picture(
     state = hass.states.get(IMAGE)
     assert state is not None
     assert state.attributes["file"] == file
+
+
+@pytest.mark.parametrize("order", ["path", "shuffle"])
+async def test_next_follows_the_rotation_order(hass: HomeAssistant, tree: Tree, order: str) -> None:
+    names = [f"evening/{i:02}.jpg" for i in range(20)]
+    tree(*names)
+    sub = rotation()
+    sub["data"] = {**sub["data"], "order": order}
+    entry = MockConfigEntry(domain=DOMAIN, title=TITLE, data={}, subentries_data=[sub])
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    shown = []
+    for _ in names:
+        await press(hass)
+        state = hass.states.get(IMAGE)
+        assert state is not None
+        shown.append(state.attributes["file"])
+    expected = [f"local/{n}" for n in names]
+    assert sorted(shown) == expected  # every picture once
+    # shuffled, the sorted order has a chance of 1 in 20! (about 4e-19)
+    assert (shown == expected) is (order == "path")

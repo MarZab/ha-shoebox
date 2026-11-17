@@ -229,3 +229,23 @@ async def test_removing_shoebox_leaves_no_state_behind(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=1))
     await hass.async_block_till_done()
     assert "shoebox.rotations" not in hass_storage
+
+
+async def test_state_stored_by_an_older_version_still_loads(
+    hass: HomeAssistant, tree: Tree, hass_storage: dict[str, Any]
+) -> None:
+    tree("evening/a.jpg", "evening/b.jpg")
+    entry = MockConfigEntry(domain=DOMAIN, data={}, subentries_data=[rotation()])
+    rid = next(iter(entry.subentries))
+    hass_storage["shoebox.rotations"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "shoebox.rotations",
+        "data": {
+            "rotations": {rid: {"file": "local/evening/a.jpg", "position": 1, "pattern": "x"}}
+        },
+    }
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    state = await entry.runtime_data.rotations.async_advance(rid, ["local/evening/*"])
+    assert state.file == "local/evening/b.jpg"  # went on from where it was

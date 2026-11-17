@@ -123,21 +123,29 @@ async def test_upload_never_overwrites(client: TestClient, tree: Tree) -> None:
     assert [p.name for p in (root / "x").iterdir() if p.name.startswith(".")] == []
 
 
+def without_file() -> FormData:
+    body = FormData()
+    body.add_field("other", b"x", filename="x.jpg", content_type="image/jpeg")  # multipart
+    return body
+
+
 @pytest.mark.parametrize(
-    ("folder", "body", "status"),
+    ("folder", "body", "message"),
     [
-        ("", form(content_type="text/html"), 400),
-        ("missing", form(), 400),
-        ("../x", form(), 400),
-        ("", form(name=""), 400),
-        ("local", FormData({"other": "x"}), 400),
+        ("local", form(content_type="text/html"), "only pictures, videos and audio"),
+        ("local", form(name=".."), "not a valid file name"),
+        ("local", without_file(), "file"),
+        ("local", FormData({"file": "x"}), "multipart"),
+        ("", form(), "Choose a media folder first"),
+        ("missing", form(), "not a media folder"),
     ],
 )
 async def test_upload_refuses(
-    client: TestClient, media_root: Path, folder: str, body: FormData, status: int
+    client: TestClient, media_root: Path, folder: str, body: FormData, message: str
 ) -> None:
     response = await client.post(UPLOAD_URL, params={"folder": folder}, data=body)
-    assert response.status == status
+    assert response.status == 400
+    assert message in (await response.json())["message"]
     assert list(media_root.iterdir()) == []
 
 

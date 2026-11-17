@@ -137,12 +137,12 @@ async def test_not_set_up(hass: HomeAssistant, entry: MockConfigEntry) -> None:
 
 @pytest.mark.usefixtures("loaded")
 async def test_file_system_errors(hass: HomeAssistant, tree: Tree) -> None:
-    root = tree("locked/a.jpg")
-    (root / "locked").chmod(0o500)
-    try:
-        with pytest.raises(HomeAssistantError) as err:
-            await call(hass, "delete", path="local/locked/a.jpg")
-    finally:
-        (root / "locked").chmod(0o700)
+    tree("a.jpg")
+    with pytest.raises(HomeAssistantError) as err:  # a folder inside a file: also as root
+        await call(hass, "create_folder", path="local/a.jpg/x")
     assert err.value.translation_key == "file_error"
-    assert err.value.translation_placeholders["error"] == "Permission denied"
+    # named as in the media folders, not by where they are on the host
+    assert err.value.translation_placeholders == {
+        "error": "Not a directory",
+        "path": "local/a.jpg/x",
+    }

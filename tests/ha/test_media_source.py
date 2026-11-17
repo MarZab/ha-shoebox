@@ -81,7 +81,7 @@ async def test_only_pictures_of_the_rotation_are_served(
     (root / "evening/link.jpg").symlink_to(root / "other/c.jpg")
     client = await hass_client()
     response = await client.get(f"/api/shoebox/media/{rotation_id(with_rotation)}/{path}")
-    assert response.status in (400, 404)
+    assert response.status == 404
 
 
 async def test_refusals(
