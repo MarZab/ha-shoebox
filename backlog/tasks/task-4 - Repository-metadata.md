@@ -1,11 +1,11 @@
 ---
 id: TASK-4
 title: Repository metadata
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T09:50:00Z'
+updated_date: '2026-11-17T15:14:00Z'
 labels:
   - docs
   - release
@@ -30,7 +30,7 @@ Topics: home-assistant, homeassistant, hacs, hacs-integration, home-assistant-in
 <!-- AC:BEGIN -->
 - [x] #1 hacs.json is valid for hacs/action, named Shoebox Media Manager, with the minimum HA version
 - [x] #2 CHANGELOG.md exists
-- [ ] #3 The GitHub repository has the description and the 20 topics
+- [x] #3 The GitHub repository has the description and topics (9, chosen by the user)
 <!-- AC:END -->
 
 ## Definition of Done
@@ -43,5 +43,5 @@ Topics: home-assistant, homeassistant, hacs, hacs-integration, home-assistant-in
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-hacs.json and CHANGELOG.md added. Open: create the GitHub repository ha-shoebox and set its description and topics (needs the owner's go-ahead).
+Description and 9 topics set on GitHub; HACS validation passes on 2230fde.
 <!-- SECTION:NOTES:END -->

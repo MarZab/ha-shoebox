@@ -1,11 +1,11 @@
 ---
 id: TASK-27
 title: README
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-17T09:40:00Z'
-updated_date: '2026-11-17T13:10:00Z'
+updated_date: '2026-11-17T15:16:00Z'
 labels:
   - docs
 milestone: m-5
@@ -43,10 +43,10 @@ The entry point users and HACS see. Short and task-oriented, in the words people
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Install and both quick starts work as written on a clean Docker HA
+- [x] #1 Install and both quick starts work as written on a clean Docker HA
 - [x] #2 Every use case links to a working recipe
 - [x] #3 Every action and entity links to its reference
-- [ ] #4 Renders correctly in HACS
+- [x] #4 Renders correctly in HACS
 <!-- AC:END -->
 
 ## Definition of Done
@@ -59,5 +59,5 @@ The entry point users and HACS see. Short and task-oriented, in the words people
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-README written. Checked in the Docker HA: the dashboard quick start (rotation, picture entity card, timed automation pressing Next). The ESPHome quick start was checked up to the HTTP request (URL, Authorization header, 304); no device here. Open: installing through HACS and how HACS renders the README need the GitHub repository (TASK-4, TASK-31).
+Clean HA 2026.10.4 on :8124 with custom_components/shoebox from GitHub main (what HACS installs before a release): added the integration with My media, the quick start's rotation (preview 6 pictures), Next, image entity and picture card source, the device URL with the entity's token at 640x800, and the panel. The ESPHome start was checked with esphome config only, not on hardware. HACS: its markdown rewriting (hacs/frontend src/tools/markdown.ts) turns Markdown links into GitHub URLs but leaves HTML alone, so the README's two thumbnails use absolute raw.githubusercontent.com URLs; rendered with HACS's rewriting and ha-markdown in the dev HA: both pictures load at 49%, links go to github.com blob pages.
 <!-- SECTION:NOTES:END -->
