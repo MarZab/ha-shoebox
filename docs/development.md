@@ -65,7 +65,7 @@ After changing the panel, also walk these by hand (or with Playwright):
 
 ## Screenshots
 
-The panel screenshot in the README shows real photos: `uv run python tools/scripts/screenshot_photos.py docker/media` downloads them (Unsplash photos through picsum.photos, free to use) into *Photos/Summer 2025*. Take it at 960 × 690 with the sidebar docked and twice the pixel density, and save it as JPEG.
+The panel screenshot in the README shows real photos: `uv run python tools/scripts/screenshot_photos.py docker/media` downloads them (Unsplash photos through picsum.photos, free to use) into *Photos/Summer 2025*. Take the panel and editor screenshots at 960 × 760 with the sidebar docked (871 to 975 px keeps it docked with three thumbnails a row) and twice the pixel density, and save them as JPEG. The quick start's two screenshots show the add-rotation dialog filled in (*Living room*, `local/Photos/**`) and a dashboard with a picture entity card and a tile for its Next button.
 
 ## Repository
 

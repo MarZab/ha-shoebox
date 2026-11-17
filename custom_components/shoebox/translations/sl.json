@@ -36,7 +36,7 @@
           },
           "data_description": {
             "name": "Ime naprave in entitete rotacije.",
-            "patterns": "Globi nad potmi, ki se začnejo z imenom mape z mediji (\"*\" znotraj mape, \"**\" v poljubni globini), ali \"re:\" in regularni izraz. Rotacija prikazuje slike vseh vzorcev skupaj; vzorec, ki se začne z \"!\", slike izpusti, npr. !**/private/**.",
+            "patterns": "Globi nad potmi, ki se začnejo z imenom mape z mediji (`*` znotraj mape, `**` v poljubni globini), ali `re:` in regularni izraz. Rotacija prikazuje slike vseh vzorcev skupaj; vzorec, ki se začne z `!`, slike izpusti, npr. `!**/private/**`.",
             "order": "Po poti prikazuje slike, razvrščene po poti. Premešano prikaže vsako sliko enkrat na krog, v naključnem vrstnem redu."
           }
         },

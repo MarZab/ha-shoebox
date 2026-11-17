@@ -25,7 +25,7 @@ The panel opens at the media folders Shoebox uses, named as in Home Assistant's 
 
 Click a picture to see it large; the arrows go to the previous and next picture in the folder.
 
-![The crop editor](images/editor.png)
+![The crop editor](images/editor.jpg)
 
 For JPEG pictures, **Edit** in the top bar opens the editor:
 

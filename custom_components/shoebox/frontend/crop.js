@@ -18,7 +18,8 @@ const STYLE = `
     user-select: none; cursor: crosshair; line-height: 0; margin: 12px; max-width: calc(100% - 24px); outline: none; }
   .stage:focus-visible .clip { outline: 2px solid var(--primary-color); outline-offset: 4px; }
   .clip { position: relative; overflow: hidden; border-radius: var(--ha-border-radius-sm, 4px); }
-  img { display: block; max-width: min(100%, 900px); max-height: 50vh; pointer-events: none; }
+  /* the dialog's header, controls, preview and footer take about 440 px: the picture gets the rest */
+  img { display: block; max-width: min(100%, 900px); max-height: max(200px, calc(100vh - 440px)); pointer-events: none; }
   .box, .frame { position: absolute; box-sizing: border-box; }
   .box { border: 2px solid var(--primary-color); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); }
   .frame { cursor: move; }

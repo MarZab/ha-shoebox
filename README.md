@@ -2,7 +2,10 @@
 
 Shoebox: media manager and picture organizer for Home Assistant. Organize, upload, rotate and crop the photos in your media folder, and show them as rotating pictures on dashboards, notifications and displays.
 
-![The Shoebox panel](docs/images/panel.jpg)
+<p>
+  <a href="docs/images/panel.jpg"><img src="docs/images/panel.jpg" alt="The Shoebox panel" width="49%"></a>
+  <a href="docs/images/editor.jpg"><img src="docs/images/editor.jpg" alt="Turning and cropping a picture" width="49%"></a>
+</p>
 
 Home Assistant's media browser can upload and delete files. Shoebox adds what it doesn't have: folders, moving and renaming, uploads that never overwrite, thumbnails, and rotate and crop that keep the picture's quality. On top of that, a *rotation* turns a set of pictures into an image that changes, for dashboards, phones and small displays.
 
@@ -27,84 +30,9 @@ Home Assistant's media browser can upload and delete files. Shoebox adds what it
 
 Shoebox works on the media folders you choose: My media, and any added with `media_dirs` in `configuration.yaml`. Removing the integration leaves your files as they are. More in [configuration](docs/configuration.md).
 
-## Quick start: a slideshow on a dashboard
+## Get started
 
-1. Go to **Settings → Devices & services → Shoebox Media Manager → Add rotation**. Name it *Living room* and give it a pattern such as `local/Family/**` (every picture below the `Family` folder). The next step shows how many pictures it selects.
-2. Add a picture entity card to a dashboard:
-
-   ```yaml
-   type: picture-entity
-   entity: image.living_room
-   show_name: false
-   show_state: false
-   ```
-
-3. Move to the next picture every 10 minutes with an automation:
-
-   ```yaml
-   alias: Next living room picture
-   triggers:
-     - trigger: time_pattern
-       minutes: /10
-   actions:
-     - action: button.press
-       target:
-         entity_id: button.living_room_next
-   ```
-
-## Quick start: an ESPHome display
-
-Every rotation has a fixed URL that serves its current picture at the size a device asks for, as a baseline JPEG small displays can decode. Create a [long-lived access token](docs/displays.md#a-user-for-devices) for a user without admin rights, then:
-
-```yaml
-http_request:
-
-online_image:
-  - id: photo
-    url: http://homeassistant.local:8123/api/shoebox/image/image.living_room?width=800&height=480&fit=cover
-    format: JPEG
-    type: RGB565
-    update_interval: never
-    request_headers:
-      Authorization: !secret shoebox_authorization  # "Bearer <long-lived token>"
-    on_download_finished:
-      - component.update: frame  # the display's id
-
-api:
-  actions:
-    - action: show_next_photo
-      then:
-        - component.update: photo
-```
-
-Draw it with `it.image(0, 0, id(photo));` and refresh it from Home Assistant whenever the rotation moves on:
-
-```yaml
-alias: Photo frame follows the living room
-triggers:
-  - trigger: state
-    entity_id: image.living_room
-actions:
-  - action: esphome.photo_frame_show_next_photo
-```
-
-The whole setup is in [displays](docs/displays.md#esphome).
-
-## Actions and entities
-
-| | What it does | Reference |
-|---|---|---|
-| `shoebox.list` | Lists files and folders that match a pattern | [actions](docs/actions.md#list) |
-| `shoebox.create_folder` | Creates a folder | [actions](docs/actions.md#create_folder) |
-| `shoebox.move` | Moves a file or folder into another folder | [actions](docs/actions.md#move) |
-| `shoebox.rename` | Renames a file or folder | [actions](docs/actions.md#rename) |
-| `shoebox.delete` | Deletes a file or folder | [actions](docs/actions.md#delete) |
-| `shoebox.rotate` | Turns a JPEG picture | [actions](docs/actions.md#rotate) |
-| `shoebox.crop` | Crops a JPEG picture | [actions](docs/actions.md#crop) |
-| `image.<rotation>` | The rotation's current picture | [entities](docs/entities.md#image) |
-| `button.<rotation>_next` | Moves the rotation to its next picture | [entities](docs/entities.md#next-button) |
-
-The actions are for administrators. Paths start with the name of a media folder: `local` is My media, so a picture there is `local/Family/beach.jpg`.
+The [quick start](docs/quick-start.md) adds a rotation and puts it on a dashboard, with screenshots, and connects an ESPHome display. The [actions and entities](docs/README.md#actions-and-entities) are listed in the documentation.
 
 ## Limits
 

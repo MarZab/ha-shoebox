@@ -36,7 +36,7 @@
           },
           "data_description": {
             "name": "Shown as the rotation's device and entity name.",
-            "patterns": "Globs over paths, which start with the media folder's name (\"*\" within a folder, \"**\" at any depth), or \"re:\" followed by a regular expression. The rotation shows the pictures of all patterns together; a pattern starting with \"!\" leaves pictures out, such as !**/private/**.",
+            "patterns": "Globs over paths, which start with the media folder's name (`*` within a folder, `**` at any depth), or `re:` followed by a regular expression. The rotation shows the pictures of all patterns together; a pattern starting with `!` leaves pictures out, such as `!**/private/**`.",
             "order": "Path order shows the pictures sorted by path. Shuffle shows each picture once per round, in random order."
           }
         },
