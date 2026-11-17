@@ -28,6 +28,7 @@ from .services import FRACTION
 THUMB: Final = (320, 320, "cover")
 VIEW: Final = (2048, 2048, "contain")
 BASE: Final = (1600, 1600, "contain")  # the editor draws a new crop on the whole picture
+SEARCH_LIMIT: Final = 100  # as in Home Assistant's media search
 
 
 type _Message = dict[str, Any]
@@ -93,6 +94,24 @@ def _item(hass: HomeAssistant, entry: media.Entry) -> dict[str, Any]:
     if entry.type == "image":
         item["thumb"] = picture_url(hass, entry.path, THUMB, version=entry.modified)
     return item
+
+
+@_command(
+    {
+        vol.Required("type"): "shoebox/search",
+        vol.Optional("path", default=""): str,
+        vol.Required("query"): vol.All(str, vol.Length(min=1, max=200)),
+    }
+)
+async def ws_search(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: _Message
+) -> None:
+    """Names containing the query in a folder and every folder below it, as Home Assistant's
+    media search: at most SEARCH_LIMIT, and whether there were more."""
+    box = loaded_shoebox(hass)
+    found, more = await box.run(box.library.search, msg["path"], msg["query"], SEARCH_LIMIT)
+    items = [_item(hass, e) for e in found]
+    connection.send_result(msg["id"], {"items": items, "more": more, "titles": box.library.titles})
 
 
 @_command({vol.Required("type"): "shoebox/browse", vol.Optional("path", default=""): str})
@@ -164,5 +183,5 @@ async def ws_edit(
 
 @callback
 def async_setup_websocket(hass: HomeAssistant) -> None:
-    for command in (ws_browse, ws_folders, ws_info, ws_edit):
+    for command in (ws_browse, ws_search, ws_folders, ws_info, ws_edit):
         websocket_api.async_register_command(hass, command)

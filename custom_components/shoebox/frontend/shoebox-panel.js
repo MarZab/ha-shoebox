@@ -30,6 +30,11 @@ const base = (p) => String(p).split("/").pop();
 const parent = (p) => (String(p).includes("/") ? String(p).slice(0, String(p).lastIndexOf("/")) : "");
 const icon = (name, slot = "") => `<ha-icon ${slot ? `slot="${slot}"` : ""} icon="${name}"></ha-icon>`;
 const STALE_MS = 25 * 60_000;
+const VIEWS = [["auto", "mdi:alpha-a-box-outline"], ["grid", "mdi:grid"], ["list", "mdi:format-list-bulleted-square"]];
+const VIEW_KEY = "shoebox-view";
+// The view is remembered per browser, as in Home Assistant's media browser; storage may be off
+const storedView = () => { try { return localStorage.getItem(VIEW_KEY) || "auto"; } catch { return "auto"; } };
+const storeView = (v) => { try { localStorage.setItem(VIEW_KEY, v); } catch { /* not remembered */ } };
 const iconButton = (name, label, attrs = "") =>
   `<ha-icon-button label="${esc(label)}" ${attrs}>${icon(name)}</ha-icon-button>`;
 // other files open as text; one that is not text says so (checked here, on its first bytes)
@@ -62,6 +67,27 @@ const STYLE = `
   .tile:hover .thumb img { filter: brightness(85%); }
   .label { display: flex; align-items: center; min-height: 48px; padding-inline-start: var(--ha-space-3, 12px); }
   .label .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ha-font-size-m, 14px); }
+  .list { display: flex; flex-direction: column; }
+  .list .tile { contain-intrinsic-size: auto 56px; border-radius: var(--ha-border-radius-md, 8px); }
+  .list .tile:hover { background: var(--secondary-background-color); }
+  .row { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: var(--ha-space-3, 12px);
+    min-height: 56px; padding-inline-start: var(--ha-space-2, 8px); }
+  .row .pic { width: 40px; height: 40px; border-radius: var(--ha-border-radius-sm, 4px); overflow: hidden;
+    display: flex; align-items: center; justify-content: center; color: var(--secondary-text-color); }
+  .row .pic img { width: 100%; height: 100%; object-fit: cover; }
+  .row .pic ha-icon.folder { color: var(--primary-color); }
+  .row .text { min-width: 0; }
+  .row .name, .row .sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .sub { color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px); }
+  .label .sub { display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s, 12px);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .label .text { flex: 1; min-width: 0; }
+  .label .text .name { display: block; }
+  #searchbar { display: flex; gap: var(--ha-space-2, 8px); align-items: center; padding: var(--ha-space-2, 8px) var(--ha-space-4, 16px);
+    border-bottom: 1px solid var(--divider-color); background: var(--primary-background-color); position: sticky; top: 0; z-index: 2; }
+  #searchbar[hidden] { display: none; }
+  #searchbar ha-input { flex: 1; }
+  ha-dropdown-item.on { color: var(--primary-color); }
   .empty { padding: var(--ha-space-8, 32px) var(--ha-space-4, 16px); text-align: center; color: var(--secondary-text-color); }
   .center { display: flex; justify-content: center; padding: var(--ha-space-8, 32px); }
   #drop { position: fixed; inset: 0; z-index: 5; display: none; align-items: flex-end; justify-content: center; pointer-events: none;
@@ -110,6 +136,10 @@ class ShoeboxPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._folder = "";
     this._items = [];
+    this._view = storedView();
+    this._searchOpen = false;
+    this._query = ""; // a search shown instead of the folder
+    this._more = false; // the search found more than it shows
     this._uploads = [];
     this._dragDepth = 0;
     this.shadowRoot.addEventListener("click", (e) => this._click(e));
@@ -137,7 +167,7 @@ class ShoeboxPanel extends HTMLElement {
   connectedCallback() {
     clearInterval(this._staleTimer);
     this._staleTimer = setInterval(() => {
-      if (this._loadedAt && Date.now() - this._loadedAt > STALE_MS && !document.hidden) this._loadFolder();
+      if (this._loadedAt && Date.now() - this._loadedAt > STALE_MS && !document.hidden) this._reload();
     }, 60_000);
   }
 
@@ -211,11 +241,30 @@ class ShoeboxPanel extends HTMLElement {
         ${iconButton("mdi:refresh", t("refresh"), 'slot="actionItems" data-act="refresh"')}
         <ha-dropdown slot="actionItems" placement="bottom-end" id="settings-menu">
           ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
+          <ha-dropdown-item value="search" id="search-item" class="${this._searchOpen ? "on" : ""}">${icon("mdi:magnify", "icon")}${esc(t("search"))}</ha-dropdown-item>
+          <wa-divider></wa-divider>
+          ${VIEWS.map(([v, ic]) => `<ha-dropdown-item value="view-${v}" class="${v === this._view ? "on" : ""}">${icon(ic, "icon")}${esc(t(`view_${v}`))}</ha-dropdown-item>`).join("")}
+          <wa-divider></wa-divider>
           <ha-dropdown-item value="settings">${icon("mdi:cog-outline", "icon")}${esc(t("rotations_and_settings"))}</ha-dropdown-item>
         </ha-dropdown>
+        <div id="searchbar" ${this._searchOpen ? "" : "hidden"}>
+          <ha-input id="search-input" type="search" with-clear label="${esc(t("search"))}"></ha-input>
+          <ha-button id="search-go" appearance="filled">${esc(t("search"))}</ha-button>
+        </div>
         <div class="content" id="content"></div>`;
     bar.narrow = !!this._narrow;
-    this.shadowRoot.getElementById("settings-menu").addEventListener("wa-select", () => this._openSettings());
+    this.shadowRoot.getElementById("settings-menu").addEventListener("wa-select", (e) => {
+      const v = e.detail?.item?.value || "";
+      if (v === "settings") this._openSettings();
+      else if (v === "search") this._toggleSearch();
+      else if (v.startsWith("view-")) this._setView(v.slice(5));
+    });
+    const input = this.shadowRoot.getElementById("search-input");
+    input.value = this._query || "";
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); this._submitSearch(); } });
+    // the clear button (×) empties the field: show the folder again
+    input.addEventListener("input", () => { if (!input.value && this._query) this._submitSearch(); });
+    this.shadowRoot.getElementById("search-go").addEventListener("click", () => this._submitSearch());
     if (this._ready) this._applyRoute(true);
   }
 
@@ -228,6 +277,7 @@ class ShoeboxPanel extends HTMLElement {
       folder = ""; // a malformed address: the top level
     }
     if (!force && folder === this._folder && this._loadedOnce) return;
+    if (folder !== this._folder) this._clearSearch();
     this._folder = folder;
     this._loadedOnce = true;
     // the top level lists the media folders: uploads and new folders go into one of them
@@ -269,7 +319,7 @@ class ShoeboxPanel extends HTMLElement {
       const a = act.dataset.act;
       if (a === "upload") this.shadowRoot.getElementById("picker").click();
       else if (a === "new-folder") this._newFolder();
-      else if (a === "refresh") this._loadFolder();
+      else if (a === "refresh") this._reload();
       else if (a === "crumb") this._navigate(act.dataset.path);
       else if (a === "close-uploads") this._closeUploads();
       return;
@@ -293,6 +343,60 @@ class ShoeboxPanel extends HTMLElement {
   }
 
   // ------------------------------------------------------------------ files
+
+  _reload() { return this._query ? this._runSearch() : this._loadFolder(); }
+
+  _setView(view) {
+    this._view = view;
+    storeView(view);
+    this.shadowRoot.querySelectorAll('#settings-menu ha-dropdown-item[value^="view-"]').forEach((el) => {
+      el.classList.toggle("on", el.value === `view-${view}`);
+    });
+    this._renderFolder();
+  }
+
+  // Search, like Home Assistant's media browser: names in this folder and every folder below it
+  _toggleSearch() {
+    this._searchOpen = !this._searchOpen;
+    const bar = this.shadowRoot.getElementById("searchbar");
+    bar.hidden = !this._searchOpen;
+    this.shadowRoot.getElementById("search-item")?.classList.toggle("on", this._searchOpen);
+    if (this._searchOpen) requestAnimationFrame(() => this.shadowRoot.getElementById("search-input")?.focus());
+    else if (this._query) { this._clearSearch(); this._loadFolder(); }
+  }
+
+  _clearSearch() {
+    this._query = "";
+    this._more = false;
+    const input = this.shadowRoot?.getElementById("search-input");
+    if (input) input.value = "";
+  }
+
+  _submitSearch() {
+    const query = (this.shadowRoot.getElementById("search-input").value || "").trim();
+    if (!query) { this._clearSearch(); this._loadFolder(); return; }
+    this._query = query;
+    this._runSearch();
+  }
+
+  async _runSearch() {
+    const content = this.shadowRoot.getElementById("content");
+    content.innerHTML = `<div class="center"><ha-spinner></ha-spinner></div>`;
+    const seq = (this._loadSeq = (this._loadSeq || 0) + 1);
+    try {
+      const r = await this._ws("search", { path: this._folder, query: this._query });
+      if (seq !== this._loadSeq) return;
+      this._loadedAt = Date.now();
+      this._items = r.items;
+      this._titles = r.titles;
+      this._more = r.more;
+      this._shownFolder = null; // the folder itself is not shown
+      this._renderFolder();
+    } catch (err) {
+      if (seq !== this._loadSeq) return;
+      content.innerHTML = `<ha-alert alert-type="error">${esc(err.message || err)}</ha-alert>`;
+    }
+  }
 
   async _loadFolder() {
     const content = this.shadowRoot.getElementById("content");
@@ -330,30 +434,52 @@ class ShoeboxPanel extends HTMLElement {
       const name = i === 0 ? this._shown(p) : p;
       crumbs.push(i === parts.length - 1 ? `<span class="here">${esc(name)}</span>` : `<a data-act="crumb" data-path="${esc(path)}" tabindex="0" role="link">${esc(name)}</a>`);
     });
-    const top = !this._folder; // the media folders themselves cannot be renamed, moved or deleted
+    const searching = !!this._query;
+    // as Home Assistant's media browser: "Search <the folder>"
+    const here = parts.length ? (parts.length === 1 ? this._shown(parts[0]) : parts[parts.length - 1]) : t("media");
+    const input = this.shadowRoot.getElementById("search-input");
+    if (input) input.label = t("search_in", { folder: here });
+    // the media folders themselves cannot be renamed, moved or deleted
+    const top = !this._folder && !searching;
+    // auto: a grid where there are pictures to see, a list for documents and folders
+    const view = this._view === "auto" ? (this._items.some((i) => i.type === "image") ? "grid" : "list") : this._view;
+    const lang = this._lang || undefined;
+    const sub = (it) => searching
+      ? this._shown(parent(it.path)) // where the result is
+      : [it.type !== "folder" ? sizeText(it.size) : "", it.modified ? new Date(it.modified * 1000).toLocaleDateString(lang) : ""].filter(Boolean).join(" · ");
     const tiles = this._items.map((it, i) => {
       let thumb;
       if (it.type === "folder") thumb = `<ha-icon class="folder" icon="mdi:folder"></ha-icon>`;
       else if (it.type === "image") thumb = `<img loading="lazy" decoding="async" alt="" src="${esc(it.thumb)}">`;
       else thumb = `<ha-icon icon="${VIDEO.test(it.name) ? "mdi:file-video-outline" : AUDIO.test(it.name) ? "mdi:file-music-outline" : "mdi:file-outline"}"></ha-icon>`;
-      return `<div class="tile" data-i="${i}" tabindex="0" role="button" aria-label="${esc(it.name)}" ${it.type === "folder" ? `data-folder="${esc(it.path)}"` : ""} title="${esc(it.name)}${it.type !== "folder" ? ` · ${sizeText(it.size)}` : ""}">
+      const attrs = `class="tile" data-i="${i}" tabindex="0" role="button" aria-label="${esc(it.name)}" ${it.type === "folder" ? `data-folder="${esc(it.path)}"` : ""} title="${esc(it.name)}${it.type !== "folder" ? ` · ${sizeText(it.size)}` : ""}"`;
+      const name = `<span class="text"><span class="name">${esc(it.name)}</span>${view === "list" || searching ? `<span class="sub">${esc(sub(it))}</span>` : ""}</span>`;
+      const menu = top ? "" : this._itemMenu(it, i);
+      if (view === "list") return `<div ${attrs}><div class="row"><div class="pic">${thumb}</div>${name}${menu}</div></div>`;
+      return `<div ${attrs}>
         <ha-card outlined><div class="thumb">${thumb}</div>
-          <div class="label"><span class="name">${esc(it.name)}</span>
-            ${top ? "" : `<ha-dropdown data-i="${i}" placement="bottom-end">
+          <div class="label">${name}${menu}</div></ha-card></div>`;
+    });
+    const count = searching ? t(this._more ? "results_more" : "results", { count: this._items.length }) : t("items", { count: this._items.length });
+    const empty = searching ? t("no_results", { query: this._query }) : t("empty");
+    const content = this.shadowRoot.getElementById("content");
+    content.innerHTML = `<div class="crumbs">${crumbs.join("")}<span class="count">${esc(count)}</span></div>
+      ${this._items.length ? `<div class="${view}">${tiles.join("")}</div>` : `<ha-card outlined><div class="empty">${icon(searching ? "mdi:magnify" : "mdi:image-plus-outline")}<p>${esc(empty)}</p></div></ha-card>`}`;
+    content.querySelectorAll("ha-dropdown").forEach((dd) => {
+      dd.addEventListener("wa-select", (e) => this._menu(e, this._items[Number(dd.dataset.i)]));
+    });
+  }
+
+  _itemMenu(it, i) {
+    const t = this.t;
+    return `<ha-dropdown data-i="${i}" placement="bottom-end">
               ${iconButton("mdi:dots-vertical", t("menu"), 'slot="trigger"')}
               ${it.type !== "file" || previewable(it) ? `<ha-dropdown-item value="open">${icon(it.type === "folder" ? "mdi:folder-open-outline" : it.type === "image" ? "mdi:image-outline" : "mdi:text-box-outline", "icon")}${esc(t("open"))}</ha-dropdown-item>` : ""}
               ${it.type !== "folder" ? `<ha-dropdown-item value="download">${icon("mdi:download-outline", "icon")}${esc(t("download"))}</ha-dropdown-item>` : ""}
               <ha-dropdown-item value="rename">${icon("mdi:rename-outline", "icon")}${esc(t("rename"))}</ha-dropdown-item>
               <ha-dropdown-item value="move">${icon("mdi:folder-move-outline", "icon")}${esc(t("move"))}</ha-dropdown-item>
               <ha-dropdown-item value="delete" variant="danger">${icon("mdi:delete-outline", "icon")}${esc(t("delete"))}</ha-dropdown-item>
-            </ha-dropdown>`}</div></ha-card></div>`;
-    });
-    const content = this.shadowRoot.getElementById("content");
-    content.innerHTML = `<div class="crumbs">${crumbs.join("")}<span class="count">${esc(t("items", { count: this._items.length }))}</span></div>
-      ${this._items.length ? `<div class="grid">${tiles.join("")}</div>` : `<ha-card outlined><div class="empty">${icon("mdi:image-plus-outline")}<p>${esc(t("empty"))}</p></div></ha-card>`}`;
-    content.querySelectorAll("ha-dropdown").forEach((dd) => {
-      dd.addEventListener("wa-select", (e) => this._menu(e, this._items[Number(dd.dataset.i)]));
-    });
+            </ha-dropdown>`;
   }
 
   _newFolder() {
@@ -361,7 +487,7 @@ class ShoeboxPanel extends HTMLElement {
     this._prompt(t("new_folder"), t("folder_name"), "", t("create"), async (name) => {
       const path = this._folder ? `${this._folder}/${name}` : name;
       await this._action("create_folder", { path });
-      await this._loadFolder();
+      await this._reload();
     });
   }
 
@@ -370,7 +496,7 @@ class ShoeboxPanel extends HTMLElement {
     this._prompt(t("rename"), t("new_name"), item.name, t("rename"), async (name) => {
       if (name === item.name) return;
       const r = await this._action("rename", { path: item.path, name });
-      await this._loadFolder();
+      await this._reload();
       after?.(r?.path);
     }, item.type !== "folder");
   }
@@ -396,7 +522,7 @@ class ShoeboxPanel extends HTMLElement {
       onPrimary: async () => {
         if (selected === null) throw new Error(t("choose_folder"));
         await this._action("move", { path: item.path, to: selected });
-        await this._loadFolder();
+        await this._reload();
         after?.(selected ? `${selected}/${item.name}` : item.name);
         return true;
       },
@@ -425,7 +551,7 @@ class ShoeboxPanel extends HTMLElement {
       danger: true,
       onPrimary: async () => {
         await this._action("delete", { path: item.path });
-        await this._loadFolder();
+        await this._reload();
         after?.();
         return true;
       },
@@ -737,7 +863,7 @@ class ShoeboxPanel extends HTMLElement {
   _refreshThumb() {
     // the file changed (its mtime is part of the variant key): list the folder again for new thumbnails
     clearTimeout(this._refreshTimer);
-    this._refreshTimer = setTimeout(() => this._loadFolder(), 300);
+    this._refreshTimer = setTimeout(() => this._reload(), 300);
   }
 
   // ------------------------------------------------------------------ upload
@@ -842,7 +968,7 @@ class ShoeboxPanel extends HTMLElement {
   _afterUpload(u) {
     if (u.state === "done" && (u.folder === this._folder || parent(u.folder) === this._folder)) {
       clearTimeout(this._reloadTimer);
-      this._reloadTimer = setTimeout(() => this._loadFolder(), 400);
+      this._reloadTimer = setTimeout(() => this._reload(), 400);
     }
   }
 

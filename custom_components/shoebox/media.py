@@ -8,7 +8,7 @@ import Home Assistant.
 from __future__ import annotations
 
 import bisect
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 import errno
 import logging
@@ -125,9 +125,31 @@ def _entry(rel: str, full: str, is_dir: bool) -> Entry | None:
 
 def walk(root: Path) -> list[Entry]:
     """Everything below the root, sorted by path. Hidden names and symbolic links are skipped."""
+    return sorted(_walk(root, "."), key=lambda e: e.path)
+
+
+def search(root: Path, path: str, text: str, limit: int) -> tuple[list[Entry], bool]:
+    """Folders and files below the folder `path` ("" is the root) whose name contains `text`,
+    ignoring case, as Home Assistant's media search does; at most `limit`, and whether there
+    were more. The walk stops at the limit, so a large library costs no more than that."""
+    folder = resolve(root, path or ".", allow_root=True)
+    if not folder.is_dir():
+        raise MediaError("not_a_folder", path=path)
+    needle = text.strip().casefold()
+    found: list[Entry] = []
+    for entry in _walk(root, os.path.relpath(folder, os.path.realpath(root))):
+        if needle in entry.name.casefold():
+            if len(found) == limit:
+                return found, True
+            found.append(entry)
+    return found, False
+
+
+def _walk(root: Path, start: str) -> Iterator[Entry]:
+    """Entries below root/start, folder by folder in name order, lazily."""
     root_real = os.path.realpath(root)
-    out: list[Entry] = []
-    for dirpath, dirnames, filenames in os.walk(root_real, followlinks=False):
+    top = os.path.normpath(os.path.join(root_real, start))
+    for dirpath, dirnames, filenames in os.walk(top, followlinks=False):
         dirnames[:] = sorted(
             d
             for d in dirnames
@@ -140,9 +162,7 @@ def walk(root: Path) -> list[Entry]:
                 continue
             rel = name if rel_dir == "." else f"{rel_dir}/{name}"
             if entry := _entry(rel, full, is_dir):
-                out.append(entry)
-    out.sort(key=lambda e: e.path)
-    return out
+                yield entry
 
 
 # Each "**" multiplies the work of matching a path that almost matches: 4 take a millisecond on a

@@ -109,6 +109,24 @@ class Library:
         entry = Entry(path, "image" if media.is_image(path) else "file", 0, 0)
         return bool(media.select_pictures([entry], patterns))
 
+    def search(self, path: str, text: str, limit: int) -> tuple[list[Entry], bool]:
+        """Names containing `text` below a folder ("" searches every media folder)."""
+        if not path.strip().strip("/"):
+            found: list[Entry] = []
+            for name, folder in sorted(self.folders.items()):
+                if not folder.is_dir():
+                    continue
+                # with nothing left of the limit, this only finds out whether there are more
+                entries, more = media.search(folder, "", text, limit - len(found))
+                found += [_prefixed(name, e) for e in entries]
+                if more:
+                    return found, True
+            return found, False
+        name, folder, rest = self.locate(path)
+        with self._in(name):
+            entries, more = media.search(folder, rest, text, limit)
+        return [_prefixed(name, e) for e in entries], more
+
     def list_folder(self, path: str = "") -> tuple[str, list[Entry]]:
         """One folder's folders and files; "" lists the media folders themselves."""
         if not path.strip().strip("/"):

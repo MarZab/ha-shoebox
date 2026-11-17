@@ -34,6 +34,13 @@ For JPEG pictures, **Edit** in the top bar opens the editor:
 - **Aspect ratio** (a dropdown) keeps the box at *Free*, the picture's *Original* shape, or a fixed ratio such as 16:9, 4:3, 1:1 or 9:16.
 - **Save** stores the turn and the crop together. **Cancel** leaves the picture as it was. **Reset** removes the crop; save to keep that.
 
+## Views and search
+
+The menu (⋮) in the top bar has the same choices as Home Assistant's media browser:
+
+- **Auto**, **Grid** or **List**. The grid shows thumbnails; the list shows a small thumbnail, the name, size and date. *Auto* shows a grid where a folder has pictures and a list where it has none. The choice is remembered in this browser.
+- **Search** shows a search field. Searching looks in the current folder and every folder below it, for files and folders whose name contains the text, ignoring case, as Home Assistant's media search does: hidden names are skipped, and the first 100 results are shown. At the top level it searches every media folder. Each result shows where it is, and opens, downloads, renames, moves and deletes like any other item. Clearing the field, or going to another folder, shows the folder again.
+
 ## Keyboard
 
 - **Tab** reaches folders, files, the path at the top and every button; **Enter** or **Space** opens what has focus.

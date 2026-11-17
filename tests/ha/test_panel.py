@@ -12,6 +12,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator, WebSocketGenerator
 
+from custom_components.shoebox import websocket
 from custom_components.shoebox.const import (
     CONF_CACHE_SIZE,
     CONF_CLEAR_CACHE,
@@ -196,6 +197,50 @@ async def test_info_and_edit(ws: Ws, media_root: Path) -> None:
     edited = (await ws("edit", path="local/a.jpg", rotate=90, crop=[0, 0, 0.5, 1]))["result"]
     assert (edited["width"], edited["height"], edited["orientation"]) == (40, 80, 6)
     assert edited["crop"] == pytest.approx([0, 0, 0.5, 1])
+
+
+@pytest.mark.parametrize(
+    ("path", "query", "found", "more"),
+    [
+        (
+            "local/x",
+            "BEACH",
+            ["local/x/beach.jpg", "local/x/sub/Beach 2/"],
+            False,
+        ),
+        ("", "beach.jpg", ["local/x/beach.jpg"], False),  # every media folder
+        ("local/x/sub", "beach", ["local/x/sub/Beach 2/"], False),
+        ("local", "a", None, True),  # more than the limit
+    ],
+)
+async def test_search_below_a_folder(
+    ws: Ws,
+    tree: Tree,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    query: str,
+    found: list[str] | None,
+    more: bool,
+) -> None:
+    monkeypatch.setattr(websocket, "SEARCH_LIMIT", 3)
+    tree(
+        "x/beach.jpg",
+        "x/.beach-hidden.jpg",
+        "x/sub/Beach 2/c.jpg",
+        "x/a1.txt",
+        "x/a2.txt",
+        "x/a3.txt",
+    )
+    msg = await ws("search", path=path, query=query)
+    assert msg["success"], msg
+    result = msg["result"]
+    paths = [i["path"] + ("/" if i["type"] == "folder" else "") for i in result["items"]]
+    if found is not None:
+        assert paths == found
+    else:
+        assert len(paths) == 3
+    assert result["more"] is more
+    assert all("thumb" in i for i in result["items"] if i["type"] == "image")
 
 
 @pytest.mark.parametrize(
