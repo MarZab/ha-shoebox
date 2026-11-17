@@ -1,0 +1,284 @@
+"""Files below the media folder.
+
+Path confinement, listing, patterns, rotation order and file operations. Every function takes
+the media root and works only below it; anything else raises MediaError. This module does not
+import Home Assistant.
+"""
+
+from __future__ import annotations
+
+import bisect
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+import os
+from pathlib import Path
+import re
+import shutil
+from typing import Final, Literal
+
+IMAGE_SUFFIXES: Final = frozenset(
+    {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif", ".gif", ".bmp", ".tif", ".tiff"}
+)
+type EntryType = Literal["image", "file", "folder"]
+TYPES: Final = ("all", "image", "file", "folder")
+
+
+class MediaError(Exception):
+    """A refused or failed operation; the message is meant for the user."""
+
+
+def is_image(name: str) -> bool:
+    return Path(name).suffix.lower() in IMAGE_SUFFIXES
+
+
+# ---------------------------------------------------------------- paths
+
+
+def _inside(root_real: str, real: str) -> bool:
+    return real == root_real or real.startswith(root_real.rstrip(os.sep) + os.sep)
+
+
+def resolve(root: Path, path: str, *, allow_root: bool = False) -> Path:
+    """The real path for `path`, relative to the root or absolute below it.
+
+    ".." is refused outright, and so is a path that is itself a symbolic link: deleting or moving it
+    would act on its target. Links in the folders on the way are followed, and the result must still
+    be below the root. The path need not exist.
+    """
+    if not isinstance(path, str) or "\0" in path:
+        raise MediaError("invalid path")
+    p = Path(path.strip())
+    if ".." in p.parts:
+        raise MediaError(f"'{path}': '..' is not allowed")
+    root_real = os.path.realpath(root)
+    candidate = p if p.is_absolute() else Path(root_real, p)
+    if p.is_absolute() and not (_inside(str(root), str(p)) or _inside(root_real, str(p))):
+        raise MediaError(f"'{path}' is outside {root}")
+    if os.path.islink(candidate):
+        raise MediaError(f"'{path}' is a symbolic link")
+    real = os.path.realpath(candidate)
+    if not _inside(root_real, real):
+        raise MediaError(f"'{path}' is outside {root}")
+    if real == root_real and not allow_root:
+        raise MediaError(f"'{path}' is the media folder itself")
+    return Path(real)
+
+
+def relative(root: Path, real: Path) -> str:
+    """The path below the root as actions show it: "folder/photo.jpg"."""
+    return Path(real).relative_to(os.path.realpath(root)).as_posix()
+
+
+def _check_name(name: str) -> str:
+    if not name or name in (".", "..") or "/" in name or "\0" in name or name != name.strip():
+        raise MediaError(f"'{name}' is not a valid name")
+    return name
+
+
+# ---------------------------------------------------------------- listing and patterns
+
+
+@dataclass(frozen=True)
+class Entry:
+    path: str  # below the root, "/"-separated
+    type: EntryType
+    size: int
+    modified: float
+
+    @property
+    def name(self) -> str:
+        return self.path.rsplit("/", 1)[-1]
+
+    def as_dict(self) -> dict[str, str | int | float]:
+        return {"path": self.path, "type": self.type, "size": self.size, "modified": self.modified}
+
+
+def _entry(rel: str, full: str, is_dir: bool) -> Entry | None:
+    try:
+        st = os.stat(full)
+    except OSError:
+        return None
+    if is_dir:
+        return Entry(rel, "folder", 0, st.st_mtime)
+    return Entry(rel, "image" if is_image(rel) else "file", st.st_size, st.st_mtime)
+
+
+def walk(root: Path) -> list[Entry]:
+    """Everything below the root, sorted by path. Hidden names and symbolic links are skipped."""
+    root_real = os.path.realpath(root)
+    out: list[Entry] = []
+    for dirpath, dirnames, filenames in os.walk(root_real, followlinks=False):
+        dirnames[:] = sorted(
+            d
+            for d in dirnames
+            if not d.startswith(".") and not os.path.islink(os.path.join(dirpath, d))
+        )
+        rel_dir = os.path.relpath(dirpath, root_real).replace(os.sep, "/")
+        for name, is_dir in [(d, True) for d in dirnames] + [(f, False) for f in filenames]:
+            full = os.path.join(dirpath, name)
+            if name.startswith(".") or (not is_dir and os.path.islink(full)):
+                continue
+            rel = name if rel_dir == "." else f"{rel_dir}/{name}"
+            if entry := _entry(rel, full, is_dir):
+                out.append(entry)
+    out.sort(key=lambda e: e.path)
+    return out
+
+
+def _glob_to_regex(pattern: str) -> str:
+    out: list[str] = []
+    i, n = 0, len(pattern)
+    while i < n:
+        c = pattern[i]
+        if c == "*":
+            if pattern.startswith("**", i):
+                i += 2
+                if i < n and pattern[i] == "/":  # "**/": any number of folders, also none
+                    out.append("(?:.*/)?")
+                    i += 1
+                else:
+                    out.append(".*")
+                continue
+            out.append("[^/]*")
+        elif c == "?":
+            out.append("[^/]")
+        elif c == "[":
+            j = pattern.find("]", i + 2 if pattern.startswith(("[!", "[^"), i) else i + 1)
+            if j < 0:
+                out.append(re.escape(c))
+            else:
+                body = pattern[i + 1 : j]
+                if body.startswith("!"):
+                    body = "^" + body[1:]
+                out.append("[" + body.replace("\\", "\\\\") + "]")
+                i = j
+        else:
+            out.append(re.escape(c))
+        i += 1
+    return "".join(out)
+
+
+def compile_pattern(pattern: str) -> re.Pattern[str]:
+    """A pattern over paths below the root.
+
+    A glob ("*" within a folder, "**" at any depth, "?", "[...]") matches the whole path;
+    "re:<regular expression>" is searched in the path.
+    """
+    if not isinstance(pattern, str) or not pattern.strip():
+        raise MediaError("empty pattern")
+    try:
+        if pattern.startswith("re:"):
+            return re.compile(pattern[3:])
+        return re.compile(r"\A(?:" + _glob_to_regex(pattern.strip().lstrip("/")) + r")\Z")
+    except re.error as err:
+        raise MediaError(f"invalid pattern '{pattern}': {err}") from err
+
+
+def matches(pattern: str, path: str) -> bool:
+    rx = compile_pattern(pattern)
+    return bool(rx.search(path) if pattern.startswith("re:") else rx.match(path))
+
+
+def select(entries: Iterable[Entry], pattern: str, type_: str = "all") -> list[Entry]:
+    if type_ not in TYPES:
+        raise MediaError(f"type must be one of {', '.join(TYPES)}")
+    rx = compile_pattern(pattern)
+    find = rx.search if pattern.startswith("re:") else rx.match
+    return [e for e in entries if (type_ in ("all", e.type)) and find(e.path)]
+
+
+def first_match(entries: Sequence[Entry], patterns: Sequence[str]) -> tuple[str | None, list[str]]:
+    """The pictures of the first pattern that selects any, sorted by path, and that pattern."""
+    for pattern in patterns:
+        if files := [e.path for e in select(entries, pattern, "image")]:
+            return pattern, files
+    return None, []
+
+
+def advance(files: Sequence[str], current: str | None) -> int:
+    """The index of the picture after `current` in the sorted list, wrapping around.
+
+    When `current` is gone, the rotation continues with the picture sorted after it, so adding or
+    removing files does not restart it. -1 for an empty list.
+    """
+    if not files:
+        return -1
+    if current is None:
+        return 0
+    if current in files:
+        return (files.index(current) + 1) % len(files)
+    return bisect.bisect_right(list(files), current) % len(files)
+
+
+# ---------------------------------------------------------------- file operations
+
+
+def create_folder(root: Path, path: str) -> str:
+    target = resolve(root, path)
+    if target.exists() and not target.is_dir():
+        raise MediaError(f"'{path}' exists and is not a folder")
+    target.mkdir(parents=True, exist_ok=True)
+    return relative(root, target)
+
+
+def move(root: Path, path: str, to: str) -> str:
+    """Move a file or folder into the folder `to` ("" or "/" is the media folder itself)."""
+    src = resolve(root, path)
+    dest_dir = resolve(root, to or ".", allow_root=True)
+    if not src.exists():
+        raise MediaError(f"'{path}' does not exist")
+    if not dest_dir.is_dir():
+        raise MediaError(f"'{to}' is not a folder")
+    if src.is_dir() and (dest_dir == src or src in dest_dir.parents):
+        raise MediaError(f"cannot move '{path}' into itself")
+    target = dest_dir / src.name
+    if target.exists() or target.is_symlink():
+        raise MediaError(f"'{relative(root, target)}' already exists")
+    shutil.move(src, target)
+    return relative(root, target)
+
+
+def rename(root: Path, path: str, name: str) -> str:
+    src = resolve(root, path)
+    if not src.exists():
+        raise MediaError(f"'{path}' does not exist")
+    target = src.parent / _check_name(name)
+    resolve(root, str(target))
+    if target.exists() or target.is_symlink():
+        raise MediaError(f"'{relative(root, target)}' already exists")
+    src.rename(target)
+    return relative(root, target)
+
+
+def delete(root: Path, path: str) -> str:
+    """Delete a file, or a folder with everything in it."""
+    target = resolve(root, path)
+    if not target.exists():
+        raise MediaError(f"'{path}' does not exist")
+    rel = relative(root, target)
+    if target.is_dir():
+        shutil.rmtree(target)
+    else:
+        target.unlink()
+    return rel
+
+
+def list_folder(root: Path, path: str = "") -> tuple[str, list[Entry]]:
+    """One folder ("" is the media folder): its folders, then its files, each sorted by name.
+
+    Hidden names and symbolic links are skipped, as in walk().
+    """
+    folder = resolve(root, path or ".", allow_root=True)
+    if not folder.is_dir():
+        raise MediaError(f"'{path}' is not a folder")
+    rel_dir = "" if folder == Path(os.path.realpath(root)) else relative(root, folder)
+    found: list[Entry] = []
+    with os.scandir(folder) as it:
+        for d in it:
+            if d.name.startswith(".") or d.is_symlink():
+                continue
+            rel = f"{rel_dir}/{d.name}" if rel_dir else d.name
+            if entry := _entry(rel, d.path, d.is_dir()):
+                found.append(entry)
+    found.sort(key=lambda e: (e.type != "folder", e.name.casefold()))
+    return rel_dir, found
